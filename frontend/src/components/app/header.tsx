@@ -17,6 +17,7 @@ import { useTranslations } from "next-intl"
 
 import { AppSidebar } from "@/components/app/app-sidebar"
 import { useAuth } from "@/components/app/auth-provider"
+import { BusinessSwitcher } from "@/components/app/business-switcher"
 import { LanguageSwitcher } from "@/components/app/language-switcher"
 import { NotificationBell } from "@/components/app/notification-bell"
 import BusinessSettingsPage from "@/app/(dashboard)/settings/business/page"
@@ -71,6 +72,11 @@ type PageTitleKey =
   | "notificationSettings"
   | "preferencesSettings"
   | "securitySettings"
+  | "store.categories"
+  | "store.productsNav"
+  | "store.salesNav"
+  | "store.suppliersNav"
+  | "store.purchasesNav"
 
 const pageTitleKeys: Record<string, PageTitleKey> = {
   "/dashboard": "dashboard",
@@ -88,6 +94,11 @@ const pageTitleKeys: Record<string, PageTitleKey> = {
   "/settings/notifications": "notificationSettings",
   "/settings/preferences": "preferencesSettings",
   "/settings/security": "securitySettings",
+  "/store/categories": "store.categories",
+  "/store/products": "store.productsNav",
+  "/store/sales": "store.salesNav",
+  "/store/suppliers": "store.suppliersNav",
+  "/store/purchases": "store.purchasesNav",
 }
 
 export function Header() {
@@ -154,6 +165,7 @@ export function Header() {
           <SearchIcon />
         </Button>
         <LanguageSwitcher />
+        <BusinessSwitcher />
         <NotificationBell />
         <DropdownMenu>
           <DropdownMenuTrigger render={<Button size="lg" variant="ghost" />}>

@@ -39,7 +39,6 @@
     "class-validator": "^0.15.1",
     "date-fns": "^4.4.0",
     "date-fns-tz": "^3.2.0",
-    "dotenv": "^17.4.2",
     "exceljs": "^4.4.0",
     "multer": "^2.1.1",
     "nestjs-i18n": "^10.8.4",
@@ -62,6 +61,7 @@
     "@types/pdfkit": "^0.17.6",
     "@types/pg": "^8.20.0",
     "@types/supertest": "^7.0.0",
+    "dotenv": "^17.4.2",
     "eslint": "^9.18.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",
@@ -88,6 +88,9 @@
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "moduleNameMapper": {
+      "^(\\..+)\\.js$": "$1"
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"

@@ -10,6 +10,7 @@ import { join } from 'node:path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
+import { BusinessModule } from './business/business.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { BookingsModule } from './bookings/bookings.module';
@@ -23,6 +24,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { ReportModule } from './report/report.module';
 import { RoomsModule } from './rooms/rooms.module';
 import { SettingsModule } from './settings/settings.module';
+import { StoreModule } from './store/store.module';
 import { UsersModule } from './users/users.module';
 
 const i18nPath =
@@ -44,6 +46,7 @@ const i18nPath =
     }),
     PrismaModule,
     AuthModule,
+    BusinessModule,
     RoomsModule,
     GuestsModule,
     BookingsModule,
@@ -54,6 +57,7 @@ const i18nPath =
     InvoicesModule,
     NotificationsModule,
     SettingsModule,
+    StoreModule,
   ],
   controllers: [AppController],
   providers: [

@@ -61,18 +61,33 @@ enum NotificationType {
   SYSTEM
 }
 
+enum BusinessType {
+  GUESTHOUSE
+  STORE
+}
+
+enum BusinessRole {
+  OWNER
+  ADMIN
+  STAFF
+}
+
 model User {
-  id            String         @id @default(cuid())
-  name          String
-  email         String         @unique
-  phone         String?
-  password      String
-  role          UserRole       @default(RECEPTIONIST)
-  preferredLanguage PreferredLanguage @default(EN)
-  notifications Notification[]
-  notificationSetting UserNotificationSetting?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id                   String                   @id @default(cuid())
+  name                 String
+  email                String                   @unique
+  phone                String?
+  password             String
+  role                 UserRole                 @default(RECEPTIONIST)
+  preferredLanguage    PreferredLanguage        @default(EN)
+  notifications        Notification[]
+  notificationSetting  UserNotificationSetting?
+  ownedBusinesses      Business[]               @relation("BusinessOwner")
+  businessMemberships  BusinessMember[]
+  sales                Sale[]                   @relation("SalesSoldBy")
+  purchases            Purchase[]               @relation("PurchasesCreatedBy")
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
 
   @@map("users")
 }
@@ -182,4 +197,199 @@ model SystemSetting {
   updatedAt DateTime @updatedAt
 
   @@map("system_settings")
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum SaleStatus {
+  COMPLETED
+  CANCELLED
+  REFUNDED
+}
+
+enum StorePaymentMethod {
+  CASH
+  CARD
+  QR
+  BANK_TRANSFER
+}
+
+enum PurchaseStatus {
+  DRAFT
+  COMPLETED
+  CANCELLED
+}
+
+model Business {
+  id         String            @id @default(uuid())
+  name       String
+  type       BusinessType
+  ownerId    String
+  owner      User              @relation("BusinessOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  members    BusinessMember[]
+  categories ProductCategory[]
+  products   Product[]
+  sales      Sale[]
+  suppliers  Supplier[]
+  purchases  Purchase[]
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  @@index([ownerId])
+  @@map("businesses")
+}
+
+model ProductCategory {
+  id          String    @id @default(cuid())
+  businessId  String
+  name        String
+  description String?
+  products    Product[]
+  business    Business  @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+
+  @@index([businessId])
+  @@map("product_categories")
+}
+
+model Product {
+  id            String           @id @default(cuid())
+  businessId    String
+  categoryId    String?
+  name          String
+  sku           String
+  barcode       String?
+  purchasePrice Decimal          @db.Decimal(10, 2)
+  sellingPrice  Decimal          @db.Decimal(10, 2)
+  stockQuantity Int              @default(0)
+  lowStockAlert Int              @default(10)
+  status        ProductStatus    @default(ACTIVE)
+  business      Business         @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  category      ProductCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  saleItems     SaleItem[]
+  purchaseItems PurchaseItem[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  deletedAt     DateTime?
+
+  @@unique([businessId, sku])
+  @@index([businessId])
+  @@index([categoryId])
+  @@index([status])
+  @@map("products")
+}
+
+model Sale {
+  id            String             @id @default(cuid())
+  businessId    String
+  saleNumber    String
+  totalAmount   Decimal            @db.Decimal(10, 2)
+  paymentMethod StorePaymentMethod
+  status        SaleStatus         @default(COMPLETED)
+  soldById      String
+  business      Business           @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  soldBy        User               @relation("SalesSoldBy", fields: [soldById], references: [id], onDelete: Restrict)
+  items         SaleItem[]
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@unique([businessId, saleNumber])
+  @@index([businessId])
+  @@index([soldById])
+  @@index([status])
+  @@index([createdAt])
+  @@map("sales")
+}
+
+model SaleItem {
+  id        String  @id @default(cuid())
+  saleId    String
+  productId String
+  quantity  Int
+  unitPrice Decimal @db.Decimal(10, 2)
+  subtotal  Decimal @db.Decimal(10, 2)
+  sale      Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([saleId])
+  @@index([productId])
+  @@map("sale_items")
+}
+
+model BusinessMember {
+  id         String       @id @default(uuid())
+  businessId String
+  userId     String
+  role       BusinessRole
+  business   Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@unique([businessId, userId])
+  @@index([businessId])
+  @@index([userId])
+  @@map("business_members")
+}
+
+model Supplier {
+  id         String     @id @default(cuid())
+  businessId String
+  name       String
+  phone      String?
+  email      String?
+  address    String?
+  business   Business   @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  purchases  Purchase[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@index([businessId])
+  @@map("suppliers")
+}
+
+model Purchase {
+  id             String         @id @default(cuid())
+  businessId     String
+  purchaseNumber String
+  supplierId     String
+  totalAmount    Decimal        @db.Decimal(10, 2)
+  status         PurchaseStatus @default(DRAFT)
+  createdById    String
+  business       Business       @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  supplier       Supplier       @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  createdBy      User           @relation("PurchasesCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  items          PurchaseItem[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@unique([businessId, purchaseNumber])
+  @@index([businessId])
+  @@index([supplierId])
+  @@index([createdById])
+  @@index([status])
+  @@index([createdAt])
+  @@map("purchases")
+}
+
+model PurchaseItem {
+  id         String   @id @default(cuid())
+  purchaseId String
+  productId  String
+  quantity   Int
+  costPrice  Decimal  @db.Decimal(10, 2)
+  subtotal   Decimal  @db.Decimal(10, 2)
+  purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([purchaseId])
+  @@index([productId])
+  @@map("purchase_items")
 }

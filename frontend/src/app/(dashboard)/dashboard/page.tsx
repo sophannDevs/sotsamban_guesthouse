@@ -42,6 +42,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { useActiveBusiness } from "@/components/app/business-provider"
 import type { Booking, BookingStatus } from "@/lib/bookings"
 import {
   dashboardService,
@@ -68,6 +69,7 @@ const emptySummary: DashboardSummary = {
 export default function DashboardPage() {
   const t = useTranslations("dashboardPage")
   const { preferences } = useSystemPreferences()
+  const { activeBusiness } = useActiveBusiness()
   const [summary, setSummary] = useState<DashboardSummary>(emptySummary)
   const [recentBookings, setRecentBookings] = useState<Booking[]>([])
   const [recentPayments, setRecentPayments] = useState<Payment[]>([])
@@ -180,7 +182,9 @@ export default function DashboardPage() {
     return () => {
       ignore = true
     }
-  }, [])
+  // Re-fetch whenever the active business changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeBusiness?.businessId])
 
   return (
     <div className="flex flex-col gap-5">

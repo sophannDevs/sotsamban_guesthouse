@@ -1,6 +1,7 @@
 import axios from "axios"
 
 import { getAccessToken, removeAccessToken } from "@/lib/auth-token"
+import { getStoredActiveBusiness } from "@/lib/business-token"
 
 const localeStorageKey = "guesthouse.locale"
 
@@ -24,6 +25,11 @@ apiClient.interceptors.request.use((config) => {
 
   if (locale === "en" || locale === "km") {
     config.headers["Accept-Language"] = locale
+  }
+
+  const activeBusiness = getStoredActiveBusiness()
+  if (activeBusiness?.businessId) {
+    config.headers["x-business-id"] = activeBusiness.businessId
   }
 
   return config
