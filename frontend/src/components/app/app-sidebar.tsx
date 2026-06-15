@@ -18,8 +18,10 @@ import {
   ShoppingBagIcon,
   ShieldCheckIcon,
   StoreIcon,
+  TrendingUpIcon,
   TruckIcon,
   UsersIcon,
+  WalletIcon,
 } from "lucide-react"
 
 import { useActiveBusiness } from "@/components/app/business-provider"
@@ -72,6 +74,16 @@ const guesthouseNavItems: NavItem[] = [
     translationKey: "reports",
   },
   {
+    href: "/expenses",
+    icon: WalletIcon,
+    translationKey: "expenses.expensesNav",
+  },
+  {
+    href: "/finance",
+    icon: TrendingUpIcon,
+    translationKey: "finance",
+  },
+  {
     href: "/notifications",
     icon: BellIcon,
     translationKey: "notifications",
@@ -114,6 +126,16 @@ const storeNavItems: NavItem[] = [
     href: "/store/purchases",
     icon: ClipboardListIcon,
     translationKey: "store.purchasesNav",
+  },
+  {
+    href: "/expenses",
+    icon: WalletIcon,
+    translationKey: "expenses.expensesNav",
+  },
+  {
+    href: "/finance",
+    icon: TrendingUpIcon,
+    translationKey: "finance",
   },
   {
     href: "/notifications",

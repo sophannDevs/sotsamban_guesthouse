@@ -1,0 +1,23 @@
+{
+  "expenses": "Expenses",
+  "addExpense": "Add Expense",
+  "editExpense": "Edit Expense",
+  "deleteExpense": "Delete Expense",
+  "expenseDate": "Expense Date",
+  "expenseCategory": "Expense Category",
+  "paymentMethod": "Payment Method",
+  "expense": "Expense",
+  "amount": "Amount",
+  "note": "Note",
+  "category": {
+    "rent": "Rent",
+    "electricity": "Electricity",
+    "water": "Water",
+    "internet": "Internet",
+    "salary": "Salary",
+    "maintenance": "Maintenance",
+    "supplies": "Supplies",
+    "food": "Food",
+    "other": "Other"
+  }
+}

@@ -56,9 +56,11 @@ import {
   getReportErrorMessage,
   getReportExportErrorMessage,
   reportService,
+  type CombinedProfitLossReport,
   type RangePreset,
   type ReportExportFormat,
   type OccupancyReport,
+  type ProfitLossReport,
   type ReportFilters,
   type ReportResultMap,
   type ReportTableRow,
@@ -610,7 +612,38 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-lg border">
+          {/* Mobile card list */}
+          <div className="flex flex-col divide-y rounded-lg border sm:hidden">
+            {isLoading ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                {t("loadingReportData")}
+              </p>
+            ) : previewRows.length > 0 ? (
+              previewRows.map((row, rowIndex) => (
+                <div className="flex flex-col gap-1.5 p-3 first:rounded-t-lg last:rounded-b-lg" key={`${reportType}-${rowIndex}`}>
+                  {activeReport.columns.map((column, colIndex) => (
+                    <div className={colIndex === 0 ? "font-medium" : "flex items-center justify-between gap-2 text-sm"} key={column.key}>
+                      {colIndex === 0 ? (
+                        <span>{formatCellValue(row[column.key])}</span>
+                      ) : (
+                        <>
+                          <span className="text-muted-foreground">{column.header}</span>
+                          <span className="text-right">{formatCellValue(row[column.key])}</span>
+                        </>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ))
+            ) : (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                {reportData ? t("noReportRows") : t("generateReportPreview")}
+              </p>
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden overflow-hidden rounded-lg border sm:block">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
@@ -790,6 +823,29 @@ function getReportDefinitions(t: TranslationFn): Record<ReportType, ReportDefini
         { key: "occupancyRate", header: t("occupancyRate") },
       ],
     },
+    profit_loss: {
+      label: t("profitLossReport"),
+      description: t("profitLossReportDescription"),
+      statusLabel: t("status"),
+      statuses: [{ value: "ALL", label: t("allStatuses") }],
+      columns: [
+        { key: "metric", header: t("metric") },
+        { key: "value", header: t("value") },
+      ],
+    },
+    combined_profit_loss: {
+      label: t("combinedProfitLossReport"),
+      description: t("combinedProfitLossReportDescription"),
+      statusLabel: t("status"),
+      statuses: [{ value: "ALL", label: t("allStatuses") }],
+      columns: [
+        { key: "businessName", header: t("business") },
+        { key: "businessType", header: t("businessTypeLabel") },
+        { key: "revenue", header: t("revenue") },
+        { key: "expense", header: t("expense") },
+        { key: "netProfit", header: t("netProfitLoss") },
+      ],
+    },
   }
 }
 
@@ -936,6 +992,65 @@ function normalizeReportRows(
         : row.status,
       paidAt: formatDateTime(row.paidAt, preferences),
     }))
+  }
+
+  if (reportType === "profit_loss") {
+    const report = reportData as ProfitLossReport
+    const isLoss = report.netProfit < 0
+
+    return [
+      {
+        metric: t("totalRevenue"),
+        value: formatCurrency(report.totalRevenue, preferences),
+      },
+      {
+        metric: t("totalExpense"),
+        value: formatCurrency(report.totalExpense, preferences),
+      },
+      {
+        metric: isLoss ? t("netLoss") : t("netProfit"),
+        value: formatCurrency(Math.abs(report.netProfit), preferences),
+      },
+      ...report.revenueByDate.map((row) => ({
+        metric: t("revenueOnDate", { date: formatDate(row.date, preferences) }),
+        value: formatCurrency(row.revenue, preferences),
+      })),
+      ...report.expenseByDate.map((row) => ({
+        metric: t("expenseOnDate", {
+          date: formatDate(row.date, preferences),
+        }),
+        value: formatCurrency(row.expense, preferences),
+      })),
+      ...report.expenseByCategory.map((row) => ({
+        metric: t("expenseForCategory", { category: row.category }),
+        value: formatCurrency(row.amount, preferences),
+      })),
+    ]
+  }
+
+  if (reportType === "combined_profit_loss") {
+    const report = reportData as CombinedProfitLossReport
+    const isLoss = report.netProfit < 0
+
+    return [
+      {
+        businessName: t("allBusinessesTotal"),
+        businessType: "—",
+        revenue: formatCurrency(report.totalRevenue, preferences),
+        expense: formatCurrency(report.totalExpense, preferences),
+        netProfit: `${isLoss ? "−" : "+"}${formatCurrency(Math.abs(report.netProfit), preferences)}`,
+      },
+      ...report.businessBreakdown.map((b) => {
+        const bLoss = b.netProfit < 0
+        return {
+          businessName: b.businessName,
+          businessType: b.businessType === "STORE" ? "Store" : "Guesthouse",
+          revenue: formatCurrency(b.revenue, preferences),
+          expense: formatCurrency(b.expense, preferences),
+          netProfit: `${bLoss ? "−" : "+"}${formatCurrency(Math.abs(b.netProfit), preferences)}`,
+        }
+      }),
+    ]
   }
 
   return (reportData as ReportTableRow[]).map((row) => ({

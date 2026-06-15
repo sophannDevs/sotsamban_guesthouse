@@ -1,11 +1,20 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 
 import {
   BookingStatus,
+  BusinessRole,
+  BusinessType,
+  ExpenseCategory,
   PaymentMethod,
   PaymentStatus,
   Prisma,
   RoomStatus,
+  SaleStatus,
+  UserRole,
 } from '../../generated/prisma/client';
 import {
   createPaginatedResult,
@@ -69,12 +78,13 @@ export type ReportType =
   | 'bookings'
   | 'payments'
   | 'guests'
-  | 'occupancy';
+  | 'occupancy'
+  | 'profit_loss';
 
 export type ReportExportFilters = RevenueReportFilters &
   BookingReportFilters &
   PaymentReportFilters &
-  GuestReportFilters;
+  GuestReportFilters & { businessId?: string };
 
 type PaymentForRevenue = Prisma.PaymentGetPayload<{
   include: {
@@ -333,6 +343,62 @@ export class ReportService {
     };
   }
 
+  async getProfitLossReport(
+    businessId: string | undefined,
+    filters: RevenueReportFilters,
+  ) {
+    if (!businessId) {
+      throw new BadRequestException('x-business-id header is required.');
+    }
+
+    const business = await this.prisma.business.findUnique({
+      where: { id: businessId },
+    });
+
+    if (!business) {
+      throw new NotFoundException('Business not found.');
+    }
+
+    const dateRange = await this.getDateRange(filters);
+    const range = this.buildDateRangeFilter(dateRange);
+
+    const [revenueRows, expenses] = await Promise.all([
+      this.getProfitLossRevenueRows(business.type, businessId, range),
+      this.prisma.expense.findMany({
+        where: {
+          businessId,
+          ...(range ? { expenseDate: range } : {}),
+        },
+        orderBy: { expenseDate: 'asc' },
+      }),
+    ]);
+
+    const totalRevenue = revenueRows.reduce((sum, r) => sum + r.amount, 0);
+    const totalExpense = expenses.reduce(
+      (sum, e) => sum + Number(e.amount),
+      0,
+    );
+
+    return {
+      period: dateRange.label,
+      totalRevenue,
+      totalExpense,
+      netProfit: totalRevenue - totalExpense,
+      revenueByDate: this.groupByDateKey(
+        revenueRows.map((r) => ({ date: r.date, value: r.amount })),
+        'revenue',
+      ),
+      expenseByDate: this.groupByDateKey(
+        expenses.map((e) => ({
+          date: e.expenseDate,
+          value: Number(e.amount),
+        })),
+        'expense',
+      ),
+      expenseByCategory: this.groupExpenseByCategory(expenses),
+    };
+  }
+
   async getExcelReportPayload(
     type: ReportType,
     filters: ReportExportFilters,
@@ -348,13 +414,25 @@ export class ReportService {
         return this.buildGuestsExcelPayload(filters);
       case 'occupancy':
         return this.buildOccupancyExcelPayload();
+      case 'profit_loss':
+        if (!filters.businessId) {
+          throw new BadRequestException(
+            'x-business-id header is required for profit_loss reports.',
+          );
+        }
+        return this.buildProfitLossExcelPayload(filters.businessId, filters);
     }
   }
 
   isReportType(type: string): type is ReportType {
-    return ['revenue', 'bookings', 'payments', 'guests', 'occupancy'].includes(
-      type,
-    );
+    return [
+      'revenue',
+      'bookings',
+      'payments',
+      'guests',
+      'occupancy',
+      'profit_loss',
+    ].includes(type);
   }
 
   private async getDateRange(filters: RevenueReportFilters) {
@@ -822,5 +900,275 @@ export class ReportService {
 
   private formatDateKey(date: Date) {
     return date.toISOString().slice(0, 10);
+  }
+
+  private buildDateRangeFilter(dateRange: {
+    start?: Date;
+    end?: Date;
+  }): Prisma.DateTimeFilter | undefined {
+    if (!dateRange.start && !dateRange.end) {
+      return undefined;
+    }
+
+    return {
+      ...(dateRange.start ? { gte: dateRange.start } : {}),
+      ...(dateRange.end ? { lte: dateRange.end } : {}),
+    };
+  }
+
+  private async getProfitLossRevenueRows(
+    businessType: BusinessType,
+    businessId: string,
+    range: Prisma.DateTimeFilter | undefined,
+  ): Promise<Array<{ date: Date; amount: number }>> {
+    if (businessType === BusinessType.STORE) {
+      const sales = await this.prisma.sale.findMany({
+        where: {
+          businessId,
+          status: SaleStatus.COMPLETED,
+          ...(range ? { createdAt: range } : {}),
+        },
+        select: { createdAt: true, totalAmount: true },
+      });
+
+      return sales.map((s) => ({
+        date: s.createdAt,
+        amount: Number(s.totalAmount),
+      }));
+    }
+
+    const payments = await this.prisma.payment.findMany({
+      where: {
+        status: PaymentStatus.PAID,
+        ...(range ? { paidAt: range } : {}),
+      },
+      select: { paidAt: true, amount: true },
+    });
+
+    return payments
+      .filter((p): p is typeof p & { paidAt: Date } => p.paidAt !== null)
+      .map((p) => ({ date: p.paidAt, amount: Number(p.amount) }));
+  }
+
+  private groupByDateKey(
+    rows: Array<{ date: Date; value: number }>,
+    valueKey: string,
+  ) {
+    const map = new Map<string, number>();
+
+    for (const row of rows) {
+      const key = this.formatDateKey(row.date);
+      map.set(key, (map.get(key) ?? 0) + row.value);
+    }
+
+    return Array.from(map.entries()).map(([date, value]) => ({
+      date,
+      [valueKey]: value,
+    }));
+  }
+
+  private groupExpenseByCategory(
+    expenses: Array<{ category: ExpenseCategory; amount: unknown }>,
+  ) {
+    const map = new Map<string, number>();
+
+    for (const e of expenses) {
+      map.set(e.category, (map.get(e.category) ?? 0) + Number(e.amount));
+    }
+
+    return Array.from(map.entries()).map(([category, amount]) => ({
+      category,
+      amount,
+    }));
+  }
+
+  private async getAccessibleBusinesses(userId: string, userRole: UserRole) {
+    if (userRole === UserRole.ADMIN) {
+      return this.prisma.business.findMany({ orderBy: { name: 'asc' } });
+    }
+
+    return this.prisma.business.findMany({
+      where: {
+        OR: [
+          { ownerId: userId },
+          {
+            members: {
+              some: {
+                userId,
+                role: { in: [BusinessRole.OWNER, BusinessRole.ADMIN] },
+              },
+            },
+          },
+        ],
+      },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  async getCombinedProfitLossReport(
+    userId: string,
+    userRole: UserRole,
+    filters: RevenueReportFilters,
+  ) {
+    const businesses = await this.getAccessibleBusinesses(userId, userRole);
+    const dateRange = await this.getDateRange(filters);
+    const range = this.buildDateRangeFilter(dateRange);
+
+    const businessBreakdown = await Promise.all(
+      businesses.map(async (business) => {
+        const [revenueRows, expenses] = await Promise.all([
+          this.getProfitLossRevenueRows(business.type, business.id, range),
+          this.prisma.expense.findMany({
+            where: {
+              businessId: business.id,
+              ...(range ? { expenseDate: range } : {}),
+            },
+          }),
+        ]);
+
+        const revenue = revenueRows.reduce((sum, r) => sum + r.amount, 0);
+        const expense = expenses.reduce(
+          (sum, e) => sum + Number(e.amount),
+          0,
+        );
+
+        return {
+          businessId: business.id,
+          businessName: business.name,
+          businessType: business.type as string,
+          revenue,
+          expense,
+          netProfit: revenue - expense,
+        };
+      }),
+    );
+
+    const totalRevenue = businessBreakdown.reduce(
+      (sum, b) => sum + b.revenue,
+      0,
+    );
+    const totalExpense = businessBreakdown.reduce(
+      (sum, b) => sum + b.expense,
+      0,
+    );
+
+    return {
+      period: dateRange.label,
+      startDate: dateRange.start?.toISOString() ?? null,
+      endDate: dateRange.end?.toISOString() ?? null,
+      totalRevenue,
+      totalExpense,
+      netProfit: totalRevenue - totalExpense,
+      businessBreakdown,
+    };
+  }
+
+  async buildCombinedProfitLossExcelPayload(
+    userId: string,
+    userRole: UserRole,
+    filters: RevenueReportFilters,
+  ) {
+    const report = await this.getCombinedProfitLossReport(
+      userId,
+      userRole,
+      filters,
+    );
+    const isLoss = report.netProfit < 0;
+
+    return {
+      title: 'Combined Profit & Loss Report',
+      generatedAt: new Date(),
+      filters: {
+        ...this.cleanFilters(filters),
+        'Date Range': report.period,
+      },
+      sections: [
+        {
+          title: 'Summary',
+          columns: [
+            { header: 'Metric', key: 'metric' },
+            { header: 'Value', key: 'value' },
+          ],
+          rows: [
+            { metric: 'Total Revenue', value: report.totalRevenue },
+            { metric: 'Total Expense', value: report.totalExpense },
+            {
+              metric: isLoss ? 'Net Loss' : 'Net Profit',
+              value: Math.abs(report.netProfit),
+            },
+          ],
+        },
+        {
+          title: 'Business Breakdown',
+          columns: [
+            { header: 'Business', key: 'businessName' },
+            { header: 'Type', key: 'businessType' },
+            { header: 'Revenue', key: 'revenue' },
+            { header: 'Expense', key: 'expense' },
+            { header: 'Net Profit / Loss', key: 'netProfit' },
+          ],
+          rows: report.businessBreakdown,
+        },
+      ],
+    } satisfies ExcelReportPayload;
+  }
+
+  private async buildProfitLossExcelPayload(
+    businessId: string,
+    filters: RevenueReportFilters,
+  ) {
+    const report = await this.getProfitLossReport(businessId, filters);
+    const dateRange = await this.getDateRange(filters);
+    const isLoss = report.netProfit < 0;
+
+    return {
+      title: 'Profit & Loss Report',
+      generatedAt: new Date(),
+      filters: {
+        ...this.cleanFilters(filters),
+        'Date Range': dateRange.label,
+      },
+      sections: [
+        {
+          title: 'Summary',
+          columns: [
+            { header: 'Metric', key: 'metric' },
+            { header: 'Value', key: 'value' },
+          ],
+          rows: [
+            { metric: 'Total Revenue', value: report.totalRevenue },
+            { metric: 'Total Expense', value: report.totalExpense },
+            {
+              metric: isLoss ? 'Net Loss' : 'Net Profit',
+              value: Math.abs(report.netProfit),
+            },
+          ],
+        },
+        {
+          title: 'Revenue By Date',
+          columns: [
+            { header: 'Date', key: 'date' },
+            { header: 'Revenue', key: 'revenue' },
+          ],
+          rows: report.revenueByDate,
+        },
+        {
+          title: 'Expense By Date',
+          columns: [
+            { header: 'Date', key: 'date' },
+            { header: 'Expense', key: 'expense' },
+          ],
+          rows: report.expenseByDate,
+        },
+        {
+          title: 'Expense By Category',
+          columns: [
+            { header: 'Category', key: 'category' },
+            { header: 'Amount', key: 'amount' },
+          ],
+          rows: report.expenseByCategory,
+        },
+      ],
+    } satisfies ExcelReportPayload;
   }
 }

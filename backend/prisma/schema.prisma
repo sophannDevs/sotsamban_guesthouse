@@ -86,6 +86,7 @@ model User {
   businessMemberships  BusinessMember[]
   sales                Sale[]                   @relation("SalesSoldBy")
   purchases            Purchase[]               @relation("PurchasesCreatedBy")
+  expenses             Expense[]                @relation("ExpensesCreatedBy")
   createdAt            DateTime                 @default(now())
   updatedAt            DateTime                 @updatedAt
 
@@ -223,6 +224,25 @@ enum PurchaseStatus {
   CANCELLED
 }
 
+enum ExpenseCategory {
+  RENT
+  ELECTRICITY
+  WATER
+  INTERNET
+  SALARY
+  MAINTENANCE
+  SUPPLIES
+  FOOD
+  OTHER
+}
+
+enum ExpensePaymentMethod {
+  CASH
+  CARD
+  QR
+  BANK_TRANSFER
+}
+
 model Business {
   id         String            @id @default(uuid())
   name       String
@@ -235,6 +255,7 @@ model Business {
   sales      Sale[]
   suppliers  Supplier[]
   purchases  Purchase[]
+  expenses   Expense[]
   createdAt  DateTime          @default(now())
   updatedAt  DateTime          @updatedAt
 
@@ -392,4 +413,26 @@ model PurchaseItem {
   @@index([purchaseId])
   @@index([productId])
   @@map("purchase_items")
+}
+
+model Expense {
+  id            String               @id @default(cuid())
+  businessId    String
+  title         String
+  category      ExpenseCategory
+  amount        Decimal              @db.Decimal(10, 2)
+  expenseDate   DateTime
+  paymentMethod ExpensePaymentMethod
+  note          String?
+  createdById   String
+  business      Business             @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  createdBy     User                 @relation("ExpensesCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  @@index([businessId])
+  @@index([createdById])
+  @@index([category])
+  @@index([expenseDate])
+  @@map("expenses")
 }

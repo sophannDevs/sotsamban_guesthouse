@@ -433,116 +433,195 @@ export default function PaymentsPage() {
             </Alert>
           ) : null}
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("booking")}</TableHead>
-                <TableHead>{t("guest")}</TableHead>
-                <TableHead>{t("room")}</TableHead>
-                <TableHead>{t("amount")}</TableHead>
-                <TableHead>{t("method")}</TableHead>
-                <TableHead>{t("status")}</TableHead>
-                <TableHead>{t("paidAt")}</TableHead>
-                <TableHead className="text-right">{t("actions")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableStateRow message={t("loadingPayments")} />
-              ) : payments.length ? (
-                payments.map((payment) => (
-                  <TableRow key={payment.id}>
-                    <TableCell>
-                      <div className="flex min-w-0 flex-col">
-                        <span className="font-medium">
-                          {payment.booking.id}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {t("payment")} {payment.id}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{payment.booking.guest.fullName}</TableCell>
-                    <TableCell>
-                      {t("roomLabel", { roomNumber: payment.booking.room.roomNumber })}
-                    </TableCell>
-                    <TableCell className="font-mono">
-                      {formatCurrency(payment.amount, preferences)}
-                    </TableCell>
-                    <TableCell>{getPaymentMethodLabel(payment.method, t)}</TableCell>
-                    <TableCell>
-                      <PaymentStatusBadge status={payment.status} />
-                    </TableCell>
-                    <TableCell>
-                      {payment.paidAt
-                        ? formatDate(payment.paidAt, preferences)
-                        : t("notPaid")}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap justify-end gap-2">
-                        <Button
-                          disabled={
-                            downloadingInvoiceBookingId === payment.bookingId
-                          }
-                          onClick={() => void downloadInvoice(payment.bookingId)}
-                          size="sm"
-                          type="button"
-                          variant="outline"
-                        >
-                          <FileDownIcon data-icon="inline-start" />
-                          {downloadingInvoiceBookingId === payment.bookingId
-                            ? t("downloading")
-                            : t("downloadInvoice")}
-                        </Button>
-                        <Select
-                          items={statusOptions}
-                          value={payment.status}
-                          onValueChange={(value) =>
-                            void updatePaymentStatus(
-                              payment,
-                              value as PaymentStatus
-                            )
-                          }
-                        >
-                          <SelectTrigger
-                            aria-label={t("updatePaymentStatusAria", {
-                              paymentId: payment.id,
-                            })}
-                            disabled={updatingPaymentId === payment.id}
+          {/* Mobile card list */}
+          <div className="flex flex-col divide-y sm:hidden">
+            {isLoading ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                {t("loadingPayments")}
+              </p>
+            ) : payments.length ? (
+              payments.map((payment) => (
+                <div className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0" key={payment.id}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex min-w-0 flex-col gap-0.5">
+                      <span className="font-medium leading-tight">{payment.booking.guest.fullName}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {t("roomLabel", { roomNumber: payment.booking.room.roomNumber })}
+                      </span>
+                      <span className="font-mono font-medium">
+                        {formatCurrency(payment.amount, preferences)}
+                        {" · "}{getPaymentMethodLabel(payment.method, t)}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {payment.paidAt ? formatDate(payment.paidAt, preferences) : t("notPaid")}
+                      </span>
+                    </div>
+                    <PaymentStatusBadge status={payment.status} />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      disabled={downloadingInvoiceBookingId === payment.bookingId}
+                      onClick={() => void downloadInvoice(payment.bookingId)}
+                      size="sm"
+                      type="button"
+                      variant="outline"
+                    >
+                      <FileDownIcon data-icon="inline-start" />
+                      {downloadingInvoiceBookingId === payment.bookingId
+                        ? t("downloading")
+                        : t("downloadInvoice")}
+                    </Button>
+                    <Select
+                      items={statusOptions}
+                      value={payment.status}
+                      onValueChange={(value) =>
+                        void updatePaymentStatus(payment, value as PaymentStatus)
+                      }
+                    >
+                      <SelectTrigger
+                        aria-label={t("updatePaymentStatusAria", { paymentId: payment.id })}
+                        disabled={updatingPaymentId === payment.id}
+                        size="sm"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent align="end">
+                        <SelectGroup>
+                          {statusOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                {statusFilter === "ALL"
+                  ? t("noPaymentsFound")
+                  : t("noPaymentsByStatusFound", {
+                      status: getPaymentStatusLabel(statusFilter, t).toLowerCase(),
+                    })}
+              </p>
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden sm:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("booking")}</TableHead>
+                  <TableHead>{t("guest")}</TableHead>
+                  <TableHead>{t("room")}</TableHead>
+                  <TableHead>{t("amount")}</TableHead>
+                  <TableHead>{t("method")}</TableHead>
+                  <TableHead>{t("status")}</TableHead>
+                  <TableHead>{t("paidAt")}</TableHead>
+                  <TableHead className="text-right">{t("actions")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableStateRow message={t("loadingPayments")} />
+                ) : payments.length ? (
+                  payments.map((payment) => (
+                    <TableRow key={payment.id}>
+                      <TableCell>
+                        <div className="flex min-w-0 flex-col">
+                          <span className="font-medium">
+                            {payment.booking.id}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {t("payment")} {payment.id}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{payment.booking.guest.fullName}</TableCell>
+                      <TableCell>
+                        {t("roomLabel", { roomNumber: payment.booking.room.roomNumber })}
+                      </TableCell>
+                      <TableCell className="font-mono">
+                        {formatCurrency(payment.amount, preferences)}
+                      </TableCell>
+                      <TableCell>{getPaymentMethodLabel(payment.method, t)}</TableCell>
+                      <TableCell>
+                        <PaymentStatusBadge status={payment.status} />
+                      </TableCell>
+                      <TableCell>
+                        {payment.paidAt
+                          ? formatDate(payment.paidAt, preferences)
+                          : t("notPaid")}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <Button
+                            disabled={
+                              downloadingInvoiceBookingId === payment.bookingId
+                            }
+                            onClick={() => void downloadInvoice(payment.bookingId)}
                             size="sm"
+                            type="button"
+                            variant="outline"
                           >
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent align="end">
-                            <SelectGroup>
-                              {statusOptions.map((option) => (
-                                <SelectItem
-                                  key={option.value}
-                                  value={option.value}
-                                >
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectGroup>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableStateRow
-                  message={
-                    statusFilter === "ALL"
-                      ? t("noPaymentsFound")
-                      : t("noPaymentsByStatusFound", {
-                          status: getPaymentStatusLabel(statusFilter, t).toLowerCase(),
-                        })
-                  }
-                />
-              )}
-            </TableBody>
-          </Table>
+                            <FileDownIcon data-icon="inline-start" />
+                            {downloadingInvoiceBookingId === payment.bookingId
+                              ? t("downloading")
+                              : t("downloadInvoice")}
+                          </Button>
+                          <Select
+                            items={statusOptions}
+                            value={payment.status}
+                            onValueChange={(value) =>
+                              void updatePaymentStatus(
+                                payment,
+                                value as PaymentStatus
+                              )
+                            }
+                          >
+                            <SelectTrigger
+                              aria-label={t("updatePaymentStatusAria", {
+                                paymentId: payment.id,
+                              })}
+                              disabled={updatingPaymentId === payment.id}
+                              size="sm"
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent align="end">
+                              <SelectGroup>
+                                {statusOptions.map((option) => (
+                                  <SelectItem
+                                    key={option.value}
+                                    value={option.value}
+                                  >
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableStateRow
+                    message={
+                      statusFilter === "ALL"
+                        ? t("noPaymentsFound")
+                        : t("noPaymentsByStatusFound", {
+                            status: getPaymentStatusLabel(statusFilter, t).toLowerCase(),
+                          })
+                    }
+                  />
+                )}
+              </TableBody>
+            </Table>
+          </div>
           <Pagination
             limit={paginationMeta.limit}
             page={paginationMeta.page}

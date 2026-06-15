@@ -326,96 +326,166 @@ export default function GuestsPage() {
 
           <div className="text-sm text-muted-foreground">{searchCaption}</div>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("guest")}</TableHead>
-                <TableHead>{t("phone")}</TableHead>
-                <TableHead>{t("email")}</TableHead>
-                <TableHead>{t("idCard")}</TableHead>
-                <TableHead>{t("address")}</TableHead>
-                <TableHead className="text-right">{t("actions")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableStateRow message={t("loadingGuests")} />
-              ) : guests.length ? (
-                guests.map((guest) => (
-                  <TableRow key={guest.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <span className="flex size-8 items-center justify-center rounded-lg border bg-muted/40">
-                          <UserPlusIcon />
-                        </span>
-                        <div className="flex min-w-0 flex-col">
-                          <span className="font-medium">{guest.fullName}</span>
-                          <span className="max-w-36 truncate text-xs text-muted-foreground">
-                            {guest.id}
-                          </span>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <ContactValue icon="phone" value={guest.phone} />
-                    </TableCell>
-                    <TableCell>
-                      {guest.email ? (
-                        <ContactValue icon="email" value={guest.email} />
-                      ) : (
-                        t("notProvided")
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {guest.idCardNumber ?? t("notProvided")}
-                    </TableCell>
-                    <TableCell>
-                      <span className="block max-w-44 truncate">
-                        {guest.address ?? t("notProvided")}
+          {/* Mobile card list */}
+          <div className="flex flex-col divide-y sm:hidden">
+            {isLoading ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                {t("loadingGuests")}
+              </p>
+            ) : guests.length ? (
+              guests.map((guest) => (
+                <div className="flex items-start gap-3 py-3 first:pt-0 last:pb-0" key={guest.id}>
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-muted/40">
+                    <UserPlusIcon />
+                  </span>
+                  <div className="flex min-w-0 flex-1 flex-col gap-1">
+                    <span className="font-medium leading-tight">{guest.fullName}</span>
+                    <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+                      <PhoneIcon className="size-3 shrink-0" />
+                      {guest.phone}
+                    </span>
+                    {guest.email ? (
+                      <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+                        <MailIcon className="size-3 shrink-0" />
+                        <span className="truncate">{guest.email}</span>
                       </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          aria-label={t("editGuestAria", {
-                            name: guest.fullName,
-                          })}
-                          onClick={() => openEditDialog(guest)}
-                          size="icon-sm"
-                          type="button"
-                          variant="outline"
-                        >
-                          <PencilIcon />
-                        </Button>
-                        <Button
-                          aria-label={t("deleteGuestAria", {
-                            name: guest.fullName,
-                          })}
-                          onClick={() => {
-                            setDeleteError(null)
-                            setGuestToDelete(guest)
-                          }}
-                          size="icon-sm"
-                          type="button"
-                          variant="destructive"
-                        >
-                          <Trash2Icon />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableStateRow
-                  message={
-                    activeSearch
-                      ? t("noGuestsMatchSearch")
-                      : t("noGuestsFound")
-                  }
-                />
-              )}
-            </TableBody>
-          </Table>
+                    ) : null}
+                    {guest.idCardNumber ? (
+                      <span className="text-xs text-muted-foreground">
+                        {t("idCard")}: {guest.idCardNumber}
+                      </span>
+                    ) : null}
+                    {guest.address ? (
+                      <span className="max-w-xs truncate text-xs text-muted-foreground">
+                        {guest.address}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="flex shrink-0 gap-1">
+                    <Button
+                      aria-label={t("editGuestAria", { name: guest.fullName })}
+                      onClick={() => openEditDialog(guest)}
+                      size="icon-sm"
+                      type="button"
+                      variant="outline"
+                    >
+                      <PencilIcon />
+                    </Button>
+                    <Button
+                      aria-label={t("deleteGuestAria", { name: guest.fullName })}
+                      onClick={() => {
+                        setDeleteError(null)
+                        setGuestToDelete(guest)
+                      }}
+                      size="icon-sm"
+                      type="button"
+                      variant="destructive"
+                    >
+                      <Trash2Icon />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                {activeSearch ? t("noGuestsMatchSearch") : t("noGuestsFound")}
+              </p>
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden sm:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("guest")}</TableHead>
+                  <TableHead>{t("phone")}</TableHead>
+                  <TableHead>{t("email")}</TableHead>
+                  <TableHead>{t("idCard")}</TableHead>
+                  <TableHead>{t("address")}</TableHead>
+                  <TableHead className="text-right">{t("actions")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableStateRow message={t("loadingGuests")} />
+                ) : guests.length ? (
+                  guests.map((guest) => (
+                    <TableRow key={guest.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span className="flex size-8 items-center justify-center rounded-lg border bg-muted/40">
+                            <UserPlusIcon />
+                          </span>
+                          <div className="flex min-w-0 flex-col">
+                            <span className="font-medium">{guest.fullName}</span>
+                            <span className="max-w-36 truncate text-xs text-muted-foreground">
+                              {guest.id}
+                            </span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <ContactValue icon="phone" value={guest.phone} />
+                      </TableCell>
+                      <TableCell>
+                        {guest.email ? (
+                          <ContactValue icon="email" value={guest.email} />
+                        ) : (
+                          t("notProvided")
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {guest.idCardNumber ?? t("notProvided")}
+                      </TableCell>
+                      <TableCell>
+                        <span className="block max-w-44 truncate">
+                          {guest.address ?? t("notProvided")}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            aria-label={t("editGuestAria", {
+                              name: guest.fullName,
+                            })}
+                            onClick={() => openEditDialog(guest)}
+                            size="icon-sm"
+                            type="button"
+                            variant="outline"
+                          >
+                            <PencilIcon />
+                          </Button>
+                          <Button
+                            aria-label={t("deleteGuestAria", {
+                              name: guest.fullName,
+                            })}
+                            onClick={() => {
+                              setDeleteError(null)
+                              setGuestToDelete(guest)
+                            }}
+                            size="icon-sm"
+                            type="button"
+                            variant="destructive"
+                          >
+                            <Trash2Icon />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableStateRow
+                    message={
+                      activeSearch
+                        ? t("noGuestsMatchSearch")
+                        : t("noGuestsFound")
+                    }
+                  />
+                )}
+              </TableBody>
+            </Table>
+          </div>
           <Pagination
             limit={paginationMeta.limit}
             page={paginationMeta.page}

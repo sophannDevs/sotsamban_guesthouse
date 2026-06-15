@@ -1,0 +1,23 @@
+{
+  "expenses": "ចំណាយ",
+  "addExpense": "បន្ថែមចំណាយ",
+  "editExpense": "កែប្រែចំណាយ",
+  "deleteExpense": "លុបចំណាយ",
+  "expenseDate": "កាលបរិច្ឆេទចំណាយ",
+  "expenseCategory": "ប្រភេទចំណាយ",
+  "paymentMethod": "វិធីទូទាត់",
+  "expense": "ចំណាយ",
+  "amount": "ចំនួនទឹកប្រាក់",
+  "note": "កំណត់ចំណាំ",
+  "category": {
+    "rent": "ថ្លៃជួល",
+    "electricity": "អគ្គិសនី",
+    "water": "ទឹក",
+    "internet": "អ៊ីនធឺណិត",
+    "salary": "ប្រាក់ខែ",
+    "maintenance": "ការជួសជុល",
+    "supplies": "សម្ភារៈផ្គត់ផ្គង់",
+    "food": "អាហារ",
+    "other": "ផ្សេងៗ"
+  }
+}

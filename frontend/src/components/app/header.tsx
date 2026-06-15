@@ -56,6 +56,7 @@ import { cn } from "@/lib/utils"
 
 type PageTitleKey =
   | "dashboard"
+  | "finance"
   | "rooms"
   | "availability.nav"
   | "guests"
@@ -77,9 +78,11 @@ type PageTitleKey =
   | "store.salesNav"
   | "store.suppliersNav"
   | "store.purchasesNav"
+  | "expenses.expensesNav"
 
 const pageTitleKeys: Record<string, PageTitleKey> = {
   "/dashboard": "dashboard",
+  "/finance": "finance",
   "/rooms": "rooms",
   "/availability": "availability.nav",
   "/guests": "guests",
@@ -99,6 +102,7 @@ const pageTitleKeys: Record<string, PageTitleKey> = {
   "/store/sales": "store.salesNav",
   "/store/suppliers": "store.suppliersNav",
   "/store/purchases": "store.purchasesNav",
+  "/expenses": "expenses.expensesNav",
 }
 
 export function Header() {
@@ -155,13 +159,13 @@ export function Header() {
         </Sheet>
         <div className="min-w-0">
           <h1 className="truncate text-lg font-semibold">{title}</h1>
-          <p className="truncate text-xs text-muted-foreground">
+          <p className="hidden truncate text-xs text-muted-foreground sm:block">
             {t("frontDeskOverview", { date: today })}
           </p>
         </div>
       </div>
       <div className="flex items-center gap-2">
-        <Button aria-label={t("searchRecords")} size="icon" variant="ghost">
+        <Button aria-label={t("searchRecords")} className="hidden sm:flex" size="icon" variant="ghost">
           <SearchIcon />
         </Button>
         <LanguageSwitcher />
@@ -223,7 +227,7 @@ export function Header() {
                 <Button
                   aria-current={isActive ? "page" : undefined}
                   className={cn(
-                    "h-auto min-w-56 justify-start gap-3 py-3 text-left md:min-w-0",
+                    "h-auto min-w-0 justify-start gap-2 py-2 text-left md:gap-3 md:py-3",
                     isActive && "bg-muted text-foreground"
                   )}
                   key={item.value}
@@ -231,12 +235,12 @@ export function Header() {
                   type="button"
                   variant="ghost"
                 >
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-muted/40">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border bg-muted/40 md:size-9">
                     <Icon />
                   </span>
                   <span className="flex min-w-0 flex-col gap-0.5">
-                    <span className="font-medium">{t(item.labelKey)}</span>
-                    <span className="line-clamp-2 text-xs font-normal text-muted-foreground">
+                    <span className="whitespace-nowrap font-medium">{t(item.labelKey)}</span>
+                    <span className="hidden line-clamp-2 text-xs font-normal text-muted-foreground md:block">
                       {t(item.descriptionKey)}
                     </span>
                   </span>

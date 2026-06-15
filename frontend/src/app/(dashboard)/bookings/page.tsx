@@ -9,16 +9,24 @@ import {
 } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
+  AirVentIcon,
   AlertCircleIcon,
+  ArrowLeftIcon,
+  BedDoubleIcon,
   CalendarCheckIcon,
   CalendarPlusIcon,
   CalendarXIcon,
+  CheckIcon,
   DoorOpenIcon,
   EyeIcon,
   FileDownIcon,
   LogInIcon,
   LogOutIcon,
   RefreshCwIcon,
+  SearchIcon,
+  UserIcon,
+  WindIcon,
+  XIcon,
 } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useForm, useWatch } from "react-hook-form"
@@ -92,6 +100,7 @@ import {
   type RoomType,
 } from "@/lib/rooms"
 import { defaultPaginationMeta, type PaginatedResponse } from "@/lib/api"
+import { cn } from "@/lib/utils"
 
 type StatusFilter = "ALL" | BookingStatus
 
@@ -150,6 +159,10 @@ export default function BookingsPage() {
   const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<
     string | null
   >(null)
+  const [isMobileWizard, setIsMobileWizard] = useState(false)
+  const [wizardStep, setWizardStep] = useState(1)
+  const [coolingOption, setCoolingOption] = useState<"FAN" | "AC">("AC")
+  const [guestSearch, setGuestSearch] = useState("")
   const bookingSchema = z
     .object({
       guestId: z.string().min(1, t("selectGuest")),
@@ -252,6 +265,58 @@ export default function BookingsPage() {
 
     return selectedRoom.pricePerNight * nights
   }, [checkInDate, checkOutDate, selectedRoom])
+
+  const filteredGuests = useMemo(
+    () =>
+      guestSearch.trim()
+        ? guests.filter(
+            (g) =>
+              g.fullName.toLowerCase().includes(guestSearch.toLowerCase()) ||
+              g.phone.includes(guestSearch)
+          )
+        : guests,
+    [guests, guestSearch]
+  )
+
+  const selectedGuest = useMemo(
+    () => guests.find((g) => g.id === selectedGuestId),
+    [guests, selectedGuestId]
+  )
+
+  const canGoToNextStep = useMemo(() => {
+    switch (wizardStep) {
+      case 1:
+        return Boolean(selectedGuestId)
+      case 2:
+        return (
+          Boolean(checkInDate) &&
+          Boolean(checkOutDate) &&
+          calculateNights(checkInDate, checkOutDate) !== null
+        )
+      case 3:
+        return (
+          Boolean(selectedRoomId) &&
+          !isAvailabilityLoading &&
+          !isCheckingConflict &&
+          !isSelectedRoomUnavailable &&
+          !liveConflict
+        )
+      case 4:
+        return true
+      default:
+        return false
+    }
+  }, [
+    wizardStep,
+    selectedGuestId,
+    checkInDate,
+    checkOutDate,
+    selectedRoomId,
+    isAvailabilityLoading,
+    isCheckingConflict,
+    isSelectedRoomUnavailable,
+    liveConflict,
+  ])
 
   const loadBookings = useCallback(async (filter: StatusFilter, nextPage = page) => {
     setIsLoading(true)
@@ -449,6 +514,12 @@ export default function BookingsPage() {
   }, [canCheckRoomAvailability, checkInDate, checkOutDate, selectedRoomId])
 
   function openCreateDialog() {
+    const isMobile =
+      typeof window !== "undefined" && window.innerWidth < 640
+    setIsMobileWizard(isMobile)
+    setWizardStep(1)
+    setCoolingOption("AC")
+    setGuestSearch("")
     setFormError(null)
     setBookingConflict(null)
     setLiveConflict(null)
@@ -456,6 +527,17 @@ export default function BookingsPage() {
     setRoomAvailability({})
     reset(defaultFormValues)
     setIsCreateOpen(true)
+  }
+
+  function closeWizard() {
+    setIsCreateOpen(false)
+    setIsMobileWizard(false)
+    setWizardStep(1)
+    setCoolingOption("AC")
+    setGuestSearch("")
+    setFormError(null)
+    setBookingConflict(null)
+    reset(defaultFormValues)
   }
 
   async function openDetailDialog(booking: Booking) {
@@ -505,6 +587,10 @@ export default function BookingsPage() {
           : currentBookings
       )
       setIsCreateOpen(false)
+      setIsMobileWizard(false)
+      setWizardStep(1)
+      setCoolingOption("AC")
+      setGuestSearch("")
       reset(defaultFormValues)
       void loadOptions()
     } catch (error) {
@@ -631,84 +717,139 @@ export default function BookingsPage() {
             </Alert>
           ) : null}
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("booking")}</TableHead>
-                <TableHead>{t("guest")}</TableHead>
-                <TableHead>{t("room")}</TableHead>
-                <TableHead>{t("dates")}</TableHead>
-                <TableHead>{t("total")}</TableHead>
-                <TableHead>{t("status")}</TableHead>
-                <TableHead className="text-right">{t("actions")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableStateRow message={t("loadingBookings")} />
-              ) : bookings.length ? (
-                bookings.map((booking) => (
-                  <TableRow key={booking.id}>
-                    <TableCell>
-                      <div className="flex min-w-0 flex-col">
-                        <span className="font-medium">{booking.id}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {formatDate(booking.createdAt)}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{booking.guest.fullName}</TableCell>
-                    <TableCell>
-                      {t("roomLabel", { roomNumber: booking.room.roomNumber })}
-                      <span className="block text-xs text-muted-foreground">
-                        {getRoomTypeLabel(booking.room.type, t)}
+          {/* Mobile card list */}
+          <div className="flex flex-col divide-y sm:hidden">
+            {isLoading ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                {t("loadingBookings")}
+              </p>
+            ) : bookings.length ? (
+              bookings.map((booking) => (
+                <div className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0" key={booking.id}>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex min-w-0 flex-col gap-0.5">
+                      <span className="font-medium leading-tight">{booking.guest.fullName}</span>
+                      <span className="text-sm text-muted-foreground">
+                        {t("roomLabel", { roomNumber: booking.room.roomNumber })}
+                        {" · "}{getRoomTypeLabel(booking.room.type, t)}
                       </span>
-                    </TableCell>
-                    <TableCell>
-                      {formatDateRange(
-                        booking.checkInDate,
-                        booking.checkOutDate
-                      )}
-                    </TableCell>
-                    <TableCell>{formatCurrency(booking.totalPrice)}</TableCell>
-                    <TableCell>
-                      <BookingStatusBadge status={booking.status} />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap justify-end gap-2">
-                        <Button
-                          aria-label={t("viewBookingAria", {
-                            bookingId: booking.id,
-                          })}
-                          onClick={() => void openDetailDialog(booking)}
-                          size="icon-sm"
-                          type="button"
-                          variant="outline"
-                        >
-                          <EyeIcon />
-                        </Button>
-                        <BookingActions
-                          actingBookingId={actingBookingId}
-                          booking={booking}
-                          onAction={runBookingAction}
-                        />
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableStateRow
-                  message={
-                    statusFilter === "ALL"
-                      ? t("noBookingsFound")
-                      : t("noBookingsByStatusFound", {
-                          status: getBookingStatusLabel(statusFilter, t).toLowerCase(),
-                        })
-                  }
-                />
-              )}
-            </TableBody>
-          </Table>
+                      <span className="text-sm text-muted-foreground">
+                        {formatDateRange(booking.checkInDate, booking.checkOutDate)}
+                      </span>
+                      <span className="font-medium">{formatCurrency(booking.totalPrice)}</span>
+                    </div>
+                    <BookingStatusBadge status={booking.status} />
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    <Button
+                      aria-label={t("viewBookingAria", { bookingId: booking.id })}
+                      onClick={() => void openDetailDialog(booking)}
+                      size="icon-sm"
+                      type="button"
+                      variant="outline"
+                    >
+                      <EyeIcon />
+                    </Button>
+                    <BookingActions
+                      actingBookingId={actingBookingId}
+                      booking={booking}
+                      onAction={runBookingAction}
+                    />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                {statusFilter === "ALL"
+                  ? t("noBookingsFound")
+                  : t("noBookingsByStatusFound", {
+                      status: getBookingStatusLabel(statusFilter, t).toLowerCase(),
+                    })}
+              </p>
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden sm:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("booking")}</TableHead>
+                  <TableHead>{t("guest")}</TableHead>
+                  <TableHead>{t("room")}</TableHead>
+                  <TableHead>{t("dates")}</TableHead>
+                  <TableHead>{t("total")}</TableHead>
+                  <TableHead>{t("status")}</TableHead>
+                  <TableHead className="text-right">{t("actions")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableStateRow message={t("loadingBookings")} />
+                ) : bookings.length ? (
+                  bookings.map((booking) => (
+                    <TableRow key={booking.id}>
+                      <TableCell>
+                        <div className="flex min-w-0 flex-col">
+                          <span className="font-medium">{booking.id}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDate(booking.createdAt)}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>{booking.guest.fullName}</TableCell>
+                      <TableCell>
+                        {t("roomLabel", { roomNumber: booking.room.roomNumber })}
+                        <span className="block text-xs text-muted-foreground">
+                          {getRoomTypeLabel(booking.room.type, t)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {formatDateRange(
+                          booking.checkInDate,
+                          booking.checkOutDate
+                        )}
+                      </TableCell>
+                      <TableCell>{formatCurrency(booking.totalPrice)}</TableCell>
+                      <TableCell>
+                        <BookingStatusBadge status={booking.status} />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <Button
+                            aria-label={t("viewBookingAria", {
+                              bookingId: booking.id,
+                            })}
+                            onClick={() => void openDetailDialog(booking)}
+                            size="icon-sm"
+                            type="button"
+                            variant="outline"
+                          >
+                            <EyeIcon />
+                          </Button>
+                          <BookingActions
+                            actingBookingId={actingBookingId}
+                            booking={booking}
+                            onAction={runBookingAction}
+                          />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableStateRow
+                    message={
+                      statusFilter === "ALL"
+                        ? t("noBookingsFound")
+                        : t("noBookingsByStatusFound", {
+                            status: getBookingStatusLabel(statusFilter, t).toLowerCase(),
+                          })
+                    }
+                  />
+                )}
+              </TableBody>
+            </Table>
+          </div>
           <Pagination
             limit={paginationMeta.limit}
             page={paginationMeta.page}
@@ -723,7 +864,489 @@ export default function BookingsPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+      {/* Mobile step-by-step booking wizard */}
+      {isMobileWizard && isCreateOpen ? (
+        <div className="fixed inset-0 z-50 flex flex-col bg-background">
+          {/* Header */}
+          <div className="flex shrink-0 items-center gap-3 border-b px-4 py-3">
+            <Button
+              onClick={
+                wizardStep === 1
+                  ? closeWizard
+                  : () => setWizardStep((s) => s - 1)
+              }
+              size="icon"
+              type="button"
+              variant="ghost"
+            >
+              {wizardStep === 1 ? (
+                <XIcon className="size-5" />
+              ) : (
+                <ArrowLeftIcon className="size-5" />
+              )}
+            </Button>
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-medium text-muted-foreground">
+                {t("wizardStepOf", { current: wizardStep, total: 5 })}
+              </p>
+              <h2 className="truncate font-semibold leading-tight">
+                {
+                  [
+                    t("wizardSelectGuest"),
+                    t("wizardSelectDates"),
+                    t("wizardSelectRoom"),
+                    t("wizardCoolingOption"),
+                    t("wizardReviewConfirm"),
+                  ][wizardStep - 1]
+                }
+              </h2>
+            </div>
+            <div className="flex shrink-0 items-center gap-1">
+              {[1, 2, 3, 4, 5].map((step) => (
+                <div
+                  className={cn(
+                    "h-1.5 rounded-full transition-all duration-200",
+                    step === wizardStep
+                      ? "w-5 bg-primary"
+                      : step < wizardStep
+                        ? "w-1.5 bg-primary/40"
+                        : "w-1.5 bg-muted-foreground/20"
+                  )}
+                  key={step}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto px-4 py-5">
+            {/* Step 1 — Select Guest */}
+            {wizardStep === 1 ? (
+              <div className="flex flex-col gap-3">
+                {optionsError ? (
+                  <Alert variant="destructive">
+                    <AlertCircleIcon />
+                    <AlertTitle>{t("couldNotLoadFormOptions")}</AlertTitle>
+                    <AlertDescription>{optionsError}</AlertDescription>
+                  </Alert>
+                ) : null}
+                <div className="relative">
+                  <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    className="pl-9"
+                    onChange={(e) => setGuestSearch(e.target.value)}
+                    placeholder={t("searchGuests")}
+                    value={guestSearch}
+                  />
+                </div>
+                {isOptionsLoading ? (
+                  <p className="py-4 text-center text-sm text-muted-foreground">
+                    {t("loadingGuests")}
+                  </p>
+                ) : filteredGuests.length === 0 ? (
+                  <p className="py-4 text-center text-sm text-muted-foreground">
+                    {t("noGuestsMatchSearch")}
+                  </p>
+                ) : (
+                  <div className="flex flex-col divide-y rounded-xl border">
+                    {filteredGuests.map((guest) => (
+                      <button
+                        className={cn(
+                          "flex items-center gap-3 px-4 py-3 text-left transition-colors first:rounded-t-xl last:rounded-b-xl",
+                          selectedGuestId === guest.id
+                            ? "bg-primary/5"
+                            : "hover:bg-muted/50"
+                        )}
+                        key={guest.id}
+                        onClick={() => {
+                          setValue("guestId", guest.id, {
+                            shouldDirty: true,
+                            shouldValidate: true,
+                          })
+                        }}
+                        type="button"
+                      >
+                        <div
+                          className={cn(
+                            "flex size-10 shrink-0 items-center justify-center rounded-full border bg-muted",
+                            selectedGuestId === guest.id &&
+                              "border-primary bg-primary/10 text-primary"
+                          )}
+                        >
+                          <UserIcon className="size-5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium">
+                            {guest.fullName}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {guest.phone}
+                          </p>
+                        </div>
+                        {selectedGuestId === guest.id ? (
+                          <CheckIcon className="size-5 shrink-0 text-primary" />
+                        ) : null}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : null}
+
+            {/* Step 2 — Select Dates */}
+            {wizardStep === 2 ? (
+              <div className="flex flex-col gap-4">
+                <Field data-invalid={Boolean(errors.checkInDate)}>
+                  <FieldLabel htmlFor="mw-checkInDate">
+                    {t("checkInDate")}
+                  </FieldLabel>
+                  <Input
+                    aria-invalid={Boolean(errors.checkInDate)}
+                    id="mw-checkInDate"
+                    type="date"
+                    {...register("checkInDate")}
+                  />
+                  <FieldError>{errors.checkInDate?.message}</FieldError>
+                </Field>
+                <Field data-invalid={Boolean(errors.checkOutDate)}>
+                  <FieldLabel htmlFor="mw-checkOutDate">
+                    {t("checkOutDate")}
+                  </FieldLabel>
+                  <Input
+                    aria-invalid={Boolean(errors.checkOutDate)}
+                    id="mw-checkOutDate"
+                    type="date"
+                    {...register("checkOutDate")}
+                  />
+                  <FieldError>{errors.checkOutDate?.message}</FieldError>
+                </Field>
+                {checkInDate &&
+                checkOutDate &&
+                calculateNights(checkInDate, checkOutDate) !== null ? (
+                  <div className="rounded-xl border bg-muted/40 p-5 text-center">
+                    <p className="text-sm text-muted-foreground">
+                      {t("duration")}
+                    </p>
+                    <p className="mt-1 font-mono text-4xl font-bold">
+                      {calculateNights(checkInDate, checkOutDate)}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {t("nights")}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+
+            {/* Step 3 — Select Room */}
+            {wizardStep === 3 ? (
+              <div className="flex flex-col gap-3">
+                {!canCheckRoomAvailability ? (
+                  <Alert>
+                    <AlertCircleIcon />
+                    <AlertDescription>
+                      {t("selectDatesBeforeRoom")}
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
+                {effectiveAvailabilityError ? (
+                  <Alert variant="destructive">
+                    <AlertCircleIcon />
+                    <AlertTitle>{t("roomAvailabilityCheckFailed")}</AlertTitle>
+                    <AlertDescription>
+                      {effectiveAvailabilityError}
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
+                {bookingConflict || liveConflict ? (
+                  <BookingConflictAlert
+                    conflict={(bookingConflict || liveConflict)!}
+                  />
+                ) : null}
+                {isAvailabilityLoading ? (
+                  <p className="text-sm text-muted-foreground">
+                    {t("checkingRoomAvailability")}
+                  </p>
+                ) : null}
+                <div className="flex flex-col gap-2">
+                  {rooms.map((room) => {
+                    const roomStatus: RoomAvailabilityStatus | "UNKNOWN" =
+                      effectiveRoomAvailability[room.id] ?? "UNKNOWN"
+                    const isDisabled =
+                      canCheckRoomAvailability &&
+                      (roomStatus === "BOOKED" ||
+                        roomStatus === "OCCUPIED" ||
+                        roomStatus === "MAINTENANCE")
+                    const isSelected = selectedRoomId === room.id
+                    return (
+                      <button
+                        className={cn(
+                          "flex items-center gap-3 rounded-xl border-2 p-3 text-left transition-colors",
+                          isSelected
+                            ? "border-primary bg-primary/5"
+                            : "border-border",
+                          isDisabled
+                            ? "cursor-not-allowed opacity-50"
+                            : "hover:border-primary/50"
+                        )}
+                        disabled={isDisabled}
+                        key={room.id}
+                        onClick={() => {
+                          setValue("roomId", room.id, {
+                            shouldDirty: true,
+                            shouldValidate: true,
+                          })
+                        }}
+                        type="button"
+                      >
+                        <div
+                          className={cn(
+                            "flex size-10 shrink-0 items-center justify-center rounded-lg border bg-muted",
+                            isSelected &&
+                              "border-primary bg-primary/10 text-primary"
+                          )}
+                        >
+                          <BedDoubleIcon className="size-5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium">
+                            {t("roomLabel", {
+                              roomNumber: room.roomNumber,
+                            })}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {getRoomTypeLabel(room.type, t)} ·{" "}
+                            {formatCurrency(room.pricePerNight)}
+                            {t("perNight")}
+                          </p>
+                        </div>
+                        <RoomAvailabilityBadge status={roomStatus} />
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            {/* Step 4 — Cooling Option (guest preference, UI-only) */}
+            {wizardStep === 4 ? (
+              <div className="flex flex-col gap-5">
+                <p className="text-sm text-muted-foreground">
+                  {t("coolingHint")}
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    className={cn(
+                      "flex flex-col items-center gap-3 rounded-xl border-2 p-5 transition-colors",
+                      coolingOption === "FAN"
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
+                    )}
+                    onClick={() => setCoolingOption("FAN")}
+                    type="button"
+                  >
+                    <WindIcon className="size-10 text-blue-500" />
+                    <div className="text-center">
+                      <p className="font-medium">{t("coolingFan")}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {t("coolingFanDesc")}
+                      </p>
+                    </div>
+                  </button>
+                  <button
+                    className={cn(
+                      "flex flex-col items-center gap-3 rounded-xl border-2 p-5 transition-colors",
+                      coolingOption === "AC"
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
+                    )}
+                    onClick={() => setCoolingOption("AC")}
+                    type="button"
+                  >
+                    <AirVentIcon className="size-10 text-cyan-500" />
+                    <div className="text-center">
+                      <p className="font-medium">{t("coolingAC")}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {t("coolingACDesc")}
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            {/* Step 5 — Review & Confirm */}
+            {wizardStep === 5 ? (
+              <div className="flex flex-col gap-4">
+                {formError ? (
+                  <Alert variant="destructive">
+                    <AlertCircleIcon />
+                    <AlertTitle>{t("bookingCouldNotBeSaved")}</AlertTitle>
+                    <AlertDescription>{formError}</AlertDescription>
+                  </Alert>
+                ) : null}
+                {bookingConflict || liveConflict ? (
+                  <BookingConflictAlert
+                    conflict={(bookingConflict || liveConflict)!}
+                  />
+                ) : null}
+
+                {/* Guest */}
+                <div className="rounded-xl border p-4">
+                  <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {t("guest")}
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-full border bg-muted">
+                      <UserIcon className="size-4" />
+                    </div>
+                    <div>
+                      <p className="font-medium">
+                        {selectedGuest?.fullName ?? "—"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {selectedGuest?.phone}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dates */}
+                <div className="rounded-xl border p-4">
+                  <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {t("dates")}
+                  </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        {t("checkIn")}
+                      </p>
+                      <p className="font-medium">
+                        {checkInDate ? formatDate(checkInDate) : "—"}
+                      </p>
+                    </div>
+                    <ArrowLeftIcon className="size-4 rotate-180 text-muted-foreground" />
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground">
+                        {t("checkOut")}
+                      </p>
+                      <p className="font-medium">
+                        {checkOutDate ? formatDate(checkOutDate) : "—"}
+                      </p>
+                    </div>
+                  </div>
+                  {checkInDate &&
+                  checkOutDate &&
+                  calculateNights(checkInDate, checkOutDate) !== null ? (
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      {t("nightsAtRate", {
+                        nights:
+                          calculateNights(checkInDate, checkOutDate) ?? 0,
+                        rate: selectedRoom
+                          ? formatCurrency(selectedRoom.pricePerNight)
+                          : "—",
+                      })}
+                    </p>
+                  ) : null}
+                </div>
+
+                {/* Room + Cooling */}
+                <div className="rounded-xl border p-4">
+                  <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {t("room")}
+                  </p>
+                  {selectedRoom ? (
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-muted">
+                        <BedDoubleIcon className="size-4" />
+                      </div>
+                      <div>
+                        <p className="font-medium">
+                          {t("roomLabel", {
+                            roomNumber: selectedRoom.roomNumber,
+                          })}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {getRoomTypeLabel(selectedRoom.type, t)} ·{" "}
+                          {coolingOption === "FAN"
+                            ? t("coolingFan")
+                            : t("coolingAC")}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground">—</p>
+                  )}
+                </div>
+
+                {/* Price summary */}
+                <div className="rounded-xl border bg-muted/40 p-4">
+                  <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {t("estimatedTotal")}
+                  </p>
+                  {estimatedTotal !== null && selectedRoom ? (
+                    <>
+                      <div className="flex justify-between text-sm text-muted-foreground">
+                        <span>
+                          {formatCurrency(selectedRoom.pricePerNight)} ×{" "}
+                          {calculateNights(checkInDate, checkOutDate) ?? 0}{" "}
+                          {t("nights")}
+                        </span>
+                        <span className="font-mono">
+                          {formatCurrency(estimatedTotal)}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between border-t pt-3">
+                        <span className="font-semibold">{t("total")}</span>
+                        <span className="font-mono text-xl font-bold">
+                          {formatCurrency(estimatedTotal)}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground">
+                      {t("selectRoomAndDates")}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          {/* Sticky footer */}
+          <div className="shrink-0 border-t bg-background px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-4">
+            {wizardStep < 5 ? (
+              <Button
+                className="w-full"
+                disabled={!canGoToNextStep}
+                onClick={() => setWizardStep((s) => s + 1)}
+                type="button"
+              >
+                {t("wizardNext")}
+              </Button>
+            ) : (
+              <Button
+                className="w-full"
+                disabled={
+                  isSubmitting ||
+                  isAvailabilityLoading ||
+                  isCheckingConflict ||
+                  Boolean(effectiveAvailabilityError) ||
+                  isSelectedRoomUnavailable ||
+                  Boolean(liveConflict) ||
+                  Boolean(bookingConflict)
+                }
+                onClick={() => void handleSubmit(onSubmit)()}
+                type="button"
+              >
+                {isSubmitting ? t("saving") : t("saveBooking")}
+              </Button>
+            )}
+          </div>
+        </div>
+      ) : null}
+
+      <Dialog open={!isMobileWizard && isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{t("createBooking")}</DialogTitle>

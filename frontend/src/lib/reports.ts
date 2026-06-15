@@ -16,6 +16,8 @@ export const reportTypes = [
   "payments",
   "guests",
   "occupancy",
+  "profit_loss",
+  "combined_profit_loss",
 ] as const
 
 export type ReportType = (typeof reportTypes)[number]
@@ -100,12 +102,43 @@ export type OccupancyReport = {
   occupancyRate: number
 }
 
+export type ProfitLossReport = {
+  period: string
+  totalRevenue: number
+  totalExpense: number
+  netProfit: number
+  revenueByDate: Array<{ date: string; revenue: number }>
+  expenseByDate: Array<{ date: string; expense: number }>
+  expenseByCategory: Array<{ category: string; amount: number }>
+}
+
+export type CombinedProfitLossBusinessRow = {
+  businessId: string
+  businessName: string
+  businessType: string
+  revenue: number
+  expense: number
+  netProfit: number
+}
+
+export type CombinedProfitLossReport = {
+  period: string
+  startDate: string | null
+  endDate: string | null
+  totalRevenue: number
+  totalExpense: number
+  netProfit: number
+  businessBreakdown: CombinedProfitLossBusinessRow[]
+}
+
 export type ReportResultMap = {
   revenue: RevenueReport
   bookings: BookingReportRow[]
   payments: PaymentReportRow[]
   guests: GuestReportRow[]
   occupancy: OccupancyReport
+  profit_loss: ProfitLossReport
+  combined_profit_loss: CombinedProfitLossReport
 }
 
 export type ReportTableRow = Record<string, string | number | null>
@@ -135,12 +168,14 @@ export const reportService = {
     type: TType,
     filters: ReportFilters
   ): Promise<ReportResultMap[TType]> {
+    const path =
+      type === "combined_profit_loss" ? "combined-profit-loss" : type
     const response = await apiClient.get<
       | ReportResultMap[TType]
       | PaginatedResponse<
           BookingReportRow | PaymentReportRow | GuestReportRow
         >
-    >(`/reports/${type}`, {
+    >(`/reports/${path}`, {
       params: cleanFilters(filters),
     })
 
@@ -162,7 +197,9 @@ export const reportService = {
     format: ReportExportFormat,
     filters: ReportFilters
   ) {
-    const response = await apiClient.get<Blob>(`/reports/${type}/export`, {
+    const path =
+      type === "combined_profit_loss" ? "combined-profit-loss" : type
+    const response = await apiClient.get<Blob>(`/reports/${path}/export`, {
       params: {
         ...cleanFilters(filters),
         format,

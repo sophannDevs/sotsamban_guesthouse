@@ -413,84 +413,149 @@ export default function RoomsPage() {
             </Alert>
           ) : null}
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("room")}</TableHead>
-                <TableHead>{t("roomType")}</TableHead>
-                <TableHead>{t("nightlyRate")}</TableHead>
-                <TableHead>{t("status")}</TableHead>
-                <TableHead className="text-right">{t("actions")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableStateRow message={t("loadingRooms")} />
-              ) : rooms.length ? (
-                rooms.map((room) => (
-                  <TableRow key={room.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <RoomThumbnail room={room} />
-                        <div className="flex min-w-0 flex-col">
-                          <span className="font-medium">
-                            {t("roomLabel", { roomNumber: room.roomNumber })}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {room.id}
-                          </span>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{getRoomTypeLabel(room.type, t)}</TableCell>
-                    <TableCell>{formatCurrency(room.pricePerNight)}</TableCell>
-                    <TableCell>
+          {/* Mobile card list */}
+          <div className="flex flex-col divide-y sm:hidden">
+            {isLoading ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                {t("loadingRooms")}
+              </p>
+            ) : rooms.length ? (
+              rooms.map((room) => (
+                <div
+                  className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
+                  key={room.id}
+                >
+                  <RoomThumbnail room={room} />
+                  <div className="flex min-w-0 flex-1 flex-col gap-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-medium leading-tight">
+                        {t("roomLabel", { roomNumber: room.roomNumber })}
+                      </span>
                       <RoomStatusBadge status={room.status} />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          aria-label={t("editRoomAria", {
-                            roomNumber: room.roomNumber,
-                          })}
-                          onClick={() => openEditDialog(room)}
-                          size="icon-sm"
-                          type="button"
-                          variant="outline"
-                        >
-                          <PencilIcon />
-                        </Button>
-                        <Button
-                          aria-label={t("deleteRoomAria", {
-                            roomNumber: room.roomNumber,
-                          })}
-                          onClick={() => {
-                            setDeleteError(null)
-                            setRoomToDelete(room)
-                          }}
-                          size="icon-sm"
-                          type="button"
-                          variant="destructive"
-                        >
-                          <Trash2Icon />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableStateRow
-                  message={
-                    statusFilter === "ALL"
-                      ? t("noRoomsFound")
-                      : t("noRoomsByStatusFound", {
-                          status: getRoomStatusLabel(statusFilter, t).toLowerCase(),
-                        })
-                  }
-                />
-              )}
-            </TableBody>
-          </Table>
+                    </div>
+                    <span className="text-sm text-muted-foreground">
+                      {getRoomTypeLabel(room.type, t)}{" "}
+                      <span aria-hidden>·</span>{" "}
+                      {formatCurrency(room.pricePerNight)}
+                    </span>
+                  </div>
+                  <div className="flex shrink-0 gap-1">
+                    <Button
+                      aria-label={t("editRoomAria", { roomNumber: room.roomNumber })}
+                      onClick={() => openEditDialog(room)}
+                      size="icon-sm"
+                      type="button"
+                      variant="outline"
+                    >
+                      <PencilIcon />
+                    </Button>
+                    <Button
+                      aria-label={t("deleteRoomAria", { roomNumber: room.roomNumber })}
+                      onClick={() => {
+                        setDeleteError(null)
+                        setRoomToDelete(room)
+                      }}
+                      size="icon-sm"
+                      type="button"
+                      variant="destructive"
+                    >
+                      <Trash2Icon />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                {statusFilter === "ALL"
+                  ? t("noRoomsFound")
+                  : t("noRoomsByStatusFound", {
+                      status: getRoomStatusLabel(statusFilter, t).toLowerCase(),
+                    })}
+              </p>
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden sm:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("room")}</TableHead>
+                  <TableHead>{t("roomType")}</TableHead>
+                  <TableHead>{t("nightlyRate")}</TableHead>
+                  <TableHead>{t("status")}</TableHead>
+                  <TableHead className="text-right">{t("actions")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableStateRow message={t("loadingRooms")} />
+                ) : rooms.length ? (
+                  rooms.map((room) => (
+                    <TableRow key={room.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <RoomThumbnail room={room} />
+                          <div className="flex min-w-0 flex-col">
+                            <span className="font-medium">
+                              {t("roomLabel", { roomNumber: room.roomNumber })}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {room.id}
+                            </span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{getRoomTypeLabel(room.type, t)}</TableCell>
+                      <TableCell>{formatCurrency(room.pricePerNight)}</TableCell>
+                      <TableCell>
+                        <RoomStatusBadge status={room.status} />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            aria-label={t("editRoomAria", {
+                              roomNumber: room.roomNumber,
+                            })}
+                            onClick={() => openEditDialog(room)}
+                            size="icon-sm"
+                            type="button"
+                            variant="outline"
+                          >
+                            <PencilIcon />
+                          </Button>
+                          <Button
+                            aria-label={t("deleteRoomAria", {
+                              roomNumber: room.roomNumber,
+                            })}
+                            onClick={() => {
+                              setDeleteError(null)
+                              setRoomToDelete(room)
+                            }}
+                            size="icon-sm"
+                            type="button"
+                            variant="destructive"
+                          >
+                            <Trash2Icon />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableStateRow
+                    message={
+                      statusFilter === "ALL"
+                        ? t("noRoomsFound")
+                        : t("noRoomsByStatusFound", {
+                            status: getRoomStatusLabel(statusFilter, t).toLowerCase(),
+                          })
+                    }
+                  />
+                )}
+              </TableBody>
+            </Table>
+          </div>
           <Pagination
             limit={paginationMeta.limit}
             page={paginationMeta.page}

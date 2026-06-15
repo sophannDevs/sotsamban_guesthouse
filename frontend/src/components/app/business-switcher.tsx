@@ -29,7 +29,7 @@ export function BusinessSwitcher() {
 
   if (isLoading && !activeBusiness) {
     return (
-      <Button disabled size="sm" variant="outline">
+      <Button disabled variant="outline">
         <Loader2Icon className="animate-spin" />
         <span className="hidden sm:inline">Loading…</span>
       </Button>
@@ -43,7 +43,6 @@ export function BusinessSwitcher() {
         render={
           <Button
             className="max-w-[200px] gap-1.5 overflow-hidden"
-            size="sm"
             variant="outline"
           />
         }
@@ -53,10 +52,10 @@ export function BusinessSwitcher() {
         ) : (
           <Building2Icon className="shrink-0" />
         )}
-        <span className="truncate text-sm">
+        <span className="hidden truncate text-sm sm:inline">
           {activeBusiness?.businessName ?? "Select Business"}
         </span>
-        <ChevronDownIcon className="ml-auto shrink-0 opacity-50" />
+        <ChevronDownIcon className="ml-auto hidden shrink-0 opacity-50 sm:block" />
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="start" className="w-60">

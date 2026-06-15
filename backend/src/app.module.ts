@@ -24,6 +24,8 @@ import { PrismaModule } from './prisma/prisma.module';
 import { ReportModule } from './report/report.module';
 import { RoomsModule } from './rooms/rooms.module';
 import { SettingsModule } from './settings/settings.module';
+import { ExpenseModule } from './expenses/expense.module';
+import { FinanceModule } from './finance/finance.module';
 import { StoreModule } from './store/store.module';
 import { UsersModule } from './users/users.module';
 
@@ -58,6 +60,8 @@ const i18nPath =
     NotificationsModule,
     SettingsModule,
     StoreModule,
+    ExpenseModule,
+    FinanceModule,
   ],
   controllers: [AppController],
   providers: [

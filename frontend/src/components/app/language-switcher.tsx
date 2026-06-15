@@ -1,20 +1,21 @@
 "use client"
 
 import { useState } from "react"
-import { LanguagesIcon } from "lucide-react"
+import { CheckIcon, LanguagesIcon } from "lucide-react"
 import { useTranslations } from "next-intl"
 
 import { useAuth } from "@/components/app/auth-provider"
 import { useI18n } from "@/components/app/i18n-provider"
+import { Button } from "@/components/ui/button"
 import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { isLocale, locales } from "@/i18n/config"
+import { cn } from "@/lib/utils"
 
 const localeOptions = locales.map((locale) => ({
   value: locale,
@@ -27,40 +28,44 @@ export function LanguageSwitcher() {
   const { isAuthenticated, updatePreferredLanguage } = useAuth()
   const [isUpdating, setIsUpdating] = useState(false)
 
+  function handleChange(value: string) {
+    if (!value || !isLocale(value) || value === locale) return
+    if (!isAuthenticated) {
+      setLocale(value)
+      return
+    }
+    setIsUpdating(true)
+    void updatePreferredLanguage(value).finally(() => setIsUpdating(false))
+  }
+
   return (
-    <Select
-      disabled={isUpdating}
-      items={localeOptions}
-      value={locale}
-      onValueChange={(value) => {
-        if (!value || !isLocale(value) || value === locale) {
-          return
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        disabled={isUpdating}
+        render={
+          <Button aria-label={t("language")} size="icon" variant="ghost" />
         }
-
-        if (!isAuthenticated) {
-          setLocale(value)
-          return
-        }
-
-        setIsUpdating(true)
-        void updatePreferredLanguage(value).finally(() => {
-          setIsUpdating(false)
-        })
-      }}
-    >
-      <SelectTrigger aria-label={t("language")} className="min-w-32" size="sm">
-        <LanguagesIcon data-icon="inline-start" />
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent align="end">
-        <SelectGroup>
+      >
+        <LanguagesIcon />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuGroup>
           {localeOptions.map((option) => (
-            <SelectItem key={option.value} value={option.value}>
+            <DropdownMenuItem
+              key={option.value}
+              onClick={() => handleChange(option.value)}
+            >
+              <CheckIcon
+                className={cn(
+                  "shrink-0",
+                  locale !== option.value && "invisible",
+                )}
+              />
               {option.label}
-            </SelectItem>
+            </DropdownMenuItem>
           ))}
-        </SelectGroup>
-      </SelectContent>
-    </Select>
+        </DropdownMenuGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

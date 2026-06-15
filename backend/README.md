@@ -97,6 +97,175 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
 
+## Finance API
+
+The Finance API provides a cross-business financial summary. Requires `x-business-id` header. Both ADMIN and RECEPTIONIST can access.
+
+### Endpoints
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/finance/summary` | JWT + `x-business-id` | Financial summary for a single business |
+| GET | `/finance/summary/all-businesses` | JWT | Combined summary across all accessible businesses |
+
+### Query Parameters
+
+| Param | Default | Description |
+|-------|---------|-------------|
+| `rangePreset` | `this_month` | Preset period: `today`, `this_week`, `this_month`, `last_month`, `last_3_months`, `this_year`, `custom` |
+| `startDate` | — | ISO date, required when `rangePreset=custom` |
+| `endDate` | — | ISO date, required when `rangePreset=custom` |
+
+### Response
+
+```json
+{
+  "success": true,
+  "message": "Finance summary retrieved successfully.",
+  "data": {
+    "period": "This Month",
+    "startDate": "2026-06-01",
+    "endDate": "2026-06-30",
+    "totalRevenue": 2500.00,
+    "totalExpense": 900.00,
+    "netProfit": 1600.00
+  }
+}
+```
+
+### Revenue Source by Business Type
+
+| Business Type | Revenue Source |
+|--------------|----------------|
+| `GUESTHOUSE` | PAID booking payments (filtered by `paidAt`) |
+| `STORE` | COMPLETED sales (filtered by `createdAt`) |
+
+Expenses always come from the `Expense` table scoped to the business, filtered by `expenseDate`.
+
+### Example
+
+```bash
+# Single-business summary
+GET /finance/summary?rangePreset=this_month
+Authorization: Bearer <token>
+x-business-id: <businessId>
+
+GET /finance/summary?rangePreset=custom&startDate=2026-01-01&endDate=2026-03-31
+Authorization: Bearer <token>
+x-business-id: <businessId>
+```
+
+### GET /finance/summary/all-businesses
+
+Returns a combined summary across every business the authenticated user has access to.
+No `x-business-id` header is required.
+
+**Access rules:**
+- `UserRole.ADMIN` — sees all businesses in the system.
+- `UserRole.RECEPTIONIST` — sees only businesses where the user holds `BusinessRole.OWNER` or `BusinessRole.ADMIN`.
+- Businesses where the user is only a `STAFF` member are excluded.
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "message": "All-businesses finance summary retrieved successfully.",
+  "data": {
+    "period": "This Month",
+    "startDate": "2026-06-01",
+    "endDate": "2026-06-30",
+    "totalRevenue": 5000.00,
+    "totalExpense": 1800.00,
+    "netProfit": 3200.00,
+    "businesses": [
+      {
+        "businessId": "4c82d6f1-b51c-4b84-97a0-bbb1cb6cea0e",
+        "businessName": "Sot Samban Guest House",
+        "businessType": "GUESTHOUSE",
+        "revenue": 3000.00,
+        "expense": 1000.00,
+        "netProfit": 2000.00
+      },
+      {
+        "businessId": "69b11f82-c977-4f8d-bc2e-776d9d65c3c5",
+        "businessName": "Snack Store",
+        "businessType": "STORE",
+        "revenue": 2000.00,
+        "expense": 800.00,
+        "netProfit": 1200.00
+      }
+    ]
+  }
+}
+```
+
+**Example requests:**
+
+```bash
+# This month (default)
+GET /finance/summary/all-businesses
+Authorization: Bearer <token>
+
+# Custom date range
+GET /finance/summary/all-businesses?rangePreset=custom&startDate=2026-01-01&endDate=2026-03-31
+Authorization: Bearer <token>
+
+# Preset: last 3 months
+GET /finance/summary/all-businesses?rangePreset=last_3_months
+Authorization: Bearer <token>
+```
+
+**Revenue source per business type:**
+
+| Business Type | Revenue Source | Scoped by businessId |
+|--------------|----------------|----------------------|
+| `GUESTHOUSE` | PAID booking payments (`paidAt`) | No (schema limitation — one guesthouse per system) |
+| `STORE` | COMPLETED sales (`createdAt`) | Yes |
+
+Expenses always come from the `Expense` table, scoped to each business by `businessId` and filtered by `expenseDate`.
+
+## Expenses API
+
+The Expenses API manages business expenses for any business type (GUESTHOUSE or STORE). Requires `x-business-id` header on all requests. ADMIN can create, update, and delete; RECEPTIONIST can only view.
+
+### Endpoints
+
+| Method | Path | Role | Description |
+|--------|------|------|-------------|
+| POST | `/expenses` | ADMIN | Create a new expense |
+| GET | `/expenses` | ADMIN, RECEPTIONIST | List expenses with filters and pagination |
+| GET | `/expenses/:id` | ADMIN, RECEPTIONIST | Get a single expense |
+| PATCH | `/expenses/:id` | ADMIN | Update an expense |
+| DELETE | `/expenses/:id` | ADMIN | Delete an expense |
+
+### Query Parameters (GET /expenses)
+
+- `page`, `limit`, `sortBy`, `sortOrder`, `search` — standard pagination/search (search matches title)
+- `startDate` — filter expenses on or after this date (ISO 8601)
+- `endDate` — filter expenses on or before this date (ISO 8601, inclusive end of day)
+- `category` — filter by `ExpenseCategory` enum value
+- `paymentMethod` — filter by `ExpensePaymentMethod` enum value
+
+### Enums
+
+**ExpenseCategory**: `RENT`, `ELECTRICITY`, `WATER`, `INTERNET`, `SALARY`, `MAINTENANCE`, `SUPPLIES`, `FOOD`, `OTHER`
+
+**ExpensePaymentMethod**: `CASH`, `CARD`, `QR`, `BANK_TRANSFER`
+
+### Example
+
+```bash
+# Create expense
+POST /expenses
+x-business-id: <businessId>
+{ "title": "Monthly Rent", "category": "RENT", "amount": 500, "expenseDate": "2026-06-15", "paymentMethod": "BANK_TRANSFER" }
+
+# List with filters
+GET /expenses?category=RENT&startDate=2026-06-01&endDate=2026-06-30
+x-business-id: <businessId>
+```
+
 ## Reports API
 
 The reports API supports date range presets via the `rangePreset` query parameter. This allows generating reports for specific time periods aligned with the system's configured timezone.

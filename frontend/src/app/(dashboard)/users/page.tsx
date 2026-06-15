@@ -337,89 +337,152 @@ export default function UsersPage() {
 
           <div className="text-sm text-muted-foreground">{tableCaption}</div>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>{t("id")}</TableHead>
-                <TableHead>{t("name")}</TableHead>
-                <TableHead>{t("email")}</TableHead>
-                <TableHead>{t("role")}</TableHead>
-                <TableHead>{t("createdAt")}</TableHead>
-                <TableHead>{t("updatedAt")}</TableHead>
-                <TableHead className="text-right">{t("actions")}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableStateRow colSpan={7} message={t("loadingUsers")} />
-              ) : users.length ? (
-                users.map((staffUser) => {
-                  const isCurrentUser = staffUser.id === user.id
-
-                  return (
-                    <TableRow key={staffUser.id}>
-                      <TableCell>
-                        <span className="max-w-40 truncate text-xs text-muted-foreground">
-                          {staffUser.id}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar size="sm">
-                            <AvatarFallback>
-                              {getInitials(staffUser.name)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex min-w-0 flex-col">
-                            <span className="font-medium">
-                              {staffUser.name}
-                            </span>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{staffUser.email}</TableCell>
-                      <TableCell>
+          {/* Mobile card list */}
+          <div className="flex flex-col divide-y sm:hidden">
+            {isLoading ? (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                {t("loadingUsers")}
+              </p>
+            ) : users.length ? (
+              users.map((staffUser) => {
+                const isCurrentUser = staffUser.id === user.id
+                return (
+                  <div className="flex items-center gap-3 py-3 first:pt-0 last:pb-0" key={staffUser.id}>
+                    <Avatar size="sm">
+                      <AvatarFallback>{getInitials(staffUser.name)}</AvatarFallback>
+                    </Avatar>
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium leading-tight">{staffUser.name}</span>
+                        {isCurrentUser ? (
+                          <Badge className="shrink-0" variant="outline">{t("currentUser")}</Badge>
+                        ) : null}
+                      </div>
+                      <span className="truncate text-sm text-muted-foreground">{staffUser.email}</span>
+                      <div className="flex items-center gap-2">
                         <RoleBadge role={staffUser.role} t={t} />
-                      </TableCell>
-                      <TableCell>{formatDate(staffUser.createdAt, locale)}</TableCell>
-                      <TableCell>{formatDate(staffUser.updatedAt, locale)}</TableCell>
-                      <TableCell>
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            onClick={() => openEditDialog(staffUser)}
-                            size="sm"
-                            type="button"
-                            variant="outline"
-                          >
-                            <PencilIcon data-icon="inline-start" />
-                            {t("editUser")}
-                          </Button>
-                          {isCurrentUser ? (
-                            <Badge variant="outline">{t("currentUser")}</Badge>
-                          ) : (
+                        <span className="text-xs text-muted-foreground">{formatDate(staffUser.createdAt, locale)}</span>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 gap-1">
+                      <Button
+                        onClick={() => openEditDialog(staffUser)}
+                        size="icon-sm"
+                        type="button"
+                        variant="outline"
+                      >
+                        <PencilIcon />
+                      </Button>
+                      {!isCurrentUser ? (
+                        <Button
+                          onClick={() => {
+                            setDeleteError(null)
+                            setUserToDelete(staffUser)
+                          }}
+                          size="icon-sm"
+                          type="button"
+                          variant="destructive"
+                        >
+                          <Trash2Icon />
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                )
+              })
+            ) : (
+              <p className="py-8 text-center text-sm text-muted-foreground">
+                {t("noUsersFound")}
+              </p>
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden sm:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("id")}</TableHead>
+                  <TableHead>{t("name")}</TableHead>
+                  <TableHead>{t("email")}</TableHead>
+                  <TableHead>{t("role")}</TableHead>
+                  <TableHead>{t("createdAt")}</TableHead>
+                  <TableHead>{t("updatedAt")}</TableHead>
+                  <TableHead className="text-right">{t("actions")}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableStateRow colSpan={7} message={t("loadingUsers")} />
+                ) : users.length ? (
+                  users.map((staffUser) => {
+                    const isCurrentUser = staffUser.id === user.id
+
+                    return (
+                      <TableRow key={staffUser.id}>
+                        <TableCell>
+                          <span className="max-w-40 truncate text-xs text-muted-foreground">
+                            {staffUser.id}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <Avatar size="sm">
+                              <AvatarFallback>
+                                {getInitials(staffUser.name)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex min-w-0 flex-col">
+                              <span className="font-medium">
+                                {staffUser.name}
+                              </span>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{staffUser.email}</TableCell>
+                        <TableCell>
+                          <RoleBadge role={staffUser.role} t={t} />
+                        </TableCell>
+                        <TableCell>{formatDate(staffUser.createdAt, locale)}</TableCell>
+                        <TableCell>{formatDate(staffUser.updatedAt, locale)}</TableCell>
+                        <TableCell>
+                          <div className="flex justify-end gap-2">
                             <Button
-                              onClick={() => {
-                                setDeleteError(null)
-                                setUserToDelete(staffUser)
-                              }}
+                              onClick={() => openEditDialog(staffUser)}
                               size="sm"
                               type="button"
-                              variant="destructive"
+                              variant="outline"
                             >
-                              <Trash2Icon data-icon="inline-start" />
-                              {t("deleteUser")}
+                              <PencilIcon data-icon="inline-start" />
+                              {t("editUser")}
                             </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })
-              ) : (
-                <TableStateRow colSpan={7} message={t("noUsersFound")} />
-              )}
-            </TableBody>
-          </Table>
+                            {isCurrentUser ? (
+                              <Badge variant="outline">{t("currentUser")}</Badge>
+                            ) : (
+                              <Button
+                                onClick={() => {
+                                  setDeleteError(null)
+                                  setUserToDelete(staffUser)
+                                }}
+                                size="sm"
+                                type="button"
+                                variant="destructive"
+                              >
+                                <Trash2Icon data-icon="inline-start" />
+                                {t("deleteUser")}
+                              </Button>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )
+                  })
+                ) : (
+                  <TableStateRow colSpan={7} message={t("noUsersFound")} />
+                )}
+              </TableBody>
+            </Table>
+          </div>
           <Pagination
             limit={paginationMeta.limit}
             page={paginationMeta.page}
