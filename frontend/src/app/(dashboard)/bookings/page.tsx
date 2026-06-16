@@ -86,7 +86,9 @@ import {
   type BookingConflict,
   type BookingPayload,
   type BookingStatus,
+  type CoolingOption,
 } from "@/lib/bookings"
+import { settingsService } from "@/lib/settings"
 import { guestService, type Guest } from "@/lib/guests"
 import {
   downloadInvoiceFile,
@@ -99,6 +101,8 @@ import {
   type RoomAvailabilityStatus,
   type RoomType,
 } from "@/lib/rooms"
+import { ActionMenu } from "@/components/app/action-menu"
+import { MobileFilterDrawer } from "@/components/app/mobile-filter-drawer"
 import { defaultPaginationMeta, type PaginatedResponse } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
@@ -114,7 +118,7 @@ type RoomOption = Option<string> & {
 }
 
 type TranslationFn = ReturnType<typeof useTranslations>
-type BookingForm = Omit<BookingPayload, "status">
+type BookingForm = Omit<BookingPayload, "status" | "coolingOption">
 
 const defaultFormValues: BookingForm = {
   guestId: "",
@@ -161,7 +165,8 @@ export default function BookingsPage() {
   >(null)
   const [isMobileWizard, setIsMobileWizard] = useState(false)
   const [wizardStep, setWizardStep] = useState(1)
-  const [coolingOption, setCoolingOption] = useState<"FAN" | "AC">("AC")
+  const [coolingOption, setCoolingOption] = useState<CoolingOption>("FAN")
+  const [acPricePerNight, setAcPricePerNight] = useState(5)
   const [guestSearch, setGuestSearch] = useState("")
   const bookingSchema = z
     .object({
@@ -252,19 +257,16 @@ export default function BookingsPage() {
     Boolean(selectedRoomAvailability) &&
     selectedRoomAvailability !== "AVAILABLE"
 
-  const estimatedTotal = useMemo(() => {
-    if (!selectedRoom || !checkInDate || !checkOutDate) {
-      return null
-    }
-
+  const priceBreakdown = useMemo(() => {
+    if (!selectedRoom || !checkInDate || !checkOutDate) return null
     const nights = calculateNights(checkInDate, checkOutDate)
-
-    if (!nights) {
-      return null
-    }
-
-    return selectedRoom.pricePerNight * nights
-  }, [checkInDate, checkOutDate, selectedRoom])
+    if (!nights) return null
+    const roomRate = selectedRoom.pricePerNight
+    const roomTotal = roomRate * nights
+    const acRate = acPricePerNight
+    const acTotal = coolingOption === "AIR_CONDITIONER" ? acRate * nights : 0
+    return { nights, roomRate, roomTotal, acRate, acTotal, total: roomTotal + acTotal }
+  }, [checkInDate, checkOutDate, selectedRoom, coolingOption, acPricePerNight])
 
   const filteredGuests = useMemo(
     () =>
@@ -424,6 +426,15 @@ export default function BookingsPage() {
   }, [])
 
   useEffect(() => {
+    settingsService.getSetting("airConditionerPricePerNight")
+      .then((setting) => {
+        const parsed = parseFloat(setting.value)
+        if (!isNaN(parsed) && parsed >= 0) setAcPricePerNight(parsed)
+      })
+      .catch(() => { /* keep default 5 */ })
+  }, [])
+
+  useEffect(() => {
     let ignore = false
 
     if (!canCheckRoomAvailability) {
@@ -518,7 +529,7 @@ export default function BookingsPage() {
       typeof window !== "undefined" && window.innerWidth < 640
     setIsMobileWizard(isMobile)
     setWizardStep(1)
-    setCoolingOption("AC")
+    setCoolingOption("FAN")
     setGuestSearch("")
     setFormError(null)
     setBookingConflict(null)
@@ -533,7 +544,7 @@ export default function BookingsPage() {
     setIsCreateOpen(false)
     setIsMobileWizard(false)
     setWizardStep(1)
-    setCoolingOption("AC")
+    setCoolingOption("FAN")
     setGuestSearch("")
     setFormError(null)
     setBookingConflict(null)
@@ -579,6 +590,7 @@ export default function BookingsPage() {
     try {
       const createdBooking = await bookingService.create({
         ...values,
+        coolingOption,
         status: "CONFIRMED",
       })
       setBookings((currentBookings) =>
@@ -589,7 +601,7 @@ export default function BookingsPage() {
       setIsCreateOpen(false)
       setIsMobileWizard(false)
       setWizardStep(1)
-      setCoolingOption("AC")
+      setCoolingOption("FAN")
       setGuestSearch("")
       reset(defaultFormValues)
       void loadOptions()
@@ -662,28 +674,63 @@ export default function BookingsPage() {
             </CardDescription>
           </div>
           <CardAction className="flex flex-wrap justify-end gap-2">
-            <Select
-              items={filterOptions}
-              value={statusFilter}
-              onValueChange={(value) => {
-                const nextStatus = value as StatusFilter
-                setStatusFilter(nextStatus)
+            <MobileFilterDrawer
+              activeCount={statusFilter !== "ALL" ? 1 : 0}
+              onClear={() => {
+                setStatusFilter("ALL")
                 setPage(1)
               }}
+              triggerClassName="sm:hidden"
             >
-              <SelectTrigger aria-label={t("filterBookingsByStatus")} size="sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent align="end">
-                <SelectGroup>
-                  {filterOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+              <div className="flex flex-col gap-1.5">
+                <p className="text-sm font-medium leading-none">{t("status")}</p>
+                <Select
+                  items={filterOptions}
+                  value={statusFilter}
+                  onValueChange={(value) => {
+                    setStatusFilter(value as StatusFilter)
+                    setPage(1)
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {filterOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            </MobileFilterDrawer>
+            <div className="hidden sm:flex">
+              <Select
+                items={filterOptions}
+                value={statusFilter}
+                onValueChange={(value) => {
+                  const nextStatus = value as StatusFilter
+                  setStatusFilter(nextStatus)
+                  setPage(1)
+                }}
+              >
+                <SelectTrigger aria-label={t("filterBookingsByStatus")} size="sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent align="end">
+                  <SelectGroup>
+                    {filterOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
             <Button onClick={openCreateDialog}>
               <CalendarPlusIcon data-icon="inline-start" />
               {t("newBooking")}
@@ -740,20 +787,42 @@ export default function BookingsPage() {
                     </div>
                     <BookingStatusBadge status={booking.status} />
                   </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    <Button
-                      aria-label={t("viewBookingAria", { bookingId: booking.id })}
-                      onClick={() => void openDetailDialog(booking)}
-                      size="icon-sm"
-                      type="button"
-                      variant="outline"
-                    >
-                      <EyeIcon />
-                    </Button>
-                    <BookingActions
-                      actingBookingId={actingBookingId}
-                      booking={booking}
-                      onAction={runBookingAction}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {booking.status === "CONFIRMED" ? (
+                      <Button
+                        disabled={actingBookingId === booking.id}
+                        onClick={() => void runBookingAction(booking, "checkIn")}
+                        size="sm"
+                        type="button"
+                        variant="secondary"
+                      >
+                        <LogInIcon data-icon="inline-start" />
+                        {actingBookingId === booking.id ? t("working") : t("checkIn")}
+                      </Button>
+                    ) : null}
+                    {booking.status === "CHECKED_IN" ? (
+                      <Button
+                        disabled={actingBookingId === booking.id}
+                        onClick={() => void runBookingAction(booking, "checkOut")}
+                        size="sm"
+                        type="button"
+                        variant="secondary"
+                      >
+                        <LogOutIcon data-icon="inline-start" />
+                        {actingBookingId === booking.id ? t("working") : t("checkOut")}
+                      </Button>
+                    ) : null}
+                    <ActionMenu
+                      items={[
+                        { label: t("viewBookingAria", { bookingId: booking.id }), icon: <EyeIcon />, onClick: () => void openDetailDialog(booking) },
+                        (booking.status === "PENDING" || booking.status === "CONFIRMED") ? {
+                          label: t("cancelBooking"),
+                          icon: <CalendarXIcon />,
+                          onClick: () => void runBookingAction(booking, "cancel"),
+                          variant: "destructive" as const,
+                          disabled: actingBookingId === booking.id,
+                        } : null,
+                      ]}
                     />
                   </div>
                 </div>
@@ -1128,7 +1197,7 @@ export default function BookingsPage() {
               </div>
             ) : null}
 
-            {/* Step 4 — Cooling Option (guest preference, UI-only) */}
+            {/* Step 4 — Cooling Option */}
             {wizardStep === 4 ? (
               <div className="flex flex-col gap-5">
                 <p className="text-sm text-muted-foreground">
@@ -1156,11 +1225,11 @@ export default function BookingsPage() {
                   <button
                     className={cn(
                       "flex flex-col items-center gap-3 rounded-xl border-2 p-5 transition-colors",
-                      coolingOption === "AC"
+                      coolingOption === "AIR_CONDITIONER"
                         ? "border-primary bg-primary/5"
                         : "border-border hover:border-primary/50"
                     )}
-                    onClick={() => setCoolingOption("AC")}
+                    onClick={() => setCoolingOption("AIR_CONDITIONER")}
                     type="button"
                   >
                     <AirVentIcon className="size-10 text-cyan-500" />
@@ -1172,6 +1241,33 @@ export default function BookingsPage() {
                     </div>
                   </button>
                 </div>
+                {priceBreakdown ? (
+                  <div className="rounded-xl border bg-muted/40 p-4">
+                    <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      {t("estimatedTotal")}
+                    </p>
+                    <div className="flex flex-col gap-1 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">
+                          {t("room")}: {formatCurrency(priceBreakdown.roomRate)} × {priceBreakdown.nights} {t("nights")}
+                        </span>
+                        <span className="font-mono">{formatCurrency(priceBreakdown.roomTotal)}</span>
+                      </div>
+                      {priceBreakdown.acTotal > 0 ? (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">
+                            {t("coolingAC")}: {formatCurrency(priceBreakdown.acRate)} × {priceBreakdown.nights} {t("nights")}
+                          </span>
+                          <span className="font-mono">{formatCurrency(priceBreakdown.acTotal)}</span>
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className="mt-2 flex items-center justify-between border-t pt-2">
+                      <span className="text-sm font-semibold">{t("total")}</span>
+                      <span className="font-mono text-lg font-bold">{formatCurrency(priceBreakdown.total)}</span>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
@@ -1284,24 +1380,31 @@ export default function BookingsPage() {
                   <p className="mb-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                     {t("estimatedTotal")}
                   </p>
-                  {estimatedTotal !== null && selectedRoom ? (
+                  {priceBreakdown ? (
                     <>
-                      <div className="flex justify-between text-sm text-muted-foreground">
-                        <span>
-                          {formatCurrency(selectedRoom.pricePerNight)} ×{" "}
-                          {calculateNights(checkInDate, checkOutDate) ?? 0}{" "}
-                          {t("nights")}
-                        </span>
-                        <span className="font-mono">
-                          {formatCurrency(estimatedTotal)}
-                        </span>
+                      <div className="flex flex-col gap-1 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">
+                            {t("room")}: {formatCurrency(priceBreakdown.roomRate)} × {priceBreakdown.nights} {t("nights")}
+                          </span>
+                          <span className="font-mono">{formatCurrency(priceBreakdown.roomTotal)}</span>
+                        </div>
+                        {priceBreakdown.acTotal > 0 ? (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">
+                              {t("coolingAC")}: {formatCurrency(priceBreakdown.acRate)} × {priceBreakdown.nights} {t("nights")}
+                            </span>
+                            <span className="font-mono">{formatCurrency(priceBreakdown.acTotal)}</span>
+                          </div>
+                        ) : null}
                       </div>
                       <div className="mt-3 flex items-center justify-between border-t pt-3">
                         <span className="font-semibold">{t("total")}</span>
                         <span className="font-mono text-xl font-bold">
-                          {formatCurrency(estimatedTotal)}
+                          {formatCurrency(priceBreakdown.total)}
                         </span>
                       </div>
+                      <p className="mt-1 text-xs text-muted-foreground">{t("estimatedPriceNote")}</p>
                     </>
                   ) : (
                     <p className="text-muted-foreground">
@@ -1509,21 +1612,75 @@ export default function BookingsPage() {
                 </Field>
               </div>
 
+              <Field>
+                <FieldLabel>{t("wizardCoolingOption")}</FieldLabel>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-lg border-2 p-3 text-left transition-colors",
+                      coolingOption === "FAN"
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
+                    )}
+                    onClick={() => setCoolingOption("FAN")}
+                    type="button"
+                  >
+                    <WindIcon className="size-5 shrink-0 text-blue-500" />
+                    <div>
+                      <p className="text-sm font-medium">{t("coolingFan")}</p>
+                      <p className="text-xs text-muted-foreground">{t("coolingFanDesc")}</p>
+                    </div>
+                  </button>
+                  <button
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-lg border-2 p-3 text-left transition-colors",
+                      coolingOption === "AIR_CONDITIONER"
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
+                    )}
+                    onClick={() => setCoolingOption("AIR_CONDITIONER")}
+                    type="button"
+                  >
+                    <AirVentIcon className="size-5 shrink-0 text-cyan-500" />
+                    <div>
+                      <p className="text-sm font-medium">{t("coolingAC")}</p>
+                      <p className="text-xs text-muted-foreground">{t("coolingACDesc")}</p>
+                    </div>
+                  </button>
+                </div>
+              </Field>
+
               <div className="rounded-lg border bg-muted/40 p-3">
                 <div className="text-sm font-medium">{t("estimatedTotal")}</div>
-                <div className="mt-1 font-mono text-xl font-semibold">
-                  {estimatedTotal === null
-                    ? t("selectRoomAndDates")
-                    : formatCurrency(estimatedTotal)}
-                </div>
-                {selectedRoom && checkInDate && checkOutDate ? (
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    {t("nightsAtRate", {
-                      nights: calculateNights(checkInDate, checkOutDate) ?? 0,
-                      rate: formatCurrency(selectedRoom.pricePerNight),
-                    })}
+                {priceBreakdown ? (
+                  <>
+                    <div className="mt-2 flex flex-col gap-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">
+                          {t("room")}: {formatCurrency(priceBreakdown.roomRate)} × {priceBreakdown.nights} {t("nights")}
+                        </span>
+                        <span className="font-mono">{formatCurrency(priceBreakdown.roomTotal)}</span>
+                      </div>
+                      {priceBreakdown.acTotal > 0 ? (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            {t("coolingAC")}: {formatCurrency(priceBreakdown.acRate)} × {priceBreakdown.nights} {t("nights")}
+                          </span>
+                          <span className="font-mono">{formatCurrency(priceBreakdown.acTotal)}</span>
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className="mt-2 flex items-center justify-between border-t pt-2">
+                      <span className="text-sm font-semibold">{t("total")}</span>
+                      <span className="font-mono text-xl font-semibold">{formatCurrency(priceBreakdown.total)}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">{t("estimatedPriceNote")}</p>
+                  </>
+                ) : (
+                  <div className="mt-1 font-mono text-xl font-semibold text-muted-foreground">
+                    {t("selectRoomAndDates")}
                   </div>
-                ) : null}
+                )}
               </div>
             </FieldGroup>
             <DialogFooter>
@@ -1623,6 +1780,10 @@ export default function BookingsPage() {
                 <DetailItem
                   label={t("checkOut")}
                   value={formatDate(detailBooking.checkOutDate)}
+                />
+                <DetailItem
+                  label={t("wizardCoolingOption")}
+                  value={detailBooking.coolingOption === "AIR_CONDITIONER" ? t("coolingAC") : t("coolingFan")}
                 />
                 <DetailItem
                   label={t("total")}

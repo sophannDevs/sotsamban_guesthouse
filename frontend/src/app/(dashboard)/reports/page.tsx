@@ -68,6 +68,7 @@ import {
   type RevenueReport,
 } from "@/lib/reports"
 import { defaultPaginationMeta, type PaginatedResponse } from "@/lib/api"
+import { MobileFilterDrawer } from "@/components/app/mobile-filter-drawer"
 
 type StatusFilter =
   | "ALL"
@@ -335,7 +336,173 @@ export default function ReportsPage() {
             {t("reportsPageDescription")}
           </p>
         </div>
-        <Badge variant="secondary">{t("liveApi")}</Badge>
+        <div className="flex items-center gap-2">
+          <MobileFilterDrawer
+            activeCount={
+              (rangePreset !== "this_month" ? 1 : 0) +
+              (statusFilter !== "ALL" ? 1 : 0) +
+              (roomId ? 1 : 0) +
+              (guestId ? 1 : 0) +
+              (search ? 1 : 0)
+            }
+            onApply={() => {
+              setPage(1)
+              void loadReport(1, limit)
+            }}
+            onClear={() => {
+              setRangePreset("this_month")
+              setStartDate("")
+              setEndDate("")
+              setStatusFilter("ALL")
+              setRoomId("")
+              setGuestId("")
+              setSearch("")
+              setPage(1)
+              setReportData(null)
+              setGeneratedAt(null)
+            }}
+            triggerClassName="sm:hidden"
+          >
+            <div className="flex flex-col gap-1.5">
+              <p className="text-sm font-medium leading-none">{t("dateRangePreset")}</p>
+              <Select
+                items={getRangePresetOptions(t)}
+                value={rangePreset}
+                onValueChange={(value) => {
+                  if (value) {
+                    setRangePreset(value as RangePreset)
+                    setPage(1)
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <CalendarIcon className="mr-1 h-4 w-4 text-muted-foreground" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {getRangePresetOptions(t).map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+            {isCustomPreset ? (
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <p className="text-sm font-medium leading-none">{t("startDate")}</p>
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => { setStartDate(e.target.value); setPage(1) }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <p className="text-sm font-medium leading-none">{t("endDate")}</p>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => { setEndDate(e.target.value); setPage(1) }}
+                  />
+                </div>
+              </div>
+            ) : null}
+            <div className="flex flex-col gap-1.5">
+              <p className="text-sm font-medium leading-none">{t("reportType")}</p>
+              <Select
+                items={reportOptions}
+                value={reportType}
+                onValueChange={handleReportTypeChange}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {reportOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <p className="text-sm font-medium leading-none">{activeReport.statusLabel}</p>
+              <Select
+                items={activeReport.statuses}
+                value={statusFilter}
+                onValueChange={(value) => {
+                  if (value) {
+                    setStatusFilter(value as StatusFilter)
+                    setPage(1)
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {activeReport.statuses.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+            {reportType === "bookings" ? (
+              <>
+                <div className="flex flex-col gap-1.5">
+                  <p className="text-sm font-medium leading-none">{t("roomId")}</p>
+                  <Input
+                    placeholder={t("optionalRoomId")}
+                    value={roomId}
+                    onChange={(e) => { setRoomId(e.target.value); setPage(1) }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <p className="text-sm font-medium leading-none">{t("guestId")}</p>
+                  <Input
+                    placeholder={t("optionalGuestId")}
+                    value={guestId}
+                    onChange={(e) => { setGuestId(e.target.value); setPage(1) }}
+                  />
+                </div>
+              </>
+            ) : null}
+            {reportType === "guests" ? (
+              <div className="flex flex-col gap-1.5">
+                <p className="text-sm font-medium leading-none">{t("search")}</p>
+                <Input
+                  placeholder={t("searchGuestPlaceholder")}
+                  value={search}
+                  onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+                />
+              </div>
+            ) : null}
+          </MobileFilterDrawer>
+          <Badge className="sm:flex" variant="secondary">{t("liveApi")}</Badge>
+        </div>
+        <Button
+          className="w-full sm:hidden"
+          disabled={isLoading}
+          onClick={() => { setPage(1); void loadReport(1, limit) }}
+          type="button"
+        >
+          {isLoading ? (
+            <RefreshCwIcon data-icon="inline-start" />
+          ) : (
+            <PlayIcon data-icon="inline-start" />
+          )}
+          {t("generateReport")}
+        </Button>
       </section>
 
       {errorMessage ? (
@@ -354,6 +521,7 @@ export default function ReportsPage() {
         </Alert>
       ) : null}
 
+      <div className="hidden sm:block">
       <Card>
         <CardHeader>
           <CardTitle>{t("reportFilters")}</CardTitle>
@@ -554,6 +722,7 @@ export default function ReportsPage() {
         </CardContent>
 
       </Card>
+      </div>
 
       <Card>
         <CardHeader>
@@ -563,7 +732,7 @@ export default function ReportsPage() {
             </CardTitle>
             <CardDescription>{activeReport.description}</CardDescription>
           </div>
-          <CardAction className="flex flex-wrap gap-2">
+          <CardAction className="flex flex-col gap-2 sm:flex-row">
             <Button
               disabled={Boolean(exportingFormat)}
               onClick={() => void exportReport("excel")}

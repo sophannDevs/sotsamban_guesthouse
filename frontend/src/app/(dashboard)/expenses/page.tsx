@@ -11,6 +11,8 @@ import {
   Trash2Icon,
   WalletIcon,
 } from "lucide-react"
+
+import { ActionMenu } from "@/components/app/action-menu"
 import { useTranslations } from "next-intl"
 
 import { Pagination } from "@/components/Pagination"
@@ -54,6 +56,7 @@ import {
 } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
 import { defaultPaginationMeta, type PaginatedResponse } from "@/lib/api"
+import { MobileFilterDrawer } from "@/components/app/mobile-filter-drawer"
 import {
   expenseCategories,
   expensePaymentMethods,
@@ -280,6 +283,94 @@ export default function ExpensesPage() {
             <CardDescription>{t("expenses.expensesDescription")}</CardDescription>
           </div>
           <CardAction>
+            <MobileFilterDrawer
+              activeCount={
+                (activeSearch ? 1 : 0) +
+                (categoryFilter !== "ALL" ? 1 : 0) +
+                (methodFilter !== "ALL" ? 1 : 0) +
+                (activeDateFrom || activeDateTo ? 1 : 0)
+              }
+              onApply={handleSearch}
+              onClear={() => {
+                setSearchInput("")
+                setActiveSearch("")
+                setCategoryFilter("ALL")
+                setMethodFilter("ALL")
+                setDateFrom("")
+                setDateTo("")
+                setActiveDateFrom("")
+                setActiveDateTo("")
+                setPage(1)
+              }}
+              triggerClassName="sm:hidden"
+            >
+              <div className="flex flex-col gap-1.5">
+                <p className="text-sm font-medium leading-none">{t("expenses.searchExpenses")}</p>
+                <Input
+                  placeholder={t("expenses.searchExpenses")}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <p className="text-sm font-medium leading-none">{t("expenses.expenseCategory")}</p>
+                <Select
+                  items={categoryOptions}
+                  value={categoryFilter}
+                  onValueChange={(v) => setCategoryFilter(v as CategoryFilter)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {categoryOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <p className="text-sm font-medium leading-none">{t("expenses.expensePaymentMethod")}</p>
+                <Select
+                  items={methodOptions}
+                  value={methodFilter}
+                  onValueChange={(v) => setMethodFilter(v as MethodFilter)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {methodOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <p className="text-sm font-medium leading-none">{t("expenses.expenseDate")}</p>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                  />
+                  <span className="text-muted-foreground">—</span>
+                  <Input
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                  />
+                </div>
+              </div>
+            </MobileFilterDrawer>
             <Button onClick={openCreateDialog}>
               <PlusIcon data-icon="inline-start" />
               {t("expenses.newExpense")}
@@ -288,8 +379,8 @@ export default function ExpensesPage() {
         </CardHeader>
 
         <CardContent className="flex flex-col gap-4">
-          {/* ── Filters ── */}
-          <div className="flex flex-wrap items-end gap-2">
+          {/* ── Filters (desktop only) ── */}
+          <div className="hidden flex-wrap items-end gap-2 sm:flex">
             <div className="flex gap-1">
               <Input
                 className="h-9 w-44"
@@ -498,28 +589,13 @@ export default function ExpensesPage() {
                       {expense.note}
                     </p>
                   ) : null}
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => openEditDialog(expense)}
-                      size="sm"
-                      type="button"
-                      variant="outline"
-                    >
-                      <PencilIcon data-icon="inline-start" />
-                      {t("expenses.editExpense")}
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setDeleteError(null)
-                        setDeleteTarget(expense)
-                      }}
-                      size="sm"
-                      type="button"
-                      variant="destructive"
-                    >
-                      <Trash2Icon data-icon="inline-start" />
-                      {t("expenses.deleteExpense")}
-                    </Button>
+                  <div className="flex justify-end">
+                    <ActionMenu
+                      items={[
+                        { label: t("expenses.editExpense"), icon: <PencilIcon />, onClick: () => openEditDialog(expense) },
+                        { label: t("expenses.deleteExpense"), icon: <Trash2Icon />, onClick: () => { setDeleteError(null); setDeleteTarget(expense) }, variant: "destructive" },
+                      ]}
+                    />
                   </div>
                 </div>
               ))

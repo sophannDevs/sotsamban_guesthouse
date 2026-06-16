@@ -13,6 +13,8 @@ import {
   Trash2Icon,
   UserPlusIcon,
 } from "lucide-react"
+
+import { ActionMenu } from "@/components/app/action-menu"
 import { useTranslations } from "next-intl"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -59,6 +61,7 @@ import {
   type GuestPayload,
 } from "@/lib/guests"
 import { defaultPaginationMeta, type PaginatedResponse } from "@/lib/api"
+import { MobileFilterDrawer } from "@/components/app/mobile-filter-drawer"
 
 type GuestFormInput = GuestPayload
 type GuestForm = GuestPayload
@@ -273,6 +276,29 @@ export default function GuestsPage() {
             </CardDescription>
           </div>
           <CardAction>
+            <MobileFilterDrawer
+              activeCount={activeSearch ? 1 : 0}
+              onApply={() => {
+                setActiveSearch(searchTerm.trim())
+                setPage(1)
+              }}
+              onClear={() => {
+                setSearchTerm("")
+                setActiveSearch("")
+                setPage(1)
+              }}
+              triggerClassName="sm:hidden"
+            >
+              <div className="flex flex-col gap-1.5">
+                <p className="text-sm font-medium leading-none">{t("searchGuests")}</p>
+                <Input
+                  autoComplete="off"
+                  placeholder={t("searchGuestsPlaceholder")}
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                />
+              </div>
+            </MobileFilterDrawer>
             <Button onClick={openCreateDialog}>
               <PlusIcon data-icon="inline-start" />
               {t("addGuest")}
@@ -280,31 +306,33 @@ export default function GuestsPage() {
           </CardAction>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <Field>
-            <FieldLabel htmlFor="guestSearch">{t("searchGuests")}</FieldLabel>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <Input
-                autoComplete="off"
-                id="guestSearch"
-                placeholder={t("searchGuestsPlaceholder")}
-                value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
-              />
-              <Button
-                disabled={isLoading}
-                onClick={() => {
-                  const nextSearch = searchTerm.trim()
-                  setActiveSearch(nextSearch)
-                  setPage(1)
-                }}
-                type="button"
-                variant="outline"
-              >
-                <SearchIcon data-icon="inline-start" />
-                {t("search")}
-              </Button>
-            </div>
-          </Field>
+          <div className="hidden sm:block">
+            <Field>
+              <FieldLabel htmlFor="guestSearch">{t("searchGuests")}</FieldLabel>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Input
+                  autoComplete="off"
+                  id="guestSearch"
+                  placeholder={t("searchGuestsPlaceholder")}
+                  value={searchTerm}
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                />
+                <Button
+                  disabled={isLoading}
+                  onClick={() => {
+                    const nextSearch = searchTerm.trim()
+                    setActiveSearch(nextSearch)
+                    setPage(1)
+                  }}
+                  type="button"
+                  variant="outline"
+                >
+                  <SearchIcon data-icon="inline-start" />
+                  {t("search")}
+                </Button>
+              </div>
+            </Field>
+          </div>
 
           {errorMessage ? (
             <Alert variant="destructive">
@@ -361,29 +389,12 @@ export default function GuestsPage() {
                       </span>
                     ) : null}
                   </div>
-                  <div className="flex shrink-0 gap-1">
-                    <Button
-                      aria-label={t("editGuestAria", { name: guest.fullName })}
-                      onClick={() => openEditDialog(guest)}
-                      size="icon-sm"
-                      type="button"
-                      variant="outline"
-                    >
-                      <PencilIcon />
-                    </Button>
-                    <Button
-                      aria-label={t("deleteGuestAria", { name: guest.fullName })}
-                      onClick={() => {
-                        setDeleteError(null)
-                        setGuestToDelete(guest)
-                      }}
-                      size="icon-sm"
-                      type="button"
-                      variant="destructive"
-                    >
-                      <Trash2Icon />
-                    </Button>
-                  </div>
+                  <ActionMenu
+                    items={[
+                      { label: t("editGuest"), icon: <PencilIcon />, onClick: () => openEditDialog(guest) },
+                      { label: t("deleteGuest"), icon: <Trash2Icon />, onClick: () => { setDeleteError(null); setGuestToDelete(guest) }, variant: "destructive" },
+                    ]}
+                  />
                 </div>
               ))
             ) : (

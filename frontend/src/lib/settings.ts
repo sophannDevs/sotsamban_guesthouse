@@ -75,6 +75,13 @@ type ApiResponse<T> = {
 }
 
 export const settingsService = {
+  async getSetting(key: string) {
+    const response = await apiClient.get<ApiResponse<SystemSetting>>(
+      `/settings/${key}`
+    )
+    return response.data.data
+  },
+
   async list() {
     const response =
       await apiClient.get<

@@ -170,7 +170,7 @@ export default function ProfileSettingsPage() {
           </Alert>
         ) : null}
 
-        <form className="max-w-2xl" onSubmit={handleSubmit(onSubmit)}>
+        <form className="max-w-2xl pb-24 sm:pb-0" onSubmit={handleSubmit(onSubmit)}>
           <FieldGroup>
             <Field data-invalid={Boolean(errors.name)}>
               <FieldLabel htmlFor="name">{t("name")}</FieldLabel>
@@ -236,12 +236,18 @@ export default function ProfileSettingsPage() {
               </Select>
               <FieldError errors={[errors.preferredLanguage]} />
             </Field>
+          </FieldGroup>
 
-            <Button disabled={isLoading || isSubmitting} type="submit">
+          <div className="fixed inset-x-0 bottom-0 z-10 border-t bg-background px-4 pb-4 pt-3 sm:static sm:mt-4 sm:border-0 sm:bg-transparent sm:p-0">
+            <Button
+              className="w-full sm:w-auto"
+              disabled={isLoading || isSubmitting}
+              type="submit"
+            >
               <SaveIcon data-icon="inline-start" />
               {isSubmitting ? t("saving") : t("save")}
             </Button>
-          </FieldGroup>
+          </div>
         </form>
       </CardContent>
     </Card>

@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { AlertCircleIcon, PencilIcon, PlusIcon, RefreshCwIcon, SearchIcon, Trash2Icon } from "lucide-react"
+
+import { ActionMenu } from "@/components/app/action-menu"
 import { useTranslations } from "next-intl"
 
 import { Pagination } from "@/components/Pagination"
@@ -37,6 +39,7 @@ import {
 } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
 import { defaultPaginationMeta, type PaginatedResponse } from "@/lib/api"
+import { MobileFilterDrawer } from "@/components/app/mobile-filter-drawer"
 import {
   getStoreErrorMessage,
   storeSupplierService,
@@ -177,7 +180,29 @@ export default function SuppliersPage() {
             <CardTitle>{t("store.suppliersTitle")}</CardTitle>
             <CardDescription>{t("store.suppliersDescription")}</CardDescription>
           </div>
-          <CardAction>
+          <CardAction className="flex items-center gap-2">
+            <MobileFilterDrawer
+              activeCount={activeSearch ? 1 : 0}
+              onApply={() => {
+                setActiveSearch(searchInput.trim())
+                setPage(1)
+              }}
+              onClear={() => {
+                setSearchInput("")
+                setActiveSearch("")
+                setPage(1)
+              }}
+              triggerClassName="sm:hidden"
+            >
+              <div className="flex flex-col gap-1.5">
+                <p className="text-sm font-medium leading-none">{t("store.searchSuppliers")}</p>
+                <Input
+                  placeholder={t("store.searchSuppliers")}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                />
+              </div>
+            </MobileFilterDrawer>
             <Button onClick={openCreate}>
               <PlusIcon data-icon="inline-start" />
               {t("store.addSupplier")}
@@ -185,8 +210,8 @@ export default function SuppliersPage() {
           </CardAction>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          {/* Search */}
-          <div className="flex gap-1">
+          {/* Search (desktop only) */}
+          <div className="hidden gap-1 sm:flex">
             <Input
               className="h-9 w-52"
               placeholder={t("store.searchSuppliers")}
@@ -297,24 +322,12 @@ export default function SuppliersPage() {
                         <span className="mt-1 text-xs text-muted-foreground">{s.address}</span>
                       ) : null}
                     </div>
-                    <div className="flex gap-1">
-                      <Button
-                        onClick={() => openEdit(s)}
-                        size="icon-sm"
-                        type="button"
-                        variant="outline"
-                      >
-                        <PencilIcon />
-                      </Button>
-                      <Button
-                        onClick={() => { setDeleteError(null); setDeletingSupplier(s) }}
-                        size="icon-sm"
-                        type="button"
-                        variant="destructive"
-                      >
-                        <Trash2Icon />
-                      </Button>
-                    </div>
+                    <ActionMenu
+                      items={[
+                        { label: t("store.editSupplier"), icon: <PencilIcon />, onClick: () => openEdit(s) },
+                        { label: t("store.deleteSupplier"), icon: <Trash2Icon />, onClick: () => { setDeleteError(null); setDeletingSupplier(s) }, variant: "destructive" },
+                      ]}
+                    />
                   </div>
                 </div>
               ))

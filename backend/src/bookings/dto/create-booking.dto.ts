@@ -6,7 +6,7 @@ import {
   IsString,
 } from 'class-validator';
 
-import { BookingStatus } from '../../../generated/prisma/client';
+import { BookingStatus, CoolingOption } from '../../../generated/prisma/client';
 
 export class CreateBookingDto {
   @IsString()
@@ -26,4 +26,8 @@ export class CreateBookingDto {
   @IsEnum(BookingStatus)
   @IsOptional()
   status?: BookingStatus;
+
+  @IsEnum(CoolingOption)
+  @IsOptional()
+  coolingOption?: CoolingOption;
 }

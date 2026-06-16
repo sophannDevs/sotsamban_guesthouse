@@ -53,6 +53,10 @@ const settingDefinitions = {
     value: '',
     type: 'STRING',
   },
+  airConditionerPricePerNight: {
+    value: '5',
+    type: 'NUMBER',
+  },
 } satisfies Record<string, { value: string; type: string }>;
 
 export type SettingKey = keyof typeof settingDefinitions;
@@ -296,6 +300,16 @@ export class SettingsService {
 
     if (key === 'dateFormat' && trimmedValue === 'yyyy-MM-dd') {
       return 'YYYY-MM-DD';
+    }
+
+    if (key === 'airConditionerPricePerNight') {
+      const parsed = parseFloat(trimmedValue);
+      if (isNaN(parsed) || parsed < 0) {
+        throw new BadRequestException(
+          `Setting '${key}' must be a non-negative number.`,
+        );
+      }
+      return String(parsed);
     }
 
     return trimmedValue;

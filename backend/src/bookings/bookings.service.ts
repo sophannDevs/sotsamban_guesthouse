@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import {
   BookingStatus,
+  CoolingOption,
   Prisma,
   RoomStatus,
 } from '../../generated/prisma/client';
@@ -18,6 +19,7 @@ import {
 } from '../common/pagination';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { SettingsService } from '../settings/settings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingDto } from './dto/update-booking.dto';
 
@@ -51,10 +53,12 @@ export class BookingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
+    private readonly settingsService: SettingsService,
   ) {}
 
   async create(createBookingDto: CreateBookingDto, actorUserId?: string) {
     const status = createBookingDto.status ?? BookingStatus.PENDING;
+    const coolingOption = createBookingDto.coolingOption ?? CoolingOption.FAN;
     const checkInDate = this.parseDate(createBookingDto.checkInDate);
     const checkOutDate = this.parseDate(createBookingDto.checkOutDate);
 
@@ -67,10 +71,13 @@ export class BookingsService {
 
     await this.ensureRoomCanBeBooked(room, checkInDate, checkOutDate);
 
-    const totalPrice = this.calculateTotalPrice(
+    const acPricePerNight = await this.fetchAcPricePerNight();
+    const { roomPriceTotal, coolingPrice, totalPrice } = this.calculatePricing(
       checkInDate,
       checkOutDate,
       room.pricePerNight,
+      coolingOption,
+      acPricePerNight,
     );
 
     const booking = await this.prisma.$transaction(async (tx) => {
@@ -87,6 +94,9 @@ export class BookingsService {
           roomId: room.id,
           checkInDate,
           checkOutDate,
+          coolingOption,
+          roomPriceTotal,
+          coolingPrice,
           totalPrice,
           status,
         },
@@ -283,6 +293,8 @@ export class BookingsService {
     const existingBooking = await this.findBookingById(id);
     const roomId = updateBookingDto.roomId ?? existingBooking.roomId;
     const guestId = updateBookingDto.guestId ?? existingBooking.guestId;
+    const coolingOption =
+      updateBookingDto.coolingOption ?? existingBooking.coolingOption;
     const checkInDate = updateBookingDto.checkInDate
       ? this.parseDate(updateBookingDto.checkInDate)
       : existingBooking.checkInDate;
@@ -300,10 +312,13 @@ export class BookingsService {
 
     await this.ensureRoomCanBeBooked(room, checkInDate, checkOutDate, id);
 
-    const totalPrice = this.calculateTotalPrice(
+    const acPricePerNight = await this.fetchAcPricePerNight();
+    const { roomPriceTotal, coolingPrice, totalPrice } = this.calculatePricing(
       checkInDate,
       checkOutDate,
       room.pricePerNight,
+      coolingOption,
+      acPricePerNight,
     );
 
     const booking = await this.prisma.$transaction(async (tx) => {
@@ -321,6 +336,9 @@ export class BookingsService {
           roomId: room.id,
           checkInDate,
           checkOutDate,
+          coolingOption,
+          roomPriceTotal,
+          coolingPrice,
           totalPrice,
           status,
         },
@@ -503,18 +521,34 @@ export class BookingsService {
     return new Date(value);
   }
 
-  private calculateTotalPrice(
+  private async fetchAcPricePerNight(): Promise<Prisma.Decimal> {
+    const setting = await this.settingsService.findOne(
+      'airConditionerPricePerNight',
+    );
+    return new Prisma.Decimal(setting.value);
+  }
+
+  private calculatePricing(
     checkInDate: Date,
     checkOutDate: Date,
     pricePerNight: Prisma.Decimal,
+    coolingOption: CoolingOption,
+    acPricePerNight: Prisma.Decimal,
   ) {
     const millisecondsPerNight = 24 * 60 * 60 * 1000;
     const nights = Math.ceil(
       (checkOutDate.getTime() - checkInDate.getTime()) / millisecondsPerNight,
     );
-    const totalPrice = Number(pricePerNight) * nights;
+    const roomPriceTotal = new Prisma.Decimal(Number(pricePerNight) * nights);
+    const coolingPrice =
+      coolingOption === CoolingOption.AIR_CONDITIONER
+        ? new Prisma.Decimal(Number(acPricePerNight) * nights)
+        : new Prisma.Decimal(0);
+    const totalPrice = new Prisma.Decimal(
+      Number(roomPriceTotal) + Number(coolingPrice),
+    );
 
-    return new Prisma.Decimal(totalPrice);
+    return { roomPriceTotal, coolingPrice, totalPrice };
   }
 
   private formatDateOnly(date: Date) {
@@ -539,6 +573,8 @@ export class BookingsService {
   private serializeBooking(booking: BookingWithRelations) {
     return {
       ...booking,
+      roomPriceTotal: Number(booking.roomPriceTotal),
+      coolingPrice: Number(booking.coolingPrice),
       totalPrice: Number(booking.totalPrice),
       room: {
         ...booking.room,

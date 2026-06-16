@@ -13,6 +13,8 @@ import {
   Trash2Icon,
   UploadIcon,
 } from "lucide-react"
+
+import { ActionMenu } from "@/components/app/action-menu"
 import { useTranslations } from "next-intl"
 import { useForm, useWatch } from "react-hook-form"
 import { z } from "zod"
@@ -71,6 +73,7 @@ import {
   type RoomStatus,
   type RoomType,
 } from "@/lib/rooms"
+import { MobileFilterDrawer } from "@/components/app/mobile-filter-drawer"
 import { defaultPaginationMeta, type PaginatedResponse } from "@/lib/api"
 
 type StatusFilter = "ALL" | RoomStatus
@@ -367,27 +370,62 @@ export default function RoomsPage() {
             </CardDescription>
           </div>
           <CardAction className="flex flex-wrap justify-end gap-2">
-            <Select
-              items={filterOptions}
-              value={statusFilter}
-              onValueChange={(value) => {
-                setStatusFilter(value as StatusFilter)
+            <MobileFilterDrawer
+              activeCount={statusFilter !== "ALL" ? 1 : 0}
+              onClear={() => {
+                setStatusFilter("ALL")
                 setPage(1)
               }}
+              triggerClassName="sm:hidden"
             >
-              <SelectTrigger aria-label={t("filterRoomsByStatus")} size="sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent align="end">
-                <SelectGroup>
-                  {filterOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+              <div className="flex flex-col gap-1.5">
+                <p className="text-sm font-medium leading-none">{t("status")}</p>
+                <Select
+                  items={filterOptions}
+                  value={statusFilter}
+                  onValueChange={(value) => {
+                    setStatusFilter(value as StatusFilter)
+                    setPage(1)
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {filterOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            </MobileFilterDrawer>
+            <div className="hidden sm:flex">
+              <Select
+                items={filterOptions}
+                value={statusFilter}
+                onValueChange={(value) => {
+                  setStatusFilter(value as StatusFilter)
+                  setPage(1)
+                }}
+              >
+                <SelectTrigger aria-label={t("filterRoomsByStatus")} size="sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent align="end">
+                  <SelectGroup>
+                    {filterOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
             <Button onClick={openCreateDialog}>
               <PlusIcon data-icon="inline-start" />
               {t("addRoom")}
@@ -439,29 +477,12 @@ export default function RoomsPage() {
                       {formatCurrency(room.pricePerNight)}
                     </span>
                   </div>
-                  <div className="flex shrink-0 gap-1">
-                    <Button
-                      aria-label={t("editRoomAria", { roomNumber: room.roomNumber })}
-                      onClick={() => openEditDialog(room)}
-                      size="icon-sm"
-                      type="button"
-                      variant="outline"
-                    >
-                      <PencilIcon />
-                    </Button>
-                    <Button
-                      aria-label={t("deleteRoomAria", { roomNumber: room.roomNumber })}
-                      onClick={() => {
-                        setDeleteError(null)
-                        setRoomToDelete(room)
-                      }}
-                      size="icon-sm"
-                      type="button"
-                      variant="destructive"
-                    >
-                      <Trash2Icon />
-                    </Button>
-                  </div>
+                  <ActionMenu
+                    items={[
+                      { label: t("editRoom"), icon: <PencilIcon />, onClick: () => openEditDialog(room) },
+                      { label: t("deleteRoom"), icon: <Trash2Icon />, onClick: () => { setDeleteError(null); setRoomToDelete(room) }, variant: "destructive" },
+                    ]}
+                  />
                 </div>
               ))
             ) : (

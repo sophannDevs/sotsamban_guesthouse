@@ -189,7 +189,7 @@ export default function SystemPreferencesSettingsPage() {
           </Alert>
         ) : null}
 
-        <form className="max-w-2xl" onSubmit={handleSubmit(onSubmit)}>
+        <form className="max-w-2xl pb-24 sm:pb-0" onSubmit={handleSubmit(onSubmit)}>
           <FieldGroup>
             <Field data-invalid={Boolean(errors.currency)}>
               <FieldLabel htmlFor="currency">{t("currency")}</FieldLabel>
@@ -323,16 +323,20 @@ export default function SystemPreferencesSettingsPage() {
               <FieldDescription>{t("languageDescription")}</FieldDescription>
               <FieldError>{errors.language?.message}</FieldError>
             </Field>
-
-            {canEdit ? (
-              <div className="flex justify-end">
-                <Button disabled={isLoading || isSubmitting} type="submit">
-                  <SaveIcon data-icon="inline-start" />
-                  {isSubmitting ? t("saving") : t("save")}
-                </Button>
-              </div>
-            ) : null}
           </FieldGroup>
+
+          {canEdit ? (
+            <div className="fixed inset-x-0 bottom-0 z-10 border-t bg-background px-4 pb-4 pt-3 sm:static sm:mt-4 sm:border-0 sm:bg-transparent sm:p-0">
+              <Button
+                className="w-full sm:w-auto"
+                disabled={isLoading || isSubmitting}
+                type="submit"
+              >
+                <SaveIcon data-icon="inline-start" />
+                {isSubmitting ? t("saving") : t("save")}
+              </Button>
+            </div>
+          ) : null}
         </form>
       </CardContent>
     </Card>

@@ -64,6 +64,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { defaultPaginationMeta, type PaginatedResponse } from "@/lib/api"
+import { ActionMenu } from "@/components/app/action-menu"
+import { MobileFilterDrawer } from "@/components/app/mobile-filter-drawer"
 import {
   getStoreErrorMessage,
   purchaseStatuses,
@@ -352,7 +354,72 @@ export default function PurchasesPage() {
             <CardTitle>{t("store.purchasesTitle")}</CardTitle>
             <CardDescription>{t("store.purchasesDescription")}</CardDescription>
           </div>
-          <CardAction>
+          <CardAction className="flex items-center gap-2">
+            <MobileFilterDrawer
+              activeCount={
+                (activeSearch ? 1 : 0) +
+                (statusFilter !== "ALL" ? 1 : 0) +
+                (activeDateFrom || activeDateTo ? 1 : 0)
+              }
+              onApply={handleSearch}
+              onClear={() => {
+                setSearchInput("")
+                setActiveSearch("")
+                setStatusFilter("ALL")
+                setDateFrom("")
+                setDateTo("")
+                setActiveDateFrom("")
+                setActiveDateTo("")
+                setPage(1)
+              }}
+              triggerClassName="sm:hidden"
+            >
+              <div className="flex flex-col gap-1.5">
+                <p className="text-sm font-medium leading-none">{t("store.searchPurchases")}</p>
+                <Input
+                  placeholder={t("store.searchPurchases")}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <p className="text-sm font-medium leading-none">{t("status")}</p>
+                <Select
+                  items={statusOptions}
+                  value={statusFilter}
+                  onValueChange={(v) => setStatusFilter(v as StatusFilter)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {statusOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <p className="text-sm font-medium leading-none">{t("expenses.expenseDate")}</p>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                  />
+                  <span className="text-muted-foreground">—</span>
+                  <Input
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                  />
+                </div>
+              </div>
+            </MobileFilterDrawer>
             <Button onClick={() => void openCreateSheet()}>
               <PlusIcon data-icon="inline-start" />
               {t("store.newPurchase")}
@@ -360,8 +427,8 @@ export default function PurchasesPage() {
           </CardAction>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          {/* Filters */}
-          <div className="flex flex-wrap items-end gap-2">
+          {/* Filters (desktop only) */}
+          <div className="hidden flex-wrap items-end gap-2 sm:flex">
             <div className="flex gap-1">
               <Input
                 className="h-9 w-44"
@@ -549,7 +616,7 @@ export default function PurchasesPage() {
                       {formatCurrency(p.totalAmount)}
                     </span>
                   </div>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
                     <Button
                       onClick={() => { setActionError(null); setViewingPurchase(p) }}
                       size="sm"
@@ -560,35 +627,13 @@ export default function PurchasesPage() {
                       {t("store.viewDetail")}
                     </Button>
                     {p.status === "DRAFT" ? (
-                      <>
-                        <Button
-                          onClick={() => void openEditSheet(p)}
-                          size="sm"
-                          type="button"
-                          variant="outline"
-                        >
-                          <PencilIcon data-icon="inline-start" />
-                          {t("store.editPurchase")}
-                        </Button>
-                        <Button
-                          onClick={() => { setActionError(null); setConfirmAction({ type: "complete", purchase: p }) }}
-                          size="sm"
-                          type="button"
-                          variant="outline"
-                        >
-                          <PackageCheckIcon data-icon="inline-start" />
-                          {t("store.completePurchase")}
-                        </Button>
-                        <Button
-                          onClick={() => { setActionError(null); setConfirmAction({ type: "cancel", purchase: p }) }}
-                          size="sm"
-                          type="button"
-                          variant="destructive"
-                        >
-                          <BanIcon data-icon="inline-start" />
-                          {t("store.cancelPurchase")}
-                        </Button>
-                      </>
+                      <ActionMenu
+                        items={[
+                          { label: t("store.editPurchase"), icon: <PencilIcon />, onClick: () => void openEditSheet(p) },
+                          { label: t("store.completePurchase"), icon: <PackageCheckIcon />, onClick: () => { setActionError(null); setConfirmAction({ type: "complete", purchase: p }) } },
+                          { label: t("store.cancelPurchase"), icon: <BanIcon />, onClick: () => { setActionError(null); setConfirmAction({ type: "cancel", purchase: p }) }, variant: "destructive" },
+                        ]}
+                      />
                     ) : null}
                   </div>
                 </div>

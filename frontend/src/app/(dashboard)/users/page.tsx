@@ -71,6 +71,7 @@ import {
   type UserRole,
 } from "@/lib/users"
 import { defaultPaginationMeta, type PaginatedResponse } from "@/lib/api"
+import { ActionMenu } from "@/components/app/action-menu"
 
 type Option<T extends string> = {
   value: T
@@ -364,29 +365,12 @@ export default function UsersPage() {
                         <span className="text-xs text-muted-foreground">{formatDate(staffUser.createdAt, locale)}</span>
                       </div>
                     </div>
-                    <div className="flex shrink-0 gap-1">
-                      <Button
-                        onClick={() => openEditDialog(staffUser)}
-                        size="icon-sm"
-                        type="button"
-                        variant="outline"
-                      >
-                        <PencilIcon />
-                      </Button>
-                      {!isCurrentUser ? (
-                        <Button
-                          onClick={() => {
-                            setDeleteError(null)
-                            setUserToDelete(staffUser)
-                          }}
-                          size="icon-sm"
-                          type="button"
-                          variant="destructive"
-                        >
-                          <Trash2Icon />
-                        </Button>
-                      ) : null}
-                    </div>
+                    <ActionMenu
+                      items={[
+                        { label: t("editUser"), icon: <PencilIcon />, onClick: () => openEditDialog(staffUser) },
+                        !isCurrentUser && { label: t("deleteUser"), icon: <Trash2Icon />, onClick: () => { setDeleteError(null); setUserToDelete(staffUser) }, variant: "destructive" as const },
+                      ]}
+                    />
                   </div>
                 )
               })

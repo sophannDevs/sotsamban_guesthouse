@@ -172,3 +172,367 @@ Error: listen EADDRINUSE: address already in use :::3001
 }
 
 Node.js v24.12.0
+[2J[3J[H[[90m오전 11:26:21[0m] File change detected. Starting incremental compilation...
+
+[[90m오전 11:26:22[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m오전 11:26:34[0m] File change detected. Starting incremental compilation...
+
+[[90m오전 11:26:35[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m오전 11:26:42[0m] File change detected. Starting incremental compilation...
+
+[[90m오전 11:26:43[0m] Found 0 errors. Watching for file changes.
+
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPrismaModule dependencies initialized[39m[38;5;3m +36ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +3ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mExpenseModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBusinessModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mGuestsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mNotificationsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mUsersModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDashboardModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mSettingsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mInvoicesModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mStoreModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBookingsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPaymentsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mFinanceModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mReportModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mRoomsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mI18nModule dependencies initialized[39m[38;5;3m +49ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/}:[39m[38;5;3m +8ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/, GET} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/auth}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auth/register, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auth/login, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auth/me, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mBusinessController {/businesses}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/businesses, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/businesses, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/businesses/:id/switch, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/businesses/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/businesses/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/businesses/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mBusinessMemberController {/businesses/:id/members}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/businesses/:id/members, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/businesses/:id/members, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/businesses/:id/members/:memberId, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/businesses/:id/members/:memberId, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mRoomsController {/rooms}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/rooms, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/rooms/:id/image, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/rooms, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/rooms/availability, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/rooms/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/rooms/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/rooms/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mGuestsController {/guests}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/guests, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/guests, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/guests/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/guests/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/guests/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mBookingsController {/bookings}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/bookings, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/bookings, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/bookings/check-conflict, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/bookings/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/bookings/:id/check-in, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/bookings/:id/check-out, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/bookings/:id/cancel, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/bookings/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/bookings/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mNotificationsController {/notifications}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/notifications, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/notifications/read-all, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/notifications/:id/read, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/notifications/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mPaymentsController {/payments}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/payments, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/payments, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/payments/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/payments/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mUsersController {/users}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/users, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/users/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/users/me/preferences, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/users/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/users/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mDashboardController {/dashboard}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/dashboard/summary, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/dashboard/recent-bookings, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/dashboard/recent-payments, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mReportController {/reports}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/reports/health, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/reports/revenue, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/reports/bookings, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/reports/payments, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/reports/guests, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/reports/occupancy, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/reports/profit_loss, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/reports/:type/export, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mSettingsController {/settings}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/settings/profile, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/settings/profile, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/settings/notifications, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/settings/notifications, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/settings/security/change-password, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/settings, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/settings/:key, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/settings/:key, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mInvoicesController {/invoices}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/invoices/booking/:bookingId/pdf, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mStoreCategoryController {/store/categories}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/categories, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/categories, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/categories/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/categories/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/categories/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mStoreProductController {/store/products}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/products, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/products, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/products/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/products/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/products/:id, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mStoreSaleController {/store/sales}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/sales, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/sales, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/sales/:id, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/sales/:id/cancel, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/sales/:id/refund, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mStoreSupplierController {/store/suppliers}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/suppliers, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/suppliers, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/suppliers/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/suppliers/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/suppliers/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mStorePurchaseController {/store/purchases}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/purchases, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/purchases, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/purchases/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/purchases/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/purchases/:id/complete, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/purchases/:id/cancel, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mExpenseController {/expenses}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/expenses, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/expenses, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/expenses/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/expenses/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/expenses/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mFinanceController {/finance}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/finance/summary, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/finance/summary/all-businesses, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +542ms[39m
+[31m[Nest] 3044  - [39m2026. 06. 15. 오전 11:26:55 [31m  ERROR[39m [38;5;3m[NestApplication] [39m[31mError: listen EADDRINUSE: address already in use :::3001[39m[38;5;3m +4ms[39m
+node:net:1940
+    const ex = new UVExceptionWithHostPort(err, 'listen', address, port);
+               ^
+
+Error: listen EADDRINUSE: address already in use :::3001
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at ExpressAdapter.listen (d:\Project\Sot Samban Guest House\sotsamban_guesthouse\backend\node_modules\@nestjs\platform-express\adapters\express-adapter.js:115:32)
+    at d:\Project\Sot Samban Guest House\sotsamban_guesthouse\backend\node_modules\@nestjs\core\nest-application.js:190:30
+    at new Promise (<anonymous>)
+    at NestApplication.listen (d:\Project\Sot Samban Guest House\sotsamban_guesthouse\backend\node_modules\@nestjs\core\nest-application.js:180:16)
+    at async bootstrap (d:\Project\Sot Samban Guest House\sotsamban_guesthouse\backend\src\main.ts:38:3) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 3001
+}
+
+Node.js v24.12.0
+[2J[3J[H[[90m오후 2:07:09[0m] File change detected. Starting incremental compilation...
+
+[[90m오후 2:07:14[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m오후 2:07:15[0m] File change detected. Starting incremental compilation...
+
+[[90m오후 2:07:20[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m오후 2:07:34[0m] File change detected. Starting incremental compilation...
+
+[[90m오후 2:07:38[0m] Found 0 errors. Watching for file changes.
+
+[2J[3J[H[[90m오후 2:07:46[0m] File change detected. Starting incremental compilation...
+
+[[90m오후 2:07:48[0m] Found 0 errors. Watching for file changes.
+
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPrismaModule dependencies initialized[39m[38;5;3m +79ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +2ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +6ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mExpenseModule dependencies initialized[39m[38;5;3m +3ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBusinessModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mGuestsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mNotificationsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mUsersModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDashboardModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mSettingsModule dependencies initialized[39m[38;5;3m +2ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mInvoicesModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mStoreModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBookingsModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPaymentsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mFinanceModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mReportModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mRoomsModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mI18nModule dependencies initialized[39m[38;5;3m +72ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAppController {/}:[39m[38;5;3m +20ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/, GET} route[39m[38;5;3m +7ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/auth}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auth/register, POST} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auth/login, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/auth/me, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mBusinessController {/businesses}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/businesses, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/businesses, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/businesses/:id/switch, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/businesses/:id, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/businesses/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/businesses/:id, DELETE} route[39m[38;5;3m +2ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mBusinessMemberController {/businesses/:id/members}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/businesses/:id/members, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/businesses/:id/members, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/businesses/:id/members/:memberId, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/businesses/:id/members/:memberId, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mRoomsController {/rooms}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/rooms, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/rooms/:id/image, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/rooms, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/rooms/availability, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/rooms/:id, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/rooms/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/rooms/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mGuestsController {/guests}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/guests, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/guests, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/guests/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/guests/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/guests/:id, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mBookingsController {/bookings}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/bookings, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/bookings, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/bookings/check-conflict, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/bookings/:id, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/bookings/:id/check-in, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/bookings/:id/check-out, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/bookings/:id/cancel, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/bookings/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/bookings/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mNotificationsController {/notifications}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/notifications, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/notifications/read-all, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/notifications/:id/read, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/notifications/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mPaymentsController {/payments}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/payments, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/payments, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/payments/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/payments/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mUsersController {/users}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/users, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/users/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/users/me/preferences, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/users/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/users/:id, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mDashboardController {/dashboard}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/dashboard/summary, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/dashboard/recent-bookings, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/dashboard/recent-payments, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mReportController {/reports}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/reports/health, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/reports/revenue, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/reports/bookings, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/reports/payments, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/reports/guests, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/reports/occupancy, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/reports/profit_loss, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/reports/combined-profit-loss, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/reports/combined-profit-loss/export, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/reports/:type/export, GET} route[39m[38;5;3m +6ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mSettingsController {/settings}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/settings/profile, GET} route[39m[38;5;3m +6ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/settings/profile, PATCH} route[39m[38;5;3m +7ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/settings/notifications, GET} route[39m[38;5;3m +3ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/settings/notifications, PATCH} route[39m[38;5;3m +7ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/settings/security/change-password, PATCH} route[39m[38;5;3m +10ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/settings, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/settings/:key, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/settings/:key, PATCH} route[39m[38;5;3m +4ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mInvoicesController {/invoices}:[39m[38;5;3m +2ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/invoices/booking/:bookingId/pdf, GET} route[39m[38;5;3m +3ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mStoreCategoryController {/store/categories}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/categories, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/categories, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/categories/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/categories/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/categories/:id, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mStoreProductController {/store/products}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/products, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/products, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/products/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/products/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/products/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mStoreSaleController {/store/sales}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/sales, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/sales, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/sales/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/sales/:id/cancel, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/sales/:id/refund, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mStoreSupplierController {/store/suppliers}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/suppliers, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/suppliers, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/suppliers/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/suppliers/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/suppliers/:id, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mStorePurchaseController {/store/purchases}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/purchases, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/purchases, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/purchases/:id, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/purchases/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/purchases/:id/complete, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/store/purchases/:id/cancel, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mExpenseController {/expenses}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/expenses, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/expenses, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/expenses/:id, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/expenses/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/expenses/:id, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mFinanceController {/finance}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/finance/summary, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:06 [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/finance/summary/all-businesses, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:07 [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +711ms[39m
+[31m[Nest] 48016  - [39m2026. 06. 15. 오후 2:08:07 [31m  ERROR[39m [38;5;3m[NestApplication] [39m[31mError: listen EADDRINUSE: address already in use :::3001[39m[38;5;3m +41ms[39m
+node:net:1940
+    const ex = new UVExceptionWithHostPort(err, 'listen', address, port);
+               ^
+
+Error: listen EADDRINUSE: address already in use :::3001
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at Server.listen (node:net:2102:7)
+    at ExpressAdapter.listen (d:\Project\Sot Samban Guest House\sotsamban_guesthouse\backend\node_modules\@nestjs\platform-express\adapters\express-adapter.js:115:32)
+    at d:\Project\Sot Samban Guest House\sotsamban_guesthouse\backend\node_modules\@nestjs\core\nest-application.js:190:30
+    at new Promise (<anonymous>)
+    at NestApplication.listen (d:\Project\Sot Samban Guest House\sotsamban_guesthouse\backend\node_modules\@nestjs\core\nest-application.js:180:16)
+    at async bootstrap (d:\Project\Sot Samban Guest House\sotsamban_guesthouse\backend\src\main.ts:38:3) {
+  code: 'EADDRINUSE',
+  errno: -4091,
+  syscall: 'listen',
+  address: '::',
+  port: 3001
+}
+
+Node.js v24.12.0

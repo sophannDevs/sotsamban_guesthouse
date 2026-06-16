@@ -20,12 +20,17 @@ export const bookingStatuses = [
 
 export type BookingStatus = (typeof bookingStatuses)[number]
 
+export type CoolingOption = "FAN" | "AIR_CONDITIONER"
+
 export type Booking = {
   id: string
   guestId: string
   roomId: string
   checkInDate: string
   checkOutDate: string
+  coolingOption: CoolingOption
+  roomPriceTotal: number
+  coolingPrice: number
   totalPrice: number
   status: BookingStatus
   guest: Guest
@@ -39,6 +44,7 @@ export type BookingPayload = {
   roomId: string
   checkInDate: string
   checkOutDate: string
+  coolingOption?: CoolingOption
   status?: BookingStatus
 }
 

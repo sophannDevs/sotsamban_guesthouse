@@ -54,6 +54,7 @@ import {
   type FinanceSummary,
 } from "@/lib/finance"
 import { cn } from "@/lib/utils"
+import { MobileFilterDrawer } from "@/components/app/mobile-filter-drawer"
 
 type View = "current" | "all"
 
@@ -148,13 +149,96 @@ export default function FinancePage() {
 
       {/* Controls: period selector + view toggle */}
       <div className="flex flex-wrap items-start gap-3 sm:items-center sm:justify-between">
+        {/* Mobile filter drawer */}
+        <MobileFilterDrawer
+          activeCount={
+            (selectedPreset !== "this_month" ? 1 : 0) +
+            (view !== "current" ? 1 : 0)
+          }
+          onApply={() => {
+            if (selectedPreset === "custom") {
+              setActiveCustomStart(customStartDate)
+              setActiveCustomEnd(customEndDate)
+            }
+          }}
+          onClear={() => {
+            setSelectedPreset("this_month")
+            setView("current")
+            setCustomStartDate("")
+            setCustomEndDate("")
+            setActiveCustomStart("")
+            setActiveCustomEnd("")
+          }}
+          triggerClassName="sm:hidden"
+        >
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm font-medium leading-none">{t("period")}</p>
+            <Select
+              value={selectedPreset}
+              onValueChange={(v) => {
+                if (v) setSelectedPreset(v)
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="today">{t("periodToday")}</SelectItem>
+                  <SelectItem value="this_week">{t("periodThisWeek")}</SelectItem>
+                  <SelectItem value="this_month">{t("periodThisMonth")}</SelectItem>
+                  <SelectItem value="last_month">{t("periodLastMonth")}</SelectItem>
+                  <SelectItem value="last_3_months">{t("periodLast3Months")}</SelectItem>
+                  <SelectItem value="this_year">{t("periodThisYear")}</SelectItem>
+                  <SelectItem value="custom">{t("periodCustom")}</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+          {selectedPreset === "custom" ? (
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-1.5">
+                <p className="text-sm font-medium leading-none">{t("startDate")}</p>
+                <Input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <p className="text-sm font-medium leading-none">{t("endDate")}</p>
+                <Input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                />
+              </div>
+            </div>
+          ) : null}
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm font-medium leading-none">{t("view")}</p>
+            <Tabs
+              value={view}
+              onValueChange={(v) => {
+                if (v) setView(v as View)
+              }}
+            >
+              <TabsList className="w-full">
+                <TabsTrigger className="flex-1" value="current">{t("currentBusiness")}</TabsTrigger>
+                <TabsTrigger className="flex-1" value="all">{t("allBusinesses")}</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+        </MobileFilterDrawer>
+
+        {/* Desktop controls */}
         <Select
           value={selectedPreset}
           onValueChange={(v) => {
             if (v) setSelectedPreset(v)
           }}
         >
-          <SelectTrigger className="w-44">
+          <SelectTrigger className="hidden w-44 sm:flex">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -173,6 +257,7 @@ export default function FinancePage() {
         </Select>
 
         <Tabs
+          className="hidden sm:block"
           value={view}
           onValueChange={(v) => {
             if (v) setView(v as View)
@@ -185,9 +270,9 @@ export default function FinancePage() {
         </Tabs>
       </div>
 
-      {/* Custom date range inputs */}
+      {/* Custom date range inputs (desktop only) */}
       {selectedPreset === "custom" && (
-        <div className="flex flex-wrap items-end gap-2">
+        <div className="hidden flex-wrap items-end gap-2 sm:flex">
           <div className="flex flex-col gap-1">
             <Label htmlFor="finance-start">{t("startDate")}</Label>
             <Input

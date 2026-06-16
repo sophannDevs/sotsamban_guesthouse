@@ -11,6 +11,8 @@ import {
   ShoppingBagIcon,
   Trash2Icon,
 } from "lucide-react"
+
+import { ActionMenu } from "@/components/app/action-menu"
 import { useTranslations } from "next-intl"
 import { useForm, useWatch } from "react-hook-form"
 import { z } from "zod"
@@ -60,6 +62,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { defaultPaginationMeta, type PaginatedResponse } from "@/lib/api"
+import { MobileFilterDrawer } from "@/components/app/mobile-filter-drawer"
 import {
   getStoreErrorMessage,
   productStatuses,
@@ -347,7 +350,51 @@ export default function ProductsPage() {
             <CardDescription>{t("store.productsDescription")}</CardDescription>
           </div>
           <CardAction className="flex flex-wrap justify-end gap-2">
-            <div className="flex gap-1">
+            <MobileFilterDrawer
+              activeCount={
+                (activeSearch ? 1 : 0) +
+                (statusFilter !== "ALL" ? 1 : 0)
+              }
+              onApply={handleSearch}
+              onClear={() => {
+                setSearchInput("")
+                setActiveSearch("")
+                setStatusFilter("ALL")
+                setPage(1)
+              }}
+              triggerClassName="sm:hidden"
+            >
+              <div className="flex flex-col gap-1.5">
+                <p className="text-sm font-medium leading-none">{t("store.searchProducts")}</p>
+                <Input
+                  placeholder={t("store.searchProducts")}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <p className="text-sm font-medium leading-none">{t("status")}</p>
+                <Select
+                  items={statusOptions}
+                  value={statusFilter}
+                  onValueChange={(value) => setStatusFilter(value as StatusFilter)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {statusOptions.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            </MobileFilterDrawer>
+            <div className="hidden items-center gap-1 sm:flex">
               <Input
                 className="h-9 w-44"
                 placeholder={t("store.searchProducts")}
@@ -367,30 +414,32 @@ export default function ProductsPage() {
                 <SearchIcon />
               </Button>
             </div>
-            <Select
-              items={statusOptions}
-              value={statusFilter}
-              onValueChange={(value) => {
-                setStatusFilter(value as StatusFilter)
-                setPage(1)
-              }}
-            >
-              <SelectTrigger
-                aria-label={t("store.filterByStatus")}
-                size="sm"
+            <div className="hidden sm:block">
+              <Select
+                items={statusOptions}
+                value={statusFilter}
+                onValueChange={(value) => {
+                  setStatusFilter(value as StatusFilter)
+                  setPage(1)
+                }}
               >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent align="end">
-                <SelectGroup>
-                  {statusOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+                <SelectTrigger
+                  aria-label={t("store.filterByStatus")}
+                  size="sm"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent align="end">
+                  <SelectGroup>
+                    {statusOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
             <Button onClick={openCreateDialog}>
               <PlusIcon data-icon="inline-start" />
               {t("store.addProduct")}
@@ -548,28 +597,13 @@ export default function ProductsPage() {
                     <span>·</span>
                     <StockBadge product={product} />
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      className="flex-1"
-                      onClick={() => openEditDialog(product)}
-                      size="sm"
-                      type="button"
-                      variant="outline"
-                    >
-                      <PencilIcon data-icon="inline-start" />
-                      {t("store.editProduct")}
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        setDeleteError(null)
-                        setProductToDelete(product)
-                      }}
-                      size="sm"
-                      type="button"
-                      variant="destructive"
-                    >
-                      <Trash2Icon />
-                    </Button>
+                  <div className="flex justify-end">
+                    <ActionMenu
+                      items={[
+                        { label: t("store.editProduct"), icon: <PencilIcon />, onClick: () => openEditDialog(product) },
+                        { label: t("store.deleteProduct"), icon: <Trash2Icon />, onClick: () => { setDeleteError(null); setProductToDelete(product) }, variant: "destructive" },
+                      ]}
+                    />
                   </div>
                 </div>
               ))

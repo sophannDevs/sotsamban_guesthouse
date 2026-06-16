@@ -70,6 +70,7 @@ import {
   bookingService,
   type Booking,
 } from "@/lib/bookings"
+import { MobileFilterDrawer } from "@/components/app/mobile-filter-drawer"
 import { defaultPaginationMeta, type PaginatedResponse } from "@/lib/api"
 import {
   downloadInvoiceFile,
@@ -370,28 +371,63 @@ export default function PaymentsPage() {
             </CardDescription>
           </div>
           <CardAction className="flex flex-wrap justify-end gap-2">
-            <Select
-              items={filterOptions}
-              value={statusFilter}
-              onValueChange={(value) => {
-                const nextStatus = value as StatusFilter
-                setStatusFilter(nextStatus)
+            <MobileFilterDrawer
+              activeCount={statusFilter !== "ALL" ? 1 : 0}
+              onClear={() => {
+                setStatusFilter("ALL")
                 setPage(1)
               }}
+              triggerClassName="sm:hidden"
             >
-              <SelectTrigger aria-label={t("filterPaymentsByStatus")} size="sm">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent align="end">
-                <SelectGroup>
-                  {filterOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+              <div className="flex flex-col gap-1.5">
+                <p className="text-sm font-medium leading-none">{t("status")}</p>
+                <Select
+                  items={filterOptions}
+                  value={statusFilter}
+                  onValueChange={(value) => {
+                    setStatusFilter(value as StatusFilter)
+                    setPage(1)
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {filterOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            </MobileFilterDrawer>
+            <div className="hidden sm:flex">
+              <Select
+                items={filterOptions}
+                value={statusFilter}
+                onValueChange={(value) => {
+                  const nextStatus = value as StatusFilter
+                  setStatusFilter(nextStatus)
+                  setPage(1)
+                }}
+              >
+                <SelectTrigger aria-label={t("filterPaymentsByStatus")} size="sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent align="end">
+                  <SelectGroup>
+                    {filterOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
             <Button onClick={openCreateDialog}>
               <ReceiptIcon data-icon="inline-start" />
               {t("recordPayment")}

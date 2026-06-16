@@ -164,7 +164,7 @@ export default function NotificationSettingsPage() {
           </Alert>
         ) : null}
 
-        <FieldGroup className="max-w-2xl">
+        <FieldGroup className="max-w-2xl pb-24 sm:pb-0">
           {notificationSettingFields.map((field) => (
             <Field
               className="rounded-lg border bg-card p-4 transition-colors has-[[data-slot=switch][data-checked]]:border-primary/40 has-[[data-slot=switch][data-checked]]:bg-primary/5"
@@ -187,18 +187,19 @@ export default function NotificationSettingsPage() {
               />
             </Field>
           ))}
-
-          <div className="flex justify-end">
-            <Button
-              disabled={isLoading || isSaving}
-              onClick={() => void saveSettings()}
-              type="button"
-            >
-              <SaveIcon data-icon="inline-start" />
-              {isSaving ? t("saving") : t("save")}
-            </Button>
-          </div>
         </FieldGroup>
+
+        <div className="fixed inset-x-0 bottom-0 z-10 border-t bg-background px-4 pb-4 pt-3 sm:static sm:mt-4 sm:border-0 sm:bg-transparent sm:p-0">
+          <Button
+            className="w-full sm:w-auto"
+            disabled={isLoading || isSaving}
+            onClick={() => void saveSettings()}
+            type="button"
+          >
+            <SaveIcon data-icon="inline-start" />
+            {isSaving ? t("saving") : t("save")}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   )

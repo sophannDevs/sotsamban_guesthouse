@@ -41,6 +41,11 @@ enum BookingStatus {
   CANCELLED
 }
 
+enum CoolingOption {
+  FAN
+  AIR_CONDITIONER
+}
+
 enum PaymentMethod {
   CASH
   CARD
@@ -123,18 +128,21 @@ model Guest {
 }
 
 model Booking {
-  id           String        @id @default(cuid())
-  guestId      String
-  roomId       String
-  checkInDate  DateTime
-  checkOutDate DateTime
-  totalPrice   Decimal       @db.Decimal(10, 2)
-  status       BookingStatus @default(PENDING)
-  payments     Payment[]
-  guest        Guest         @relation(fields: [guestId], references: [id], onDelete: Restrict)
-  room         Room          @relation(fields: [roomId], references: [id], onDelete: Restrict)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id             String        @id @default(cuid())
+  guestId        String
+  roomId         String
+  checkInDate    DateTime
+  checkOutDate   DateTime
+  coolingOption  CoolingOption @default(FAN)
+  roomPriceTotal Decimal       @db.Decimal(10, 2)
+  coolingPrice   Decimal       @db.Decimal(10, 2)
+  totalPrice     Decimal       @db.Decimal(10, 2)
+  status         BookingStatus @default(PENDING)
+  payments       Payment[]
+  guest          Guest         @relation(fields: [guestId], references: [id], onDelete: Restrict)
+  room           Room          @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   @@index([guestId])
   @@index([roomId])
