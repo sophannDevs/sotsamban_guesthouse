@@ -69,6 +69,7 @@ import {
 } from "@/lib/reports"
 import { defaultPaginationMeta, type PaginatedResponse } from "@/lib/api"
 import { MobileFilterDrawer } from "@/components/app/mobile-filter-drawer"
+import { MobileDateRangeSheet } from "@/components/app/mobile-date-range-sheet"
 
 type StatusFilter =
   | "ALL"
@@ -337,6 +338,26 @@ export default function ReportsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <MobileDateRangeSheet
+            startDate={startDate}
+            endDate={endDate}
+            onApply={(start, end) => {
+              setStartDate(start)
+              setEndDate(end)
+              if (start || end) setRangePreset("custom")
+              setPage(1)
+              void loadReport(1, limit)
+            }}
+            onClear={() => {
+              setStartDate("")
+              setEndDate("")
+              setRangePreset("this_month")
+              setPage(1)
+              setReportData(null)
+              setGeneratedAt(null)
+            }}
+            triggerClassName="sm:hidden"
+          />
           <MobileFilterDrawer
             activeCount={
               (rangePreset !== "this_month" ? 1 : 0) +

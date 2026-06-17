@@ -35,7 +35,7 @@ import {
   useSystemPreferences,
 } from "@/components/app/system-preferences-provider"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import {
   Card,
   CardAction,
@@ -629,18 +629,18 @@ function QuickActionsSection() {
       </p>
       <div className="grid grid-cols-2 gap-2">
         {actions.map(({ href, icon: Icon, label, variant }, index) => (
-          <Button
+          <Link
             className={cn(
+              buttonVariants({ variant }),
               "h-auto flex-col gap-1.5 py-3",
               index === actions.length - 1 && actions.length % 2 !== 0 && "col-span-2"
             )}
+            href={href}
             key={href + label}
-            render={<Link href={href} />}
-            variant={variant}
           >
             <Icon className="size-5" />
             <span className="text-xs font-medium">{label}</span>
-          </Button>
+          </Link>
         ))}
       </div>
     </section>

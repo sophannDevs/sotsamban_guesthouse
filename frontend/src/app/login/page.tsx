@@ -125,10 +125,7 @@ export default function LoginPage() {
                 />
               </FieldGroup>
             </CardContent>
-            <CardFooter className="justify-between gap-3">
-              <p className="text-xs text-muted-foreground">
-                {t("backendApiRequired")}
-              </p>
+            <CardFooter className="justify-end gap-3">
               <Button disabled={isSubmitting} type="submit">
                 <LogInIcon data-icon="inline-start" />
                 {isSubmitting ? t("signingIn") : t("login")}
