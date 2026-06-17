@@ -123,6 +123,7 @@ export class DashboardService {
       bookedRooms: roomCounts[RoomStatus.BOOKED],
       occupiedRooms: roomCounts[RoomStatus.OCCUPIED],
       maintenanceRooms: roomCounts[RoomStatus.MAINTENANCE],
+      cleaningRooms: roomCounts[RoomStatus.CLEANING],
       totalGuests,
       todayCheckIns,
       todayCheckOuts,
@@ -163,6 +164,7 @@ export class DashboardService {
       [RoomStatus.BOOKED]: 0,
       [RoomStatus.OCCUPIED]: 0,
       [RoomStatus.MAINTENANCE]: 0,
+      [RoomStatus.CLEANING]: 0,
     };
 
     for (const roomStatus of roomsByStatus) {

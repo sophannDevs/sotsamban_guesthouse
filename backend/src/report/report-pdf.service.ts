@@ -6,8 +6,14 @@ import { ExcelReportPayload, ExcelReportSection } from './report-excel.service';
 @Injectable()
 export class ReportPdfService {
   generate(payload: ExcelReportPayload) {
+    const maxColumns = Math.max(
+      ...payload.sections.map((s) => s.columns.length),
+    );
+    const useLandscape = maxColumns >= 8;
+
     return new Promise<Buffer>((resolve, reject) => {
       const document = new PDFDocument({
+        layout: useLandscape ? 'landscape' : 'portrait',
         margin: 42,
         size: 'A4',
       });
@@ -108,9 +114,10 @@ export class ReportPdfService {
       document.page.margins.left -
       document.page.margins.right;
     const columnWidth = availableWidth / section.columns.length;
-    const rowHeight = 24;
+    const fontSize = section.columns.length >= 8 ? 7 : 8;
+    const rowHeight = fontSize >= 8 ? 24 : 21;
 
-    this.renderTableHeader(document, section, columnWidth, rowHeight);
+    this.renderTableHeader(document, section, columnWidth, fontSize, rowHeight);
 
     for (const row of section.rows) {
       this.ensureSpace(document, rowHeight + 12);
@@ -125,9 +132,9 @@ export class ReportPdfService {
           .stroke();
         document
           .font('Helvetica')
-          .fontSize(8)
+          .fontSize(fontSize)
           .fillColor('#111827')
-          .text(this.formatValue(row[column.key]), x + 5, y + 7, {
+          .text(this.formatValue(row[column.key]), x + 5, y + 6, {
             ellipsis: true,
             height: rowHeight - 8,
             width: columnWidth - 10,
@@ -142,6 +149,7 @@ export class ReportPdfService {
     document: PDFKit.PDFDocument,
     section: ExcelReportSection,
     columnWidth: number,
+    fontSize: number,
     rowHeight: number,
   ) {
     this.ensureSpace(document, rowHeight + 12);
@@ -154,9 +162,9 @@ export class ReportPdfService {
         .fillAndStroke('#f3f4f6', '#d1d5db');
       document
         .font('Helvetica-Bold')
-        .fontSize(8)
+        .fontSize(fontSize)
         .fillColor('#111827')
-        .text(column.header, x + 5, y + 7, {
+        .text(column.header, x + 5, y + 6, {
           ellipsis: true,
           height: rowHeight - 8,
           width: columnWidth - 10,

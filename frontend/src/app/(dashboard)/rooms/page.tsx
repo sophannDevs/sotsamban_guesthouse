@@ -884,7 +884,9 @@ function RoomStatusBadge({ status }: { status: RoomStatus }) {
         ? "destructive"
         : status === "BOOKED"
           ? "secondary"
-          : "outline"
+          : status === "CLEANING"
+            ? "secondary"
+            : "outline"
 
   return <Badge variant={variant}>{getRoomStatusLabel(status, t)}</Badge>
 }
@@ -895,6 +897,7 @@ function getRoomStatusLabel(status: RoomStatus, t: TranslationFn) {
     BOOKED: t("booked"),
     OCCUPIED: t("occupied"),
     MAINTENANCE: t("maintenance"),
+    CLEANING: t("cleaning"),
   }
 
   return labels[status]
@@ -904,9 +907,6 @@ function getRoomTypeLabel(type: RoomType, t: TranslationFn) {
   const labels: Record<RoomType, string> = {
     SINGLE: t("single"),
     DOUBLE: t("double"),
-    TWIN: t("twin"),
-    FAMILY: t("family"),
-    VIP: t("vip"),
   }
 
   return labels[type]

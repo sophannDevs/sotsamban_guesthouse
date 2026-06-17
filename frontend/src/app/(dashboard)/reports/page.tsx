@@ -935,6 +935,9 @@ function getReportDefinitions(t: TranslationFn): Record<ReportType, ReportDefini
         { key: "roomNumber", header: t("room") },
         { key: "checkInDate", header: t("checkIn") },
         { key: "checkOutDate", header: t("checkOut") },
+        { key: "coolingOption", header: t("wizardCoolingOption") },
+        { key: "roomPriceTotal", header: t("roomPriceTotal") },
+        { key: "coolingPrice", header: t("coolingPrice") },
         { key: "totalPrice", header: t("total") },
         { key: "bookingStatus", header: t("status") },
       ],
@@ -1142,6 +1145,11 @@ function normalizeReportRows(
       ...row,
       checkInDate: formatDate(row.checkInDate, preferences),
       checkOutDate: formatDate(row.checkOutDate, preferences),
+      coolingOption: row.coolingOption === "AIR_CONDITIONER"
+        ? t("coolingAC")
+        : t("coolingFan"),
+      roomPriceTotal: formatCurrency(Number(row.roomPriceTotal), preferences),
+      coolingPrice: formatCurrency(Number(row.coolingPrice), preferences),
       totalPrice: formatCurrency(Number(row.totalPrice), preferences),
       bookingStatus: isBookingStatusValue(row.bookingStatus)
         ? getBookingStatusLabel(row.bookingStatus, t)

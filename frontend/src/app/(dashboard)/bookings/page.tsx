@@ -784,6 +784,9 @@ export default function BookingsPage() {
                         {formatDateRange(booking.checkInDate, booking.checkOutDate)}
                       </span>
                       <span className="font-medium">{formatCurrency(booking.totalPrice)}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {booking.coolingOption === "AIR_CONDITIONER" ? t("coolingAC") : t("coolingFan")}
+                      </span>
                     </div>
                     <BookingStatusBadge status={booking.status} />
                   </div>
@@ -1145,7 +1148,8 @@ export default function BookingsPage() {
                       canCheckRoomAvailability &&
                       (roomStatus === "BOOKED" ||
                         roomStatus === "OCCUPIED" ||
-                        roomStatus === "MAINTENANCE")
+                        roomStatus === "MAINTENANCE" ||
+                        roomStatus === "CLEANING")
                     const isSelected = selectedRoomId === room.id
                     return (
                       <button
@@ -1249,7 +1253,7 @@ export default function BookingsPage() {
                     <div className="flex flex-col gap-1 text-sm">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">
-                          {t("room")}: {formatCurrency(priceBreakdown.roomRate)} × {priceBreakdown.nights} {t("nights")}
+                          {t("roomPrice")}: {formatCurrency(priceBreakdown.roomRate)} × {priceBreakdown.nights} {t("nights")}
                         </span>
                         <span className="font-mono">{formatCurrency(priceBreakdown.roomTotal)}</span>
                       </div>
@@ -1263,7 +1267,7 @@ export default function BookingsPage() {
                       ) : null}
                     </div>
                     <div className="mt-2 flex items-center justify-between border-t pt-2">
-                      <span className="text-sm font-semibold">{t("total")}</span>
+                      <span className="text-sm font-semibold">{t("totalPrice")}</span>
                       <span className="font-mono text-lg font-bold">{formatCurrency(priceBreakdown.total)}</span>
                     </div>
                   </div>
@@ -1385,7 +1389,7 @@ export default function BookingsPage() {
                       <div className="flex flex-col gap-1 text-sm">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">
-                            {t("room")}: {formatCurrency(priceBreakdown.roomRate)} × {priceBreakdown.nights} {t("nights")}
+                            {t("roomPrice")}: {formatCurrency(priceBreakdown.roomRate)} × {priceBreakdown.nights} {t("nights")}
                           </span>
                           <span className="font-mono">{formatCurrency(priceBreakdown.roomTotal)}</span>
                         </div>
@@ -1399,7 +1403,7 @@ export default function BookingsPage() {
                         ) : null}
                       </div>
                       <div className="mt-3 flex items-center justify-between border-t pt-3">
-                        <span className="font-semibold">{t("total")}</span>
+                        <span className="font-semibold">{t("totalPrice")}</span>
                         <span className="font-mono text-xl font-bold">
                           {formatCurrency(priceBreakdown.total)}
                         </span>
@@ -1657,7 +1661,7 @@ export default function BookingsPage() {
                     <div className="mt-2 flex flex-col gap-1">
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">
-                          {t("room")}: {formatCurrency(priceBreakdown.roomRate)} × {priceBreakdown.nights} {t("nights")}
+                          {t("roomPrice")}: {formatCurrency(priceBreakdown.roomRate)} × {priceBreakdown.nights} {t("nights")}
                         </span>
                         <span className="font-mono">{formatCurrency(priceBreakdown.roomTotal)}</span>
                       </div>
@@ -1671,7 +1675,7 @@ export default function BookingsPage() {
                       ) : null}
                     </div>
                     <div className="mt-2 flex items-center justify-between border-t pt-2">
-                      <span className="text-sm font-semibold">{t("total")}</span>
+                      <span className="text-sm font-semibold">{t("totalPrice")}</span>
                       <span className="font-mono text-xl font-semibold">{formatCurrency(priceBreakdown.total)}</span>
                     </div>
                     <p className="mt-1 text-xs text-muted-foreground">{t("estimatedPriceNote")}</p>
@@ -1786,7 +1790,15 @@ export default function BookingsPage() {
                   value={detailBooking.coolingOption === "AIR_CONDITIONER" ? t("coolingAC") : t("coolingFan")}
                 />
                 <DetailItem
-                  label={t("total")}
+                  label={t("roomPriceTotal")}
+                  value={formatCurrency(detailBooking.roomPriceTotal)}
+                />
+                <DetailItem
+                  label={t("coolingPrice")}
+                  value={formatCurrency(detailBooking.coolingPrice)}
+                />
+                <DetailItem
+                  label={t("totalPrice")}
                   value={formatCurrency(detailBooking.totalPrice)}
                 />
                 <DetailItem
@@ -1884,9 +1896,11 @@ function RoomAvailabilityBadge({
       ? "default"
       : status === "MAINTENANCE"
         ? "destructive"
-        : status === "UNKNOWN"
-          ? "outline"
-          : "secondary"
+        : status === "CLEANING"
+          ? "secondary"
+          : status === "UNKNOWN"
+            ? "outline"
+            : "secondary"
 
   return (
     <Badge className="ml-auto shrink-0" variant={variant}>
@@ -1998,9 +2012,6 @@ function getRoomTypeLabel(type: RoomType, t: TranslationFn) {
   const labels: Record<RoomType, string> = {
     SINGLE: t("single"),
     DOUBLE: t("double"),
-    TWIN: t("twin"),
-    FAMILY: t("family"),
-    VIP: t("vip"),
   }
 
   return labels[type]
@@ -2015,6 +2026,7 @@ function getRoomAvailabilityStatusLabel(
     BOOKED: t("booked"),
     OCCUPIED: t("occupied"),
     MAINTENANCE: t("maintenance"),
+    CLEANING: t("cleaning"),
   }
 
   return labels[status]
@@ -2023,6 +2035,10 @@ function getRoomAvailabilityStatusLabel(
 function getRoomAvailabilitySummary(statuses: RoomAvailabilityStatus[]) {
   if (statuses.includes("MAINTENANCE")) {
     return "MAINTENANCE"
+  }
+
+  if (statuses.includes("CLEANING")) {
+    return "CLEANING"
   }
 
   if (statuses.includes("OCCUPIED")) {

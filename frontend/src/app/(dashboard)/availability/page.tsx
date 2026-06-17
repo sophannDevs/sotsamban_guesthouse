@@ -45,6 +45,7 @@ const statusVariants: Record<
   BOOKED: "secondary",
   OCCUPIED: "outline",
   MAINTENANCE: "destructive",
+  CLEANING: "secondary",
 }
 
 export default function AvailabilityPage() {
@@ -180,7 +181,7 @@ export default function AvailabilityPage() {
         </div>
 
         <div className="flex flex-wrap gap-2" aria-label={t("statusLegend")}>
-          {(["AVAILABLE", "BOOKED", "OCCUPIED", "MAINTENANCE"] as const).map((status) => (
+          {(["AVAILABLE", "BOOKED", "OCCUPIED", "MAINTENANCE", "CLEANING"] as const).map((status) => (
             <StatusBadge
               key={status}
               status={status}
@@ -337,6 +338,7 @@ function getStatusLabel(
     BOOKED: t("booked"),
     OCCUPIED: t("occupied"),
     MAINTENANCE: t("maintenance"),
+    CLEANING: t("cleaning"),
   }
 
   return labels[status]
@@ -349,9 +351,6 @@ function getRoomTypeLabel(
   const labels: Record<RoomType, string> = {
     SINGLE: t("single"),
     DOUBLE: t("double"),
-    TWIN: t("twin"),
-    FAMILY: t("family"),
-    VIP: t("vip"),
   }
 
   return labels[type]

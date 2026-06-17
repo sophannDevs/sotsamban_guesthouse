@@ -23,14 +23,12 @@ enum RoomStatus {
   BOOKED
   OCCUPIED
   MAINTENANCE
+  CLEANING
 }
 
 enum RoomType {
   SINGLE
   DOUBLE
-  TWIN
-  FAMILY
-  VIP
 }
 
 enum BookingStatus {

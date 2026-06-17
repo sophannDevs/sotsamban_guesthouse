@@ -8,13 +8,14 @@ import {
   unwrapPaginated,
 } from "@/lib/api"
 
-export const roomTypes = ["SINGLE", "DOUBLE", "TWIN", "FAMILY", "VIP"] as const
+export const roomTypes = ["SINGLE", "DOUBLE"] as const
 
 export const roomStatuses = [
   "AVAILABLE",
   "BOOKED",
   "OCCUPIED",
   "MAINTENANCE",
+  "CLEANING",
 ] as const
 
 export type RoomType = (typeof roomTypes)[number]

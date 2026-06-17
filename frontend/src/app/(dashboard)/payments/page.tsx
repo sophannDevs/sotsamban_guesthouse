@@ -483,6 +483,7 @@ export default function PaymentsPage() {
                       <span className="font-medium leading-tight">{payment.booking.guest.fullName}</span>
                       <span className="text-sm text-muted-foreground">
                         {t("roomLabel", { roomNumber: payment.booking.room.roomNumber })}
+                        {" · "}{payment.booking.coolingOption === "AIR_CONDITIONER" ? t("coolingAC") : t("coolingFan")}
                       </span>
                       <span className="font-mono font-medium">
                         {formatCurrency(payment.amount, preferences)}
@@ -578,7 +579,12 @@ export default function PaymentsPage() {
                       </TableCell>
                       <TableCell>{payment.booking.guest.fullName}</TableCell>
                       <TableCell>
-                        {t("roomLabel", { roomNumber: payment.booking.room.roomNumber })}
+                        <div className="flex min-w-0 flex-col">
+                          <span>{t("roomLabel", { roomNumber: payment.booking.room.roomNumber })}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {payment.booking.coolingOption === "AIR_CONDITIONER" ? t("coolingAC") : t("coolingFan")}
+                          </span>
+                        </div>
                       </TableCell>
                       <TableCell className="font-mono">
                         {formatCurrency(payment.amount, preferences)}
@@ -763,14 +769,20 @@ export default function PaymentsPage() {
                   {...register("amount")}
                 />
                 <FieldDescription>
-                  {selectedBooking
-                    ? t("bookingTotalIs", {
-                        amount: formatCurrency(
-                          selectedBooking.totalPrice,
-                          preferences
-                        ),
-                      })
-                    : t("selectingBookingFillsAmount")}
+                  {selectedBooking ? (
+                    <>
+                      {t("bookingTotalIs", {
+                        amount: formatCurrency(selectedBooking.totalPrice, preferences),
+                      })}
+                      {selectedBooking.coolingOption === "AIR_CONDITIONER" && (
+                        <span className="block text-xs">
+                          {t("roomPriceTotal")}: {formatCurrency(selectedBooking.roomPriceTotal, preferences)}
+                          {" · "}
+                          {t("coolingAC")}: {formatCurrency(selectedBooking.coolingPrice, preferences)}
+                        </span>
+                      )}
+                    </>
+                  ) : t("selectingBookingFillsAmount")}
                 </FieldDescription>
                 <FieldError>{errors.amount?.message}</FieldError>
               </Field>

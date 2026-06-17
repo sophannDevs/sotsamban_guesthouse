@@ -410,7 +410,10 @@ export class BookingsService {
     checkOutDate: Date,
     excludeBookingId?: string,
   ) {
-    if (room.status === RoomStatus.MAINTENANCE) {
+    if (
+      room.status === RoomStatus.MAINTENANCE ||
+      room.status === RoomStatus.CLEANING
+    ) {
       throw new ConflictException(translateError('cannotBookMaintenanceRoom'));
     }
 
@@ -473,7 +476,10 @@ export class BookingsService {
 
     const room = await this.findActiveRoom(roomId);
 
-    if (room.status === RoomStatus.MAINTENANCE) {
+    if (
+      room.status === RoomStatus.MAINTENANCE ||
+      room.status === RoomStatus.CLEANING
+    ) {
       throw new ConflictException(translateError('cannotBookMaintenanceRoom'));
     }
 

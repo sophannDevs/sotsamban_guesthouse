@@ -368,6 +368,7 @@ function RecentBookingsTable({
                 <span className="font-medium leading-tight">{booking.guest.fullName}</span>
                 <span className="text-sm text-muted-foreground">
                   {t("roomNumber")} {booking.room.roomNumber}
+                  {" · "}{booking.coolingOption === "AIR_CONDITIONER" ? t("coolingAC") : t("coolingFan")}
                 </span>
                 <span className="text-xs text-muted-foreground">
                   {formatPreferenceDateRange(booking.checkInDate, booking.checkOutDate, preferences)}
@@ -410,7 +411,14 @@ function RecentBookingsTable({
                     </div>
                   </TableCell>
                   <TableCell>{booking.guest.fullName}</TableCell>
-                  <TableCell>{booking.room.roomNumber}</TableCell>
+                  <TableCell>
+                    <div className="flex min-w-0 flex-col">
+                      <span>{booking.room.roomNumber}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {booking.coolingOption === "AIR_CONDITIONER" ? t("coolingAC") : t("coolingFan")}
+                      </span>
+                    </div>
+                  </TableCell>
                   <TableCell>
                     {formatPreferenceDateRange(
                       booking.checkInDate,

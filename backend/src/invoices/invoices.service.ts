@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import PDFDocument from 'pdfkit';
 
-import { PaymentStatus, Prisma } from '../../generated/prisma/client';
+import { CoolingOption, PaymentStatus, Prisma } from '../../generated/prisma/client';
 import { translateError } from '../common/i18n';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -20,6 +20,87 @@ type InvoiceBooking = Prisma.BookingGetPayload<{
 type InvoiceLine = {
   label: string;
   value: string;
+};
+
+type InvoiceLabels = {
+  title: string;
+  invoiceNumber: string;
+  generatedDate: string;
+  guestSection: string;
+  guestName: string;
+  roomNumber: string;
+  roomType: string;
+  staySection: string;
+  checkInDate: string;
+  checkOutDate: string;
+  nights: string;
+  pricePerNight: string;
+  roomPriceTotal: string;
+  coolingOption: string;
+  coolingFan: string;
+  coolingAC: string;
+  coolingPrice: string;
+  totalPrice: string;
+  paymentSection: string;
+  paymentStatus: string;
+  paymentMethod: string;
+  noPayment: string;
+  footer: string;
+};
+
+const INVOICE_LABELS: Record<'en' | 'km', InvoiceLabels> = {
+  en: {
+    title: 'Guesthouse Invoice',
+    invoiceNumber: 'Invoice number',
+    generatedDate: 'Generated date',
+    guestSection: 'Guest',
+    guestName: 'Guest name',
+    roomNumber: 'Room number',
+    roomType: 'Room type',
+    staySection: 'Stay Details',
+    checkInDate: 'Check-in date',
+    checkOutDate: 'Check-out date',
+    nights: 'Nights',
+    pricePerNight: 'Price per night',
+    roomPriceTotal: 'Room price total',
+    coolingOption: 'Cooling option',
+    coolingFan: 'Fan',
+    coolingAC: 'Air Conditioner',
+    coolingPrice: 'Cooling price',
+    totalPrice: 'Total price',
+    paymentSection: 'Payment',
+    paymentStatus: 'Payment status',
+    paymentMethod: 'Payment method',
+    noPayment: 'No payment',
+    footer: 'Thank you for choosing Sot Samban GuestHouse.',
+  },
+  // Khmer labels are defined here but require a Khmer-capable font registered
+  // with PDFKit before they can render. Until then, the service falls back to English.
+  km: {
+    title: 'Guesthouse Invoice',
+    invoiceNumber: 'Invoice number',
+    generatedDate: 'Generated date',
+    guestSection: 'Guest',
+    guestName: 'Guest name',
+    roomNumber: 'Room number',
+    roomType: 'Room type',
+    staySection: 'Stay Details',
+    checkInDate: 'Check-in date',
+    checkOutDate: 'Check-out date',
+    nights: 'Nights',
+    pricePerNight: 'Price per night',
+    roomPriceTotal: 'Room price total',
+    coolingOption: 'Cooling option',
+    coolingFan: 'Fan',
+    coolingAC: 'Air Conditioner',
+    coolingPrice: 'Cooling price',
+    totalPrice: 'Total price',
+    paymentSection: 'Payment',
+    paymentStatus: 'Payment status',
+    paymentMethod: 'Payment method',
+    noPayment: 'No payment',
+    footer: 'Thank you for choosing Sot Samban GuestHouse.',
+  },
 };
 
 type InvoicePreferences = {
@@ -60,6 +141,8 @@ export class InvoicesService {
     booking: InvoiceBooking,
     preferences: InvoicePreferences,
   ) {
+    const labels = INVOICE_LABELS[preferences.language] ?? INVOICE_LABELS.en;
+
     return new Promise<Buffer>((resolve, reject) => {
       const document = new PDFDocument({
         margin: 48,
@@ -71,11 +154,11 @@ export class InvoicesService {
       document.on('end', () => resolve(Buffer.concat(chunks)));
       document.on('error', reject);
 
-      this.renderHeader(document, booking, preferences);
-      this.renderInvoiceDetails(document, booking);
-      this.renderStayDetails(document, booking, preferences);
-      this.renderPaymentDetails(document, booking);
-      this.renderFooter(document);
+      this.renderHeader(document, booking, preferences, labels);
+      this.renderInvoiceDetails(document, booking, labels);
+      this.renderStayDetails(document, booking, preferences, labels);
+      this.renderPaymentDetails(document, booking, labels);
+      this.renderFooter(document, labels);
 
       document.end();
     });
@@ -85,20 +168,21 @@ export class InvoicesService {
     document: PDFKit.PDFDocument,
     booking: InvoiceBooking,
     preferences: InvoicePreferences,
+    labels: InvoiceLabels,
   ) {
     document
       .font('Helvetica-Bold')
       .fontSize(22)
       .fillColor('#111827')
-      .text('Guesthouse Invoice');
+      .text(labels.title);
 
     document
       .moveDown(0.35)
       .font('Helvetica')
       .fontSize(10)
       .fillColor('#4b5563')
-      .text(`Invoice number: ${this.getInvoiceNumber(booking.id)}`)
-      .text(`Generated date: ${this.formatDateTime(new Date(), preferences)}`);
+      .text(`${labels.invoiceNumber}: ${this.getInvoiceNumber(booking.id)}`)
+      .text(`${labels.generatedDate}: ${this.formatDateTime(new Date(), preferences)}`);
 
     document.moveDown(1.2);
   }
@@ -106,11 +190,12 @@ export class InvoicesService {
   private renderInvoiceDetails(
     document: PDFKit.PDFDocument,
     booking: InvoiceBooking,
+    labels: InvoiceLabels,
   ) {
-    this.renderSection(document, 'Guest', [
-      { label: 'Guest name', value: booking.guest.fullName },
-      { label: 'Room number', value: booking.room.roomNumber },
-      { label: 'Room type', value: this.formatEnum(booking.room.type) },
+    this.renderSection(document, labels.guestSection, [
+      { label: labels.guestName, value: booking.guest.fullName },
+      { label: labels.roomNumber, value: booking.room.roomNumber },
+      { label: labels.roomType, value: this.formatEnum(booking.room.type) },
     ]);
   }
 
@@ -118,30 +203,50 @@ export class InvoicesService {
     document: PDFKit.PDFDocument,
     booking: InvoiceBooking,
     preferences: InvoicePreferences,
+    labels: InvoiceLabels,
   ) {
     const nights = this.calculateNights(
       booking.checkInDate,
       booking.checkOutDate,
     );
     const pricePerNight = Number(booking.room.pricePerNight);
+    const roomPriceTotal = Number(booking.roomPriceTotal);
+    const coolingPrice = Number(booking.coolingPrice);
     const totalPrice = Number(booking.totalPrice);
+    const isAC = booking.coolingOption === CoolingOption.AIR_CONDITIONER;
 
-    this.renderSection(document, 'Stay Details', [
+    this.renderSection(document, labels.staySection, [
       {
-        label: 'Check-in date',
+        label: labels.checkInDate,
         value: this.formatDate(booking.checkInDate, preferences),
       },
       {
-        label: 'Check-out date',
+        label: labels.checkOutDate,
         value: this.formatDate(booking.checkOutDate, preferences),
       },
-      { label: 'Nights', value: String(nights) },
+      { label: labels.nights, value: String(nights) },
       {
-        label: 'Price per night',
+        label: labels.pricePerNight,
         value: this.formatCurrency(pricePerNight, preferences),
       },
       {
-        label: 'Total price',
+        label: labels.roomPriceTotal,
+        value: this.formatCurrency(roomPriceTotal, preferences),
+      },
+      {
+        label: labels.coolingOption,
+        value: isAC ? labels.coolingAC : labels.coolingFan,
+      },
+      ...(isAC
+        ? [
+            {
+              label: labels.coolingPrice,
+              value: this.formatCurrency(coolingPrice, preferences),
+            },
+          ]
+        : []),
+      {
+        label: labels.totalPrice,
         value: this.formatCurrency(totalPrice, preferences),
       },
     ]);
@@ -150,17 +255,18 @@ export class InvoicesService {
   private renderPaymentDetails(
     document: PDFKit.PDFDocument,
     booking: InvoiceBooking,
+    labels: InvoiceLabels,
   ) {
     const payment = this.getPrimaryPayment(booking);
 
-    this.renderSection(document, 'Payment', [
+    this.renderSection(document, labels.paymentSection, [
       {
-        label: 'Payment status',
-        value: payment ? this.formatEnum(payment.status) : 'No payment',
+        label: labels.paymentStatus,
+        value: payment ? this.formatEnum(payment.status) : labels.noPayment,
       },
       {
-        label: 'Payment method',
-        value: payment ? this.formatEnum(payment.method) : 'No payment',
+        label: labels.paymentMethod,
+        value: payment ? this.formatEnum(payment.method) : labels.noPayment,
       },
     ]);
   }
@@ -202,7 +308,7 @@ export class InvoicesService {
     document.moveDown(0.55);
   }
 
-  private renderFooter(document: PDFKit.PDFDocument) {
+  private renderFooter(document: PDFKit.PDFDocument, labels: InvoiceLabels) {
     const bottomY = document.page.height - document.page.margins.bottom - 32;
 
     document
@@ -216,11 +322,7 @@ export class InvoicesService {
       .font('Helvetica')
       .fontSize(9)
       .fillColor('#6b7280')
-      .text(
-        'Thank you for choosing Sot Samban GuestHouse.',
-        document.page.margins.left,
-        bottomY + 12,
-      );
+      .text(labels.footer, document.page.margins.left, bottomY + 12);
   }
 
   private getPrimaryPayment(booking: InvoiceBooking) {

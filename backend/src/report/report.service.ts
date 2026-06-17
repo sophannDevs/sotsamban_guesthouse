@@ -339,6 +339,7 @@ export class ReportService {
       bookedRooms: roomCounts[RoomStatus.BOOKED],
       occupiedRooms,
       maintenanceRooms: roomCounts[RoomStatus.MAINTENANCE],
+      cleaningRooms: roomCounts[RoomStatus.CLEANING],
       occupancyRate: totalRooms === 0 ? 0 : (occupiedRooms / totalRooms) * 100,
     };
   }
@@ -727,10 +728,17 @@ export class ReportService {
             { header: 'Room Number', key: 'roomNumber' },
             { header: 'Check In Date', key: 'checkInDate' },
             { header: 'Check Out Date', key: 'checkOutDate' },
+            { header: 'Cooling Option', key: 'coolingOption' },
+            { header: 'Room Price Total', key: 'roomPriceTotal' },
+            { header: 'Cooling Price', key: 'coolingPrice' },
             { header: 'Total Price', key: 'totalPrice' },
             { header: 'Booking Status', key: 'bookingStatus' },
           ],
-          rows: report,
+          rows: report.map((row) => ({
+            ...row,
+            coolingOption:
+              row.coolingOption === 'AIR_CONDITIONER' ? 'Air Conditioner' : 'Fan',
+          })),
         },
       ],
     } satisfies ExcelReportPayload;
@@ -801,6 +809,7 @@ export class ReportService {
             { header: 'Booked Rooms', key: 'bookedRooms' },
             { header: 'Occupied Rooms', key: 'occupiedRooms' },
             { header: 'Maintenance Rooms', key: 'maintenanceRooms' },
+            { header: 'Cleaning Rooms', key: 'cleaningRooms' },
             { header: 'Occupancy Rate', key: 'occupancyRate' },
           ],
           rows: [report],
@@ -823,6 +832,7 @@ export class ReportService {
       [RoomStatus.BOOKED]: 0,
       [RoomStatus.OCCUPIED]: 0,
       [RoomStatus.MAINTENANCE]: 0,
+      [RoomStatus.CLEANING]: 0,
     };
 
     for (const roomStatus of roomsByStatus) {
@@ -846,6 +856,9 @@ export class ReportService {
       roomNumber: booking.room.roomNumber,
       checkInDate: booking.checkInDate,
       checkOutDate: booking.checkOutDate,
+      coolingOption: booking.coolingOption,
+      roomPriceTotal: Number(booking.roomPriceTotal),
+      coolingPrice: Number(booking.coolingPrice),
       totalPrice: Number(booking.totalPrice),
       bookingStatus: booking.status,
     };
