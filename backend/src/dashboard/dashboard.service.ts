@@ -2,6 +2,9 @@ import { Injectable } from '@nestjs/common';
 
 import {
   BookingStatus,
+  BusinessType,
+  HousekeepingPriority,
+  HousekeepingStatus,
   PaymentStatus,
   Prisma,
   RoomStatus,
@@ -43,6 +46,11 @@ export class DashboardService {
       },
     },
   } satisfies Prisma.PaymentInclude;
+
+  private readonly taskInclude = {
+    room: { select: { roomNumber: true, type: true } },
+    assignedTo: { select: { name: true } },
+  } satisfies Prisma.HousekeepingTaskInclude;
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -123,7 +131,9 @@ export class DashboardService {
       bookedRooms: roomCounts[RoomStatus.BOOKED],
       occupiedRooms: roomCounts[RoomStatus.OCCUPIED],
       maintenanceRooms: roomCounts[RoomStatus.MAINTENANCE],
-      cleaningRooms: roomCounts[RoomStatus.CLEANING],
+      cleaningRooms:
+        roomCounts[RoomStatus.NEEDS_CLEANING] +
+        roomCounts[RoomStatus.CLEANING_IN_PROGRESS],
       totalGuests,
       todayCheckIns,
       todayCheckOuts,
@@ -156,6 +166,84 @@ export class DashboardService {
     return payments.map((payment) => this.serializePayment(payment));
   }
 
+  async getHousekeepingSummary() {
+    const todayRange = this.getDayRange(new Date());
+
+    const guesthouse = await this.prisma.business.findFirst({
+      where: { type: BusinessType.GUESTHOUSE },
+      select: { id: true },
+    });
+
+    if (!guesthouse) {
+      return {
+        needsCleaning: 0,
+        cleaningInProgress: 0,
+        cleanedWaitingInspection: 0,
+        completedToday: 0,
+        todaysTasks: [],
+        urgentTasks: [],
+      };
+    }
+
+    const businessId = guesthouse.id;
+    const TERMINAL = [HousekeepingStatus.INSPECTED, HousekeepingStatus.CANCELLED];
+
+    const [
+      needsCleaning,
+      cleaningInProgress,
+      cleanedWaitingInspection,
+      completedToday,
+      todaysTasks,
+      urgentTasks,
+    ] = await Promise.all([
+      this.prisma.housekeepingTask.count({
+        where: { businessId, status: HousekeepingStatus.NEEDS_CLEANING },
+      }),
+      this.prisma.housekeepingTask.count({
+        where: { businessId, status: HousekeepingStatus.CLEANING_IN_PROGRESS },
+      }),
+      this.prisma.housekeepingTask.count({
+        where: { businessId, status: HousekeepingStatus.CLEANED },
+      }),
+      this.prisma.housekeepingTask.count({
+        where: {
+          businessId,
+          status: HousekeepingStatus.INSPECTED,
+          inspectedAt: { gte: todayRange.start, lt: todayRange.end },
+        },
+      }),
+      this.prisma.housekeepingTask.findMany({
+        where: {
+          businessId,
+          status: { notIn: TERMINAL },
+          createdAt: { gte: todayRange.start, lt: todayRange.end },
+        },
+        include: this.taskInclude,
+        orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
+        take: 8,
+      }),
+      this.prisma.housekeepingTask.findMany({
+        where: {
+          businessId,
+          priority: HousekeepingPriority.URGENT,
+          status: { notIn: TERMINAL },
+        },
+        include: this.taskInclude,
+        orderBy: { createdAt: 'asc' },
+        take: 8,
+      }),
+    ]);
+
+    return {
+      needsCleaning,
+      cleaningInProgress,
+      cleanedWaitingInspection,
+      completedToday,
+      todaysTasks,
+      urgentTasks,
+    };
+  }
+
   private getRoomCountsByStatus(
     roomsByStatus: Array<{ status: RoomStatus; _count: { _all: number } }>,
   ) {
@@ -164,7 +252,8 @@ export class DashboardService {
       [RoomStatus.BOOKED]: 0,
       [RoomStatus.OCCUPIED]: 0,
       [RoomStatus.MAINTENANCE]: 0,
-      [RoomStatus.CLEANING]: 0,
+      [RoomStatus.NEEDS_CLEANING]: 0,
+      [RoomStatus.CLEANING_IN_PROGRESS]: 0,
     };
 
     for (const roomStatus of roomsByStatus) {

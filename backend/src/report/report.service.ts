@@ -339,7 +339,9 @@ export class ReportService {
       bookedRooms: roomCounts[RoomStatus.BOOKED],
       occupiedRooms,
       maintenanceRooms: roomCounts[RoomStatus.MAINTENANCE],
-      cleaningRooms: roomCounts[RoomStatus.CLEANING],
+      cleaningRooms:
+        roomCounts[RoomStatus.NEEDS_CLEANING] +
+        roomCounts[RoomStatus.CLEANING_IN_PROGRESS],
       occupancyRate: totalRooms === 0 ? 0 : (occupiedRooms / totalRooms) * 100,
     };
   }
@@ -832,7 +834,8 @@ export class ReportService {
       [RoomStatus.BOOKED]: 0,
       [RoomStatus.OCCUPIED]: 0,
       [RoomStatus.MAINTENANCE]: 0,
-      [RoomStatus.CLEANING]: 0,
+      [RoomStatus.NEEDS_CLEANING]: 0,
+      [RoomStatus.CLEANING_IN_PROGRESS]: 0,
     };
 
     for (const roomStatus of roomsByStatus) {

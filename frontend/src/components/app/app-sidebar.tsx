@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { useTranslations } from "next-intl"
 import {
   BedDoubleIcon,
+  BrushIcon,
   CalendarDaysIcon,
   CalendarCheckIcon,
   CircleDollarSignIcon,
@@ -77,6 +78,11 @@ const guesthouseNavItems: NavItem[] = [
     href: "/expenses",
     icon: WalletIcon,
     translationKey: "expenses.expensesNav",
+  },
+  {
+    href: "/housekeeping",
+    icon: BrushIcon,
+    translationKey: "housekeeping.nav",
   },
   {
     href: "/finance",

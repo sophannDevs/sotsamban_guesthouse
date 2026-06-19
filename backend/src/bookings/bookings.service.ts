@@ -6,7 +6,10 @@ import {
 } from '@nestjs/common';
 import {
   BookingStatus,
+  BusinessType,
   CoolingOption,
+  HousekeepingPriority,
+  HousekeepingStatus,
   Prisma,
   RoomStatus,
 } from '../../generated/prisma/client';
@@ -227,17 +230,47 @@ export class BookingsService {
       );
     }
 
+    const guesthouse = await this.prisma.business.findFirst({
+      where: { type: BusinessType.GUESTHOUSE },
+      select: { id: true },
+    });
+
     const booking = await this.prisma.$transaction(async (tx) => {
       await tx.room.update({
         where: { id: existingBooking.roomId },
-        data: { status: RoomStatus.AVAILABLE },
+        data: { status: RoomStatus.NEEDS_CLEANING },
       });
 
-      return tx.booking.update({
+      const updatedBooking = await tx.booking.update({
         where: { id },
         data: { status: BookingStatus.CHECKED_OUT },
         include: this.bookingInclude,
       });
+
+      if (guesthouse) {
+        const existingTask = await tx.housekeepingTask.findFirst({
+          where: {
+            roomId: existingBooking.roomId,
+            bookingId: id,
+            status: { not: HousekeepingStatus.CANCELLED },
+          },
+        });
+
+        if (!existingTask) {
+          await tx.housekeepingTask.create({
+            data: {
+              businessId: guesthouse.id,
+              roomId: existingBooking.roomId,
+              bookingId: id,
+              status: HousekeepingStatus.NEEDS_CLEANING,
+              priority: HousekeepingPriority.MEDIUM,
+              note: 'Room needs cleaning after check-out',
+            },
+          });
+        }
+      }
+
+      return updatedBooking;
     });
 
     if (actorUserId) {
@@ -412,7 +445,8 @@ export class BookingsService {
   ) {
     if (
       room.status === RoomStatus.MAINTENANCE ||
-      room.status === RoomStatus.CLEANING
+      room.status === RoomStatus.NEEDS_CLEANING ||
+      room.status === RoomStatus.CLEANING_IN_PROGRESS
     ) {
       throw new ConflictException(translateError('cannotBookMaintenanceRoom'));
     }
@@ -478,7 +512,8 @@ export class BookingsService {
 
     if (
       room.status === RoomStatus.MAINTENANCE ||
-      room.status === RoomStatus.CLEANING
+      room.status === RoomStatus.NEEDS_CLEANING ||
+      room.status === RoomStatus.CLEANING_IN_PROGRESS
     ) {
       throw new ConflictException(translateError('cannotBookMaintenanceRoom'));
     }

@@ -528,6 +528,8 @@ Bookings:
 - `PATCH /bookings/:id`
 - `DELETE /bookings/:id`
 
+Check-out flow: when a guest checks out, the booking status becomes `CHECKED_OUT`, the room status becomes `NEEDS_CLEANING` (not `AVAILABLE`), and a `HousekeepingTask` is automatically created in the same transaction. The room remains unavailable for new bookings until cleaning is completed and the room status is reset to `AVAILABLE`.
+
 Booking date conflicts return `409 Conflict` with safe conflict details:
 
 ```json

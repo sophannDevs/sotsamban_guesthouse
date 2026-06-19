@@ -15,7 +15,8 @@ export const roomStatuses = [
   "BOOKED",
   "OCCUPIED",
   "MAINTENANCE",
-  "CLEANING",
+  "NEEDS_CLEANING",
+  "CLEANING_IN_PROGRESS",
 ] as const
 
 export type RoomType = (typeof roomTypes)[number]

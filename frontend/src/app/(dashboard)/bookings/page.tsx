@@ -1149,7 +1149,8 @@ export default function BookingsPage() {
                       (roomStatus === "BOOKED" ||
                         roomStatus === "OCCUPIED" ||
                         roomStatus === "MAINTENANCE" ||
-                        roomStatus === "CLEANING")
+                        roomStatus === "NEEDS_CLEANING" ||
+                        roomStatus === "CLEANING_IN_PROGRESS")
                     const isSelected = selectedRoomId === room.id
                     return (
                       <button
@@ -1896,7 +1897,7 @@ function RoomAvailabilityBadge({
       ? "default"
       : status === "MAINTENANCE"
         ? "destructive"
-        : status === "CLEANING"
+        : status === "NEEDS_CLEANING" || status === "CLEANING_IN_PROGRESS"
           ? "secondary"
           : status === "UNKNOWN"
             ? "outline"
@@ -2026,7 +2027,8 @@ function getRoomAvailabilityStatusLabel(
     BOOKED: t("booked"),
     OCCUPIED: t("occupied"),
     MAINTENANCE: t("maintenance"),
-    CLEANING: t("cleaning"),
+    NEEDS_CLEANING: t("needsCleaning"),
+    CLEANING_IN_PROGRESS: t("cleaningInProgress"),
   }
 
   return labels[status]
@@ -2037,8 +2039,12 @@ function getRoomAvailabilitySummary(statuses: RoomAvailabilityStatus[]) {
     return "MAINTENANCE"
   }
 
-  if (statuses.includes("CLEANING")) {
-    return "CLEANING"
+  if (statuses.includes("CLEANING_IN_PROGRESS")) {
+    return "CLEANING_IN_PROGRESS"
+  }
+
+  if (statuses.includes("NEEDS_CLEANING")) {
+    return "NEEDS_CLEANING"
   }
 
   if (statuses.includes("OCCUPIED")) {

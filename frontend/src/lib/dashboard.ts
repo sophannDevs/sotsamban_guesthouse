@@ -4,6 +4,26 @@ import { apiClient } from "@/lib/api"
 import type { Booking } from "@/lib/bookings"
 import type { Payment } from "@/lib/payments"
 
+export type HousekeepingDashboardTask = {
+  id: string
+  status: string
+  priority: string
+  note: string | null
+  startedAt: string | null
+  createdAt: string
+  room: { roomNumber: string; type: string }
+  assignedTo: { name: string } | null
+}
+
+export type HousekeepingDashboardSummary = {
+  needsCleaning: number
+  cleaningInProgress: number
+  cleanedWaitingInspection: number
+  completedToday: number
+  todaysTasks: HousekeepingDashboardTask[]
+  urgentTasks: HousekeepingDashboardTask[]
+}
+
 export type DashboardSummary = {
   totalRooms: number
   availableRooms: number
@@ -42,6 +62,14 @@ export const dashboardService = {
   async getRecentPayments() {
     const response = await apiClient.get<ApiResponse<Payment[]>>(
       "/dashboard/recent-payments"
+    )
+
+    return response.data.data
+  },
+
+  async getHousekeepingSummary() {
+    const response = await apiClient.get<ApiResponse<HousekeepingDashboardSummary>>(
+      "/dashboard/housekeeping-summary"
     )
 
     return response.data.data

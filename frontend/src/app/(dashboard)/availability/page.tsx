@@ -3,14 +3,20 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   AlertCircleIcon,
+  BedDoubleIcon,
+  BrushIcon,
+  CalendarCheckIcon,
   CalendarDaysIcon,
+  CheckCircle2Icon,
   RefreshCwIcon,
   SearchIcon,
+  WrenchIcon,
+  type LucideIcon,
 } from "lucide-react"
 import { useTranslations } from "next-intl"
 
+import { cn } from "@/lib/utils"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -37,16 +43,67 @@ import {
   type RoomType,
 } from "@/lib/rooms"
 
-const statusVariants: Record<
-  RoomAvailabilityStatus,
-  React.ComponentProps<typeof Badge>["variant"]
-> = {
-  AVAILABLE: "default",
-  BOOKED: "secondary",
-  OCCUPIED: "outline",
-  MAINTENANCE: "destructive",
-  CLEANING: "secondary",
+type StatusConfig = {
+  cellBg: string
+  pillBg: string
+  pillBorder: string
+  icon: LucideIcon
+  isBookable: boolean
 }
+
+const STATUS_CONFIG: Record<RoomAvailabilityStatus, StatusConfig> = {
+  AVAILABLE: {
+    cellBg: "bg-emerald-500/10",
+    pillBg: "bg-emerald-500/20",
+    pillBorder: "ring-1 ring-emerald-500/30",
+    icon: CheckCircle2Icon,
+    isBookable: true,
+  },
+  BOOKED: {
+    cellBg: "bg-sky-500/10",
+    pillBg: "bg-sky-500/20",
+    pillBorder: "ring-1 ring-sky-500/30",
+    icon: CalendarCheckIcon,
+    isBookable: false,
+  },
+  OCCUPIED: {
+    cellBg: "bg-violet-500/10",
+    pillBg: "bg-violet-500/20",
+    pillBorder: "ring-1 ring-violet-500/30",
+    icon: BedDoubleIcon,
+    isBookable: false,
+  },
+  MAINTENANCE: {
+    cellBg: "bg-rose-500/10",
+    pillBg: "bg-rose-500/20",
+    pillBorder: "ring-1 ring-rose-500/30",
+    icon: WrenchIcon,
+    isBookable: false,
+  },
+  NEEDS_CLEANING: {
+    cellBg: "bg-amber-500/10",
+    pillBg: "bg-amber-500/20",
+    pillBorder: "ring-1 ring-amber-500/30",
+    icon: BrushIcon,
+    isBookable: false,
+  },
+  CLEANING_IN_PROGRESS: {
+    cellBg: "bg-orange-500/10",
+    pillBg: "bg-orange-500/20",
+    pillBorder: "ring-1 ring-orange-500/30",
+    icon: RefreshCwIcon,
+    isBookable: false,
+  },
+}
+
+const LEGEND_ORDER = [
+  "AVAILABLE",
+  "BOOKED",
+  "OCCUPIED",
+  "MAINTENANCE",
+  "NEEDS_CLEANING",
+  "CLEANING_IN_PROGRESS",
+] as const satisfies readonly RoomAvailabilityStatus[]
 
 export default function AvailabilityPage() {
   const t = useTranslations("availability")
@@ -122,9 +179,7 @@ export default function AvailabilityPage() {
       <CardHeader className="gap-3">
         <div className="flex min-w-0 flex-col gap-1">
           <CardTitle>{t("title")}</CardTitle>
-          <CardDescription>
-            {t("description")}
-          </CardDescription>
+          <CardDescription>{t("description")}</CardDescription>
         </div>
         <CardAction>
           <Button
@@ -180,16 +235,7 @@ export default function AvailabilityPage() {
           </FieldGroup>
         </div>
 
-        <div className="flex flex-wrap gap-2" aria-label={t("statusLegend")}>
-          {(["AVAILABLE", "BOOKED", "OCCUPIED", "MAINTENANCE", "CLEANING"] as const).map((status) => (
-            <StatusBadge
-              key={status}
-              status={status}
-            >
-              {getStatusLabel(status, t)}
-            </StatusBadge>
-          ))}
-        </div>
+        <StatusLegend t={t} />
 
         {errorMessage ? (
           <Alert variant="destructive">
@@ -209,82 +255,145 @@ export default function AvailabilityPage() {
           </Alert>
         ) : null}
 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="sticky left-0 min-w-40 bg-background">
-                {t("roomNumber")}
-              </TableHead>
-              <TableHead className="min-w-28">{t("roomType")}</TableHead>
-              <TableHead className="min-w-28">{t("pricePerNight")}</TableHead>
-              {calendarDates.map((date) => (
-                <TableHead className="min-w-32 text-center" key={date}>
-                  <div className="flex flex-col gap-0.5">
-                    <span>{formatDay(date)}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDate(date)}
-                    </span>
-                  </div>
+        <div className="overflow-x-auto rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="sticky left-0 min-w-40 bg-background">
+                  {t("roomNumber")}
                 </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {isLoading ? (
-              <TableStateRow
-                colSpan={Math.max(calendarDates.length + 3, 4)}
-                message={t("loading")}
-              />
-            ) : availability.length ? (
-              availability.map((room) => (
-                <TableRow key={room.roomId}>
-                  <TableCell className="sticky left-0 bg-background">
-                    <div className="flex items-center gap-2">
-                      <span className="flex size-8 items-center justify-center rounded-lg border bg-muted/40">
-                        <CalendarDaysIcon />
+                <TableHead className="min-w-28">{t("roomType")}</TableHead>
+                <TableHead className="min-w-28">{t("pricePerNight")}</TableHead>
+                {calendarDates.map((date) => (
+                  <TableHead className="min-w-36 text-center" key={date}>
+                    <div className="flex flex-col gap-0.5">
+                      <span>{formatDay(date)}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDate(date)}
                       </span>
-                      <div className="flex min-w-0 flex-col">
-                        <span className="font-medium">
-                          {room.roomNumber}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {room.roomId}
-                        </span>
-                      </div>
                     </div>
-                  </TableCell>
-                  <TableCell>{getRoomTypeLabel(room.roomType, t)}</TableCell>
-                  <TableCell>{formatCurrency(room.pricePerNight)}</TableCell>
-                  {room.dates.map((date) => (
-                    <TableCell className="text-center" key={date.date}>
-                      <StatusBadge status={date.status}>
-                        {getStatusLabel(date.status, t)}
-                      </StatusBadge>
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableStateRow
+                  colSpan={Math.max(calendarDates.length + 3, 4)}
+                  message={t("loading")}
+                />
+              ) : availability.length ? (
+                availability.map((room) => (
+                  <TableRow key={room.roomId}>
+                    <TableCell className="sticky left-0 bg-background">
+                      <div className="flex items-center gap-2">
+                        <span className="flex size-8 items-center justify-center rounded-lg border bg-muted/40">
+                          <CalendarDaysIcon />
+                        </span>
+                        <div className="flex min-w-0 flex-col">
+                          <span className="font-medium">{room.roomNumber}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {room.roomId}
+                          </span>
+                        </div>
+                      </div>
                     </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableStateRow
-                colSpan={Math.max(calendarDates.length + 3, 4)}
-                message={t("noData")}
-              />
-            )}
-          </TableBody>
-        </Table>
+                    <TableCell>{getRoomTypeLabel(room.roomType, t)}</TableCell>
+                    <TableCell>{formatCurrency(room.pricePerNight)}</TableCell>
+                    {room.dates.map((date) => (
+                      <StatusCell
+                        key={date.date}
+                        label={getStatusLabel(date.status, t)}
+                        status={date.status}
+                        unavailableLabel={t("unavailableNote")}
+                      />
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableStateRow
+                  colSpan={Math.max(calendarDates.length + 3, 4)}
+                  message={t("noData")}
+                />
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   )
 }
 
-function StatusBadge({
-  children,
+function StatusCell({
+  label,
   status,
+  unavailableLabel,
 }: {
-  children: React.ReactNode
+  label: string
   status: RoomAvailabilityStatus
+  unavailableLabel: string
 }) {
-  return <Badge variant={statusVariants[status]}>{children}</Badge>
+  const config = STATUS_CONFIG[status]
+  const StatusIcon = config.icon
+  const tooltipTitle = config.isBookable
+    ? label
+    : `${label} — ${unavailableLabel}`
+
+  return (
+    <TableCell
+      className={cn("p-1.5 text-center align-middle", config.cellBg)}
+      title={tooltipTitle}
+    >
+      <div
+        className={cn(
+          "inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium",
+          config.pillBg,
+          config.pillBorder
+        )}
+      >
+        <StatusIcon className="size-3 shrink-0" />
+        <span>{label}</span>
+      </div>
+    </TableCell>
+  )
+}
+
+function StatusLegend({
+  t,
+}: {
+  t: ReturnType<typeof useTranslations<"availability">>
+}) {
+  return (
+    <div
+      aria-label={t("statusLegend")}
+      className="rounded-lg border bg-muted/20 p-4"
+    >
+      <h3 className="mb-3 text-sm font-medium">{t("statusLegend")}</h3>
+      <div className="flex flex-wrap gap-2">
+        {LEGEND_ORDER.map((status) => {
+          const config = STATUS_CONFIG[status]
+          const StatusIcon = config.icon
+
+          return (
+            <div
+              key={status}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium",
+                config.pillBg,
+                config.pillBorder
+              )}
+            >
+              <StatusIcon className="size-3 shrink-0" />
+              <span>{getStatusLabel(status, t)}</span>
+            </div>
+          )
+        })}
+      </div>
+      <p className="mt-3 text-xs text-muted-foreground">
+        {t("cleaningBlockingNote")}
+      </p>
+    </div>
+  )
 }
 
 function TableStateRow({
@@ -338,7 +447,8 @@ function getStatusLabel(
     BOOKED: t("booked"),
     OCCUPIED: t("occupied"),
     MAINTENANCE: t("maintenance"),
-    CLEANING: t("cleaning"),
+    NEEDS_CLEANING: t("needsCleaning"),
+    CLEANING_IN_PROGRESS: t("cleaningInProgress"),
   }
 
   return labels[status]

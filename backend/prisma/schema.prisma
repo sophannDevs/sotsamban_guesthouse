@@ -23,7 +23,23 @@ enum RoomStatus {
   BOOKED
   OCCUPIED
   MAINTENANCE
-  CLEANING
+  NEEDS_CLEANING
+  CLEANING_IN_PROGRESS
+}
+
+enum HousekeepingStatus {
+  NEEDS_CLEANING
+  CLEANING_IN_PROGRESS
+  CLEANED
+  INSPECTED
+  CANCELLED
+}
+
+enum HousekeepingPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
 }
 
 enum RoomType {
@@ -90,6 +106,7 @@ model User {
   sales                Sale[]                   @relation("SalesSoldBy")
   purchases            Purchase[]               @relation("PurchasesCreatedBy")
   expenses             Expense[]                @relation("ExpensesCreatedBy")
+  housekeepingTasks    HousekeepingTask[]       @relation("HousekeepingAssignedTo")
   createdAt            DateTime                 @default(now())
   updatedAt            DateTime                 @updatedAt
 
@@ -102,11 +119,12 @@ model Room {
   type          RoomType
   pricePerNight Decimal    @db.Decimal(10, 2)
   status        RoomStatus @default(AVAILABLE)
-  imageUrl      String?
-  bookings      Booking[]
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  deletedAt     DateTime?
+  imageUrl          String?
+  bookings          Booking[]
+  housekeepingTasks HousekeepingTask[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  deletedAt         DateTime?
 
   @@map("rooms")
 }
@@ -135,12 +153,13 @@ model Booking {
   roomPriceTotal Decimal       @db.Decimal(10, 2)
   coolingPrice   Decimal       @db.Decimal(10, 2)
   totalPrice     Decimal       @db.Decimal(10, 2)
-  status         BookingStatus @default(PENDING)
-  payments       Payment[]
-  guest          Guest         @relation(fields: [guestId], references: [id], onDelete: Restrict)
-  room           Room          @relation(fields: [roomId], references: [id], onDelete: Restrict)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  status            BookingStatus    @default(PENDING)
+  payments          Payment[]
+  housekeepingTasks HousekeepingTask[]
+  guest             Guest            @relation(fields: [guestId], references: [id], onDelete: Restrict)
+  room              Room             @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   @@index([guestId])
   @@index([roomId])
@@ -255,15 +274,16 @@ model Business {
   type       BusinessType
   ownerId    String
   owner      User              @relation("BusinessOwner", fields: [ownerId], references: [id], onDelete: Restrict)
-  members    BusinessMember[]
-  categories ProductCategory[]
-  products   Product[]
-  sales      Sale[]
-  suppliers  Supplier[]
-  purchases  Purchase[]
-  expenses   Expense[]
-  createdAt  DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
+  members           BusinessMember[]
+  categories        ProductCategory[]
+  products          Product[]
+  sales             Sale[]
+  suppliers         Supplier[]
+  purchases         Purchase[]
+  expenses          Expense[]
+  housekeepingTasks HousekeepingTask[]
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 
   @@index([ownerId])
   @@map("businesses")
@@ -441,4 +461,32 @@ model Expense {
   @@index([category])
   @@index([expenseDate])
   @@map("expenses")
+}
+
+model HousekeepingTask {
+  id           String               @id @default(cuid())
+  businessId   String
+  roomId       String
+  assignedToId String?
+  bookingId    String?
+  status       HousekeepingStatus   @default(NEEDS_CLEANING)
+  priority     HousekeepingPriority @default(MEDIUM)
+  note         String?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  inspectedAt  DateTime?
+  business     Business             @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  room         Room                 @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  assignedTo   User?                @relation("HousekeepingAssignedTo", fields: [assignedToId], references: [id], onDelete: SetNull)
+  booking      Booking?             @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  @@index([businessId])
+  @@index([roomId])
+  @@index([assignedToId])
+  @@index([bookingId])
+  @@index([status])
+  @@index([priority])
+  @@map("housekeeping_tasks")
 }

@@ -30,4 +30,11 @@ export class DashboardController {
 
     return apiResponse('Recent payments retrieved successfully.', payments);
   }
+
+  @Get('housekeeping-summary')
+  async getHousekeepingSummary() {
+    const summary = await this.dashboardService.getHousekeepingSummary();
+
+    return apiResponse('Housekeeping summary retrieved successfully.', summary);
+  }
 }

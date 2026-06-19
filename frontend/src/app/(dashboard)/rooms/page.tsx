@@ -884,7 +884,7 @@ function RoomStatusBadge({ status }: { status: RoomStatus }) {
         ? "destructive"
         : status === "BOOKED"
           ? "secondary"
-          : status === "CLEANING"
+          : status === "NEEDS_CLEANING" || status === "CLEANING_IN_PROGRESS"
             ? "secondary"
             : "outline"
 
@@ -897,7 +897,8 @@ function getRoomStatusLabel(status: RoomStatus, t: TranslationFn) {
     BOOKED: t("booked"),
     OCCUPIED: t("occupied"),
     MAINTENANCE: t("maintenance"),
-    CLEANING: t("cleaning"),
+    NEEDS_CLEANING: t("needsCleaning"),
+    CLEANING_IN_PROGRESS: t("cleaningInProgress"),
   }
 
   return labels[status]

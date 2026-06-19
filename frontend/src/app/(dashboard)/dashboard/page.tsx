@@ -5,16 +5,21 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   AlertCircleIcon,
   BedDoubleIcon,
+  BrushIcon,
   BuildingIcon,
   CalendarArrowDownIcon,
   CalendarArrowUpIcon,
   CalendarPlusIcon,
+  CheckCheckIcon,
   CircleDollarSignIcon,
+  ClockIcon,
   HotelIcon,
   LogInIcon,
   LogOutIcon,
+  PlusIcon,
   ReceiptIcon,
   RefreshCwIcon,
+  ShieldCheckIcon,
   SparklesIcon,
   StoreIcon,
   TrendingDownIcon,
@@ -69,6 +74,7 @@ import {
   dashboardService,
   getDashboardErrorMessage,
   type DashboardSummary,
+  type HousekeepingDashboardSummary,
 } from "@/lib/dashboard"
 import {
   financeService,
@@ -99,9 +105,11 @@ export default function DashboardPage() {
   const t = useTranslations("dashboardPage")
   const { preferences } = useSystemPreferences()
   const { activeBusiness } = useActiveBusiness()
+  const isGuesthouse = activeBusiness?.businessType === "GUESTHOUSE"
   const [summary, setSummary] = useState<DashboardSummary>(emptySummary)
   const [recentBookings, setRecentBookings] = useState<Booking[]>([])
   const [recentPayments, setRecentPayments] = useState<Payment[]>([])
+  const [housekeeping, setHousekeeping] = useState<HousekeepingDashboardSummary | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -173,36 +181,53 @@ export default function DashboardPage() {
     setErrorMessage(null)
 
     try {
-      const [summaryData, bookingData, paymentData] = await Promise.all([
+      const calls: [
+        ReturnType<typeof dashboardService.getSummary>,
+        ReturnType<typeof dashboardService.getRecentBookings>,
+        ReturnType<typeof dashboardService.getRecentPayments>,
+        ReturnType<typeof dashboardService.getHousekeepingSummary> | Promise<null>,
+      ] = [
         dashboardService.getSummary(),
         dashboardService.getRecentBookings(),
         dashboardService.getRecentPayments(),
-      ])
+        isGuesthouse ? dashboardService.getHousekeepingSummary() : Promise.resolve(null),
+      ]
+      const [summaryData, bookingData, paymentData, hkData] = await Promise.all(calls)
       setSummary(summaryData)
       setRecentBookings(bookingData)
       setRecentPayments(paymentData)
+      setHousekeeping(hkData)
     } catch (error) {
       setErrorMessage(getDashboardErrorMessage(error))
     } finally {
       setIsLoading(false)
     }
-  }, [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isGuesthouse])
 
   useEffect(() => {
     let ignore = false
 
     async function fetchDashboard() {
       try {
-        const [summaryData, bookingData, paymentData] = await Promise.all([
+        const calls: [
+          ReturnType<typeof dashboardService.getSummary>,
+          ReturnType<typeof dashboardService.getRecentBookings>,
+          ReturnType<typeof dashboardService.getRecentPayments>,
+          ReturnType<typeof dashboardService.getHousekeepingSummary> | Promise<null>,
+        ] = [
           dashboardService.getSummary(),
           dashboardService.getRecentBookings(),
           dashboardService.getRecentPayments(),
-        ])
+          isGuesthouse ? dashboardService.getHousekeepingSummary() : Promise.resolve(null),
+        ]
+        const [summaryData, bookingData, paymentData, hkData] = await Promise.all(calls)
 
         if (!ignore) {
           setSummary(summaryData)
           setRecentBookings(bookingData)
           setRecentPayments(paymentData)
+          setHousekeeping(hkData)
         }
       } catch (error) {
         if (!ignore) {
@@ -254,9 +279,17 @@ export default function DashboardPage() {
         </Alert>
       ) : null}
 
-      <QuickActionsSection />
+      <QuickActionsSection isGuesthouse={isGuesthouse} />
 
       <FinanceSummarySection />
+
+      {isGuesthouse && (
+        <HousekeepingStatsSection
+          housekeeping={housekeeping}
+          isLoading={isLoading}
+          t={t}
+        />
+      )}
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {statCards.map((stat) => (
@@ -271,6 +304,27 @@ export default function DashboardPage() {
           />
         ))}
       </section>
+
+      {isGuesthouse && (
+        <section className="grid gap-5 xl:grid-cols-2">
+          <HousekeepingTasksCard
+            isLoading={isLoading}
+            tasks={housekeeping?.todaysTasks ?? []}
+            title={t("hkTodayTitle")}
+            description={t("hkTodayDescription")}
+            emptyMessage={t("hkTodayEmpty")}
+            t={t}
+          />
+          <HousekeepingTasksCard
+            isLoading={isLoading}
+            tasks={housekeeping?.urgentTasks ?? []}
+            title={t("hkUrgentTitle")}
+            description={t("hkUrgentDescription")}
+            emptyMessage={t("hkUrgentEmpty")}
+            t={t}
+          />
+        </section>
+      )}
 
       <section className="grid gap-5 xl:grid-cols-2">
         <Card>
@@ -611,7 +665,7 @@ function getPaymentStatusLabel(status: PaymentStatus, t: DashboardTranslation) {
   return labels[status]
 }
 
-function QuickActionsSection() {
+function QuickActionsSection({ isGuesthouse }: { isGuesthouse: boolean }) {
   const t = useTranslations("dashboardPage")
 
   const actions = [
@@ -620,6 +674,12 @@ function QuickActionsSection() {
     { href: "/bookings", icon: LogOutIcon, label: t("quickCheckOut"), variant: "outline" as const },
     { href: "/payments", icon: ReceiptIcon, label: t("quickAddPayment"), variant: "outline" as const },
     { href: "/expenses", icon: WalletIcon, label: t("quickAddExpense"), variant: "outline" as const },
+    ...(isGuesthouse
+      ? [
+          { href: "/housekeeping", icon: BrushIcon, label: t("quickViewHousekeeping"), variant: "outline" as const },
+          { href: "/housekeeping", icon: PlusIcon, label: t("quickCreateCleaningTask"), variant: "outline" as const },
+        ]
+      : []),
   ]
 
   return (
@@ -957,4 +1017,253 @@ function FinanceMetricCard({
       </CardContent>
     </Card>
   )
+}
+
+// ---------- Housekeeping sections (GUESTHOUSE only) ----------
+
+function HousekeepingStatsSection({
+  housekeeping,
+  isLoading,
+  t,
+}: {
+  housekeeping: HousekeepingDashboardSummary | null
+  isLoading: boolean
+  t: DashboardTranslation
+}) {
+  const hk = housekeeping ?? {
+    needsCleaning: 0,
+    cleaningInProgress: 0,
+    cleanedWaitingInspection: 0,
+    completedToday: 0,
+  }
+
+  const cards = [
+    {
+      label: t("hkNeedsCleaning"),
+      value: String(hk.needsCleaning),
+      detail: t("hkNeedsCleaningDetail"),
+      icon: BrushIcon,
+    },
+    {
+      label: t("hkCleaningInProgress"),
+      value: String(hk.cleaningInProgress),
+      detail: t("hkCleaningInProgressDetail"),
+      icon: RefreshCwIcon,
+    },
+    {
+      label: t("hkCleanedWaiting"),
+      value: String(hk.cleanedWaitingInspection),
+      detail: t("hkCleanedWaitingDetail"),
+      icon: ShieldCheckIcon,
+    },
+    {
+      label: t("hkCompletedToday"),
+      value: String(hk.completedToday),
+      detail: t("hkCompletedTodayDetail"),
+      icon: CheckCheckIcon,
+    },
+  ]
+
+  return (
+    <section className="flex flex-col gap-3">
+      <div className="flex items-center gap-2">
+        <BrushIcon className="size-4 text-muted-foreground" />
+        <h2 className="font-heading text-base font-semibold">{t("hkSectionTitle")}</h2>
+      </div>
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+        {cards.map((card) => (
+          <Card key={card.label} size="sm">
+            <CardHeader>
+              <CardTitle>{card.label}</CardTitle>
+              <CardDescription>{card.detail}</CardDescription>
+              <CardAction>
+                <card.icon />
+              </CardAction>
+            </CardHeader>
+            <CardContent>
+              <div className="font-mono text-3xl font-semibold">
+                {isLoading ? "..." : card.value}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function HousekeepingTaskRow({
+  task,
+  t,
+}: {
+  task: HousekeepingDashboardSummary["todaysTasks"][number]
+  t: DashboardTranslation
+}) {
+  const statusLabel = getHkStatusLabel(task.status, t)
+  const statusVariant = getHkStatusVariant(task.status)
+  const priorityLabel = getHkPriorityLabel(task.priority, t)
+  const priorityVariant = getHkPriorityVariant(task.priority)
+
+  return (
+    <>
+      {/* Mobile */}
+      <div className="flex items-start justify-between gap-2 py-3 first:pt-0 last:pb-0 sm:hidden">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <span className="font-medium leading-tight">
+            {t("roomNumberShort")} {task.room.roomNumber}
+          </span>
+          <span className="text-xs text-muted-foreground">{task.room.type}</span>
+          <div className="mt-1 flex flex-wrap gap-1">
+            <Badge variant={statusVariant}>{statusLabel}</Badge>
+            <Badge variant={priorityVariant}>{priorityLabel}</Badge>
+          </div>
+          {task.assignedTo ? (
+            <span className="text-xs text-muted-foreground">{task.assignedTo.name}</span>
+          ) : null}
+        </div>
+        {task.startedAt ? (
+          <div className="flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+            <ClockIcon className="size-3" />
+            <span>
+              {new Intl.DateTimeFormat("en-US", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              }).format(new Date(task.startedAt))}
+            </span>
+          </div>
+        ) : null}
+      </div>
+
+      {/* Desktop */}
+      <TableRow className="hidden sm:table-row">
+        <TableCell>
+          <div className="flex min-w-0 flex-col">
+            <span className="font-medium">{t("roomNumberShort")} {task.room.roomNumber}</span>
+            <span className="text-xs text-muted-foreground">{task.room.type}</span>
+          </div>
+        </TableCell>
+        <TableCell>
+          <Badge variant={statusVariant}>{statusLabel}</Badge>
+        </TableCell>
+        <TableCell>
+          <Badge variant={priorityVariant}>{priorityLabel}</Badge>
+        </TableCell>
+        <TableCell className="text-sm">
+          {task.assignedTo ? (
+            <span>{task.assignedTo.name}</span>
+          ) : (
+            <span className="text-muted-foreground">{t("hkUnassigned")}</span>
+          )}
+        </TableCell>
+      </TableRow>
+    </>
+  )
+}
+
+function HousekeepingTasksCard({
+  isLoading,
+  tasks,
+  title,
+  description,
+  emptyMessage,
+  t,
+}: {
+  isLoading: boolean
+  tasks: HousekeepingDashboardSummary["todaysTasks"]
+  title: string
+  description: string
+  emptyMessage: string
+  t: DashboardTranslation
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+        <CardAction>
+          <Link
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            href="/housekeeping"
+          >
+            {t("hkViewAll")}
+          </Link>
+        </CardAction>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">{t("loading")}</p>
+        ) : tasks.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">{emptyMessage}</p>
+        ) : (
+          <>
+            {/* Mobile card list */}
+            <div className="flex flex-col divide-y sm:hidden">
+              {tasks.map((task) => (
+                <HousekeepingTaskRow key={task.id} task={task} t={t} />
+              ))}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden sm:block">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>{t("roomNumber")}</TableHead>
+                    <TableHead>{t("status")}</TableHead>
+                    <TableHead>{t("hkPriority")}</TableHead>
+                    <TableHead>{t("hkAssignedTo")}</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tasks.map((task) => (
+                    <HousekeepingTaskRow key={task.id} task={task} t={t} />
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function getHkStatusVariant(status: string): React.ComponentProps<typeof Badge>["variant"] {
+  switch (status) {
+    case "NEEDS_CLEANING": return "secondary"
+    case "CLEANING_IN_PROGRESS": return "default"
+    case "CLEANED": return "outline"
+    default: return "outline"
+  }
+}
+
+function getHkPriorityVariant(priority: string): React.ComponentProps<typeof Badge>["variant"] {
+  switch (priority) {
+    case "URGENT": return "destructive"
+    case "HIGH": return "secondary"
+    case "MEDIUM": return "secondary"
+    default: return "outline"
+  }
+}
+
+function getHkStatusLabel(status: string, t: DashboardTranslation) {
+  const map: Record<string, string> = {
+    NEEDS_CLEANING: t("needsCleaning"),
+    CLEANING_IN_PROGRESS: t("cleaningInProgress"),
+    CLEANED: t("hkCleaned"),
+    INSPECTED: t("hkInspected"),
+    CANCELLED: t("cancelled"),
+  }
+  return map[status] ?? status
+}
+
+function getHkPriorityLabel(priority: string, t: DashboardTranslation) {
+  const map: Record<string, string> = {
+    LOW: t("hkPriorityLow"),
+    MEDIUM: t("hkPriorityMedium"),
+    HIGH: t("hkPriorityHigh"),
+    URGENT: t("hkPriorityUrgent"),
+  }
+  return map[priority] ?? priority
 }
