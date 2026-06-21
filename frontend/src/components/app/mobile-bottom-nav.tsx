@@ -4,15 +4,18 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
+  BedDoubleIcon,
   CalendarCheckIcon,
-  CircleDollarSignIcon,
   GaugeIcon,
   MoreHorizontalIcon,
+  ReceiptIcon,
+  ShoppingBagIcon,
   TrendingUpIcon,
 } from "lucide-react"
 import { useTranslations } from "next-intl"
 
 import { AppSidebar } from "@/components/app/app-sidebar"
+import { useActiveBusiness } from "@/components/app/business-provider"
 import {
   Sheet,
   SheetContent,
@@ -21,17 +24,29 @@ import {
 } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
 
-const bottomNavItems = [
+const guesthouseBottomNavItems = [
   { href: "/dashboard", icon: GaugeIcon, labelKey: "dashboard", exact: true },
   { href: "/bookings", icon: CalendarCheckIcon, labelKey: "bookings", exact: false },
+  { href: "/rooms", icon: BedDoubleIcon, labelKey: "rooms", exact: false },
   { href: "/finance", icon: TrendingUpIcon, labelKey: "finance", exact: false },
-  { href: "/payments", icon: CircleDollarSignIcon, labelKey: "payments", exact: false },
+] as const
+
+const storeBottomNavItems = [
+  { href: "/dashboard", icon: GaugeIcon, labelKey: "dashboard", exact: true },
+  { href: "/store/products", icon: ShoppingBagIcon, labelKey: "store.productsNav", exact: false },
+  { href: "/store/sales", icon: ReceiptIcon, labelKey: "store.salesNav", exact: false },
+  { href: "/finance", icon: TrendingUpIcon, labelKey: "finance", exact: false },
 ] as const
 
 export function MobileBottomNav() {
   const pathname = usePathname()
   const t = useTranslations()
+  const { activeBusiness } = useActiveBusiness()
   const [moreOpen, setMoreOpen] = useState(false)
+  const bottomNavItems =
+    activeBusiness?.businessType === "STORE"
+      ? storeBottomNavItems
+      : guesthouseBottomNavItems
 
   // Close the "More" sheet on navigation
   useEffect(() => {
@@ -46,7 +61,7 @@ export function MobileBottomNav() {
     <>
       <nav
         aria-label={t("navigation")}
-        className="fixed bottom-0 left-0 right-0 z-40 flex h-16 shrink-0 border-t bg-background/95 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur supports-backdrop-filter:bg-background/80 lg:hidden"
+        className="fixed bottom-0 left-0 right-0 z-40 flex h-16 shrink-0 border-t bg-background/95 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur supports-backdrop-filter:bg-background/80 md:hidden"
       >
         {bottomNavItems.map(({ href, icon: Icon, labelKey, exact }) => {
           const isActive = exact ? pathname === href : pathname.startsWith(href)

@@ -13,14 +13,20 @@ import {
   PaymentStatus,
   Prisma,
   RoomStatus,
-  SaleStatus,
   UserRole,
 } from '../../generated/prisma/client';
+import { getMiniBarTotalsByBookingIds } from '../common/booking-totals';
 import {
   createPaginatedResult,
   getPaginationOptions,
   PaginationQuery,
 } from '../common/pagination';
+import {
+  getStoreRevenueBreakdown,
+  getStoreRevenueRows,
+  isStoreRevenueSource,
+  type StoreRevenueSource,
+} from '../common/store-revenue';
 import { PrismaService } from '../prisma/prisma.service';
 import { SettingsService } from '../settings/settings.service';
 import { getDateRangeFromPreset } from './report-date.helper';
@@ -30,6 +36,8 @@ type RevenueReportFilters = {
   rangePreset?: string;
   startDate?: string;
   endDate?: string;
+  /** STORE-only revenue filter; ignored for GUESTHOUSE-shaped reports. */
+  source?: string;
 };
 
 type BookingReportFilters = RevenueReportFilters & {
@@ -164,6 +172,8 @@ export class ReportService {
       ],
     });
 
+    const miniBarRevenue = await this.getMiniBarRevenue(payments);
+
     return {
       totalRevenue: this.sumPayments(payments),
       paidRevenue: this.sumPayments(
@@ -172,9 +182,32 @@ export class ReportService {
       pendingRevenue: this.sumPayments(
         payments.filter((payment) => payment.status === PaymentStatus.PENDING),
       ),
+      miniBarRevenue,
       revenueByDate: this.getRevenueByDate(payments),
       revenueByPaymentMethod: this.getRevenueByPaymentMethod(payments),
     };
+  }
+
+  /**
+   * Mini bar revenue attributable to bookings that have been PAID in this
+   * report's date range — an informational breakdown of paidRevenue, not an
+   * additional total (payments are already a single lump sum per booking).
+   */
+  private async getMiniBarRevenue(payments: PaymentForRevenue[]) {
+    const paidBookingIds = [
+      ...new Set(
+        this.getPaidPayments(payments).map((payment) => payment.bookingId),
+      ),
+    ];
+    const miniBarTotals = await getMiniBarTotalsByBookingIds(
+      this.prisma,
+      paidBookingIds,
+    );
+
+    return Array.from(miniBarTotals.values()).reduce(
+      (sum, amount) => sum + Number(amount),
+      0,
+    );
   }
 
   async getBookingReport(filters: BookingReportFilters & PaginationQuery) {
@@ -364,9 +397,10 @@ export class ReportService {
 
     const dateRange = await this.getDateRange(filters);
     const range = this.buildDateRangeFilter(dateRange);
+    const source = this.parseRevenueSource(filters.source);
 
-    const [revenueRows, expenses] = await Promise.all([
-      this.getProfitLossRevenueRows(business.type, businessId, range),
+    const [revenueRows, expenses, breakdown] = await Promise.all([
+      this.getProfitLossRevenueRows(business.type, businessId, range, source),
       this.prisma.expense.findMany({
         where: {
           businessId,
@@ -374,19 +408,20 @@ export class ReportService {
         },
         orderBy: { expenseDate: 'asc' },
       }),
+      business.type === BusinessType.STORE
+        ? getStoreRevenueBreakdown(this.prisma, businessId, range)
+        : Promise.resolve(undefined),
     ]);
 
     const totalRevenue = revenueRows.reduce((sum, r) => sum + r.amount, 0);
-    const totalExpense = expenses.reduce(
-      (sum, e) => sum + Number(e.amount),
-      0,
-    );
+    const totalExpense = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
 
     return {
       period: dateRange.label,
       totalRevenue,
       totalExpense,
       netProfit: totalRevenue - totalExpense,
+      ...(breakdown ?? {}),
       revenueByDate: this.groupByDateKey(
         revenueRows.map((r) => ({ date: r.date, value: r.amount })),
         'revenue',
@@ -692,6 +727,7 @@ export class ReportService {
             { metric: 'Total Revenue', value: report.totalRevenue },
             { metric: 'Paid Revenue', value: report.paidRevenue },
             { metric: 'Pending Revenue', value: report.pendingRevenue },
+            { metric: 'Mini Bar Revenue', value: report.miniBarRevenue },
           ],
         },
         {
@@ -739,7 +775,9 @@ export class ReportService {
           rows: report.map((row) => ({
             ...row,
             coolingOption:
-              row.coolingOption === 'AIR_CONDITIONER' ? 'Air Conditioner' : 'Fan',
+              row.coolingOption === 'AIR_CONDITIONER'
+                ? 'Air Conditioner'
+                : 'Fan',
           })),
         },
       ],
@@ -824,6 +862,22 @@ export class ReportService {
     return Object.fromEntries(
       Object.entries(filters).filter(([, value]) => Boolean(value)),
     ) as Record<string, string>;
+  }
+
+  private revenueSourceBreakdownRows(report: {
+    storeSaleRevenue?: number;
+    miniBarRevenue?: number;
+  }): Array<{ metric: string; value: number }> {
+    if (
+      report.storeSaleRevenue === undefined ||
+      report.miniBarRevenue === undefined
+    ) {
+      return [];
+    }
+    return [
+      { metric: 'Store Sale Revenue', value: report.storeSaleRevenue },
+      { metric: 'Mini Bar Revenue', value: report.miniBarRevenue },
+    ];
   }
 
   private getRoomCountsByStatus(
@@ -936,21 +990,16 @@ export class ReportService {
     businessType: BusinessType,
     businessId: string,
     range: Prisma.DateTimeFilter | undefined,
+    source: StoreRevenueSource = 'STORE_SALE',
   ): Promise<Array<{ date: Date; amount: number }>> {
     if (businessType === BusinessType.STORE) {
-      const sales = await this.prisma.sale.findMany({
-        where: {
-          businessId,
-          status: SaleStatus.COMPLETED,
-          ...(range ? { createdAt: range } : {}),
-        },
-        select: { createdAt: true, totalAmount: true },
-      });
-
-      return sales.map((s) => ({
-        date: s.createdAt,
-        amount: Number(s.totalAmount),
-      }));
+      const rows = await getStoreRevenueRows(
+        this.prisma,
+        businessId,
+        range,
+        source,
+      );
+      return rows.map((row) => ({ date: row.date, amount: row.amount }));
     }
 
     const payments = await this.prisma.payment.findMany({
@@ -964,6 +1013,19 @@ export class ReportService {
     return payments
       .filter((p): p is typeof p & { paidAt: Date } => p.paidAt !== null)
       .map((p) => ({ date: p.paidAt, amount: Number(p.amount) }));
+  }
+
+  /** Defaults to STORE_SALE so existing reports keep current revenue figures. */
+  private parseRevenueSource(source: string | undefined): StoreRevenueSource {
+    if (!source) {
+      return 'STORE_SALE';
+    }
+    if (!isStoreRevenueSource(source)) {
+      throw new BadRequestException(
+        'source must be one of the following values: STORE_SALE, MINI_BAR, ALL',
+      );
+    }
+    return source;
   }
 
   private groupByDateKey(
@@ -1029,32 +1091,39 @@ export class ReportService {
     const businesses = await this.getAccessibleBusinesses(userId, userRole);
     const dateRange = await this.getDateRange(filters);
     const range = this.buildDateRangeFilter(dateRange);
+    const source = this.parseRevenueSource(filters.source);
 
     const businessBreakdown = await Promise.all(
       businesses.map(async (business) => {
-        const [revenueRows, expenses] = await Promise.all([
-          this.getProfitLossRevenueRows(business.type, business.id, range),
+        const [revenueRows, expenses, breakdown] = await Promise.all([
+          this.getProfitLossRevenueRows(
+            business.type,
+            business.id,
+            range,
+            source,
+          ),
           this.prisma.expense.findMany({
             where: {
               businessId: business.id,
               ...(range ? { expenseDate: range } : {}),
             },
           }),
+          business.type === BusinessType.STORE
+            ? getStoreRevenueBreakdown(this.prisma, business.id, range)
+            : Promise.resolve(undefined),
         ]);
 
         const revenue = revenueRows.reduce((sum, r) => sum + r.amount, 0);
-        const expense = expenses.reduce(
-          (sum, e) => sum + Number(e.amount),
-          0,
-        );
+        const expense = expenses.reduce((sum, e) => sum + Number(e.amount), 0);
 
         return {
           businessId: business.id,
           businessName: business.name,
-          businessType: business.type as string,
+          businessType: business.type,
           revenue,
           expense,
           netProfit: revenue - expense,
+          ...(breakdown ?? {}),
         };
       }),
     );
@@ -1090,6 +1159,25 @@ export class ReportService {
       filters,
     );
     const isLoss = report.netProfit < 0;
+    const storeBusinesses = report.businessBreakdown.filter(
+      (
+        b,
+      ): b is typeof b & { storeSaleRevenue: number; miniBarRevenue: number } =>
+        b.storeSaleRevenue !== undefined && b.miniBarRevenue !== undefined,
+    );
+    const combinedBreakdown =
+      storeBusinesses.length > 0
+        ? {
+            storeSaleRevenue: storeBusinesses.reduce(
+              (sum, b) => sum + b.storeSaleRevenue,
+              0,
+            ),
+            miniBarRevenue: storeBusinesses.reduce(
+              (sum, b) => sum + b.miniBarRevenue,
+              0,
+            ),
+          }
+        : {};
 
     return {
       title: 'Combined Profit & Loss Report',
@@ -1107,6 +1195,7 @@ export class ReportService {
           ],
           rows: [
             { metric: 'Total Revenue', value: report.totalRevenue },
+            ...this.revenueSourceBreakdownRows(combinedBreakdown),
             { metric: 'Total Expense', value: report.totalExpense },
             {
               metric: isLoss ? 'Net Loss' : 'Net Profit',
@@ -1153,6 +1242,7 @@ export class ReportService {
           ],
           rows: [
             { metric: 'Total Revenue', value: report.totalRevenue },
+            ...this.revenueSourceBreakdownRows(report),
             { metric: 'Total Expense', value: report.totalExpense },
             {
               metric: isLoss ? 'Net Loss' : 'Net Profit',

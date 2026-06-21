@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   AlertCircleIcon,
   BanIcon,
@@ -89,6 +90,7 @@ type CartItem = {
 
 export default function SalesPage() {
   const t = useTranslations()
+  const router = useRouter()
 
   // --- List state ---
   const [sales, setSales] = useState<Sale[]>([])
@@ -254,6 +256,15 @@ export default function SalesPage() {
     }
   }
 
+  // Opens the create sheet when navigated here from the mobile FAB.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("action") === "new") {
+      void openCreateSheet()
+      router.replace("/store/sales", { scroll: false })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   function handleAddToCart() {
     if (!selectedProduct || quantity < 1) return
     if (quantityWarning) return
@@ -416,7 +427,10 @@ export default function SalesPage() {
                 </div>
               </div>
             </MobileFilterDrawer>
-            <Button onClick={() => void openCreateSheet()}>
+            <Button
+              className="hidden md:inline-flex"
+              onClick={() => void openCreateSheet()}
+            >
               <PlusIcon data-icon="inline-start" />
               {t("store.newSale")}
             </Button>

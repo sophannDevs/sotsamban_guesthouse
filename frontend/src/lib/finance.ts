@@ -2,6 +2,9 @@ import { AxiosError } from "axios"
 
 import { apiClient } from "@/lib/api"
 
+export const financeRevenueSources = ["STORE_SALE", "MINI_BAR", "ALL"] as const
+export type FinanceRevenueSource = (typeof financeRevenueSources)[number]
+
 export type FinanceSummary = {
   period: string
   startDate: string | null
@@ -9,6 +12,9 @@ export type FinanceSummary = {
   totalRevenue: number
   totalExpense: number
   netProfit: number
+  /** Only present for STORE businesses. */
+  storeSaleRevenue?: number
+  miniBarRevenue?: number
 }
 
 export type BusinessFinanceSummary = {
@@ -18,6 +24,9 @@ export type BusinessFinanceSummary = {
   revenue: number
   expense: number
   netProfit: number
+  /** Only present for STORE businesses. */
+  storeSaleRevenue?: number
+  miniBarRevenue?: number
 }
 
 export type AllBusinessesFinanceSummary = {
@@ -34,6 +43,7 @@ type FinanceParams = {
   rangePreset?: string
   startDate?: string
   endDate?: string
+  source?: FinanceRevenueSource
 }
 
 type ApiResponse<T> = {
@@ -47,6 +57,7 @@ function buildQuery(params: FinanceParams): string {
   if (params.rangePreset) sp.set("rangePreset", params.rangePreset)
   if (params.startDate) sp.set("startDate", params.startDate)
   if (params.endDate) sp.set("endDate", params.endDate)
+  if (params.source) sp.set("source", params.source)
   const q = sp.toString()
   return q ? `?${q}` : ""
 }

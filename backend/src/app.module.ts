@@ -26,7 +26,9 @@ import { RoomsModule } from './rooms/rooms.module';
 import { SettingsModule } from './settings/settings.module';
 import { ExpenseModule } from './expenses/expense.module';
 import { FinanceModule } from './finance/finance.module';
+import { GuesthouseStoreLinkModule } from './guesthouse-store-link/guesthouse-store-link.module';
 import { HousekeepingModule } from './housekeeping/housekeeping.module';
+import { MiniBarModule } from './mini-bar/mini-bar.module';
 import { StoreModule } from './store/store.module';
 import { UsersModule } from './users/users.module';
 
@@ -64,6 +66,8 @@ const i18nPath =
     ExpenseModule,
     FinanceModule,
     HousekeepingModule,
+    GuesthouseStoreLinkModule,
+    MiniBarModule,
   ],
   controllers: [AppController],
   providers: [

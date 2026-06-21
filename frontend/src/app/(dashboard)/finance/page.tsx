@@ -51,15 +51,39 @@ import {
   getFinanceErrorMessage,
   type AllBusinessesFinanceSummary,
   type BusinessFinanceSummary,
+  type FinanceRevenueSource,
   type FinanceSummary,
 } from "@/lib/finance"
 import { cn } from "@/lib/utils"
 import { MobileFilterDrawer } from "@/components/app/mobile-filter-drawer"
 
 type View = "current" | "all"
+type FinanceTranslation = ReturnType<typeof useTranslations<"financePage">>
+type FinancePeriodPreset =
+  | "today"
+  | "this_week"
+  | "this_month"
+  | "last_month"
+  | "last_3_months"
+  | "this_year"
+  | "custom"
 
 type FinanceData = (FinanceSummary | AllBusinessesFinanceSummary) & {
   businesses?: BusinessFinanceSummary[]
+}
+
+function getPeriodLabel(t: FinanceTranslation, preset: string): string {
+  const labels: Record<FinancePeriodPreset, string> = {
+    today: t("periodToday"),
+    this_week: t("periodThisWeek"),
+    this_month: t("periodThisMonth"),
+    last_month: t("periodLastMonth"),
+    last_3_months: t("periodLast3Months"),
+    this_year: t("periodThisYear"),
+    custom: t("periodCustom"),
+  }
+
+  return labels[preset as FinancePeriodPreset] ?? preset
 }
 
 export default function FinancePage() {
@@ -73,21 +97,27 @@ export default function FinancePage() {
   const [customEndDate, setCustomEndDate] = useState("")
   const [activeCustomStart, setActiveCustomStart] = useState("")
   const [activeCustomEnd, setActiveCustomEnd] = useState("")
+  const [revenueSource, setRevenueSource] =
+    useState<FinanceRevenueSource>("STORE_SALE")
 
   const [data, setData] = useState<FinanceData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const showSourceFilter = view === "all" || activeBusiness?.businessType === "STORE"
+
   const buildParams = useCallback(() => {
+    const base = { source: revenueSource }
     if (selectedPreset === "custom") {
       return {
+        ...base,
         rangePreset: "custom",
         startDate: activeCustomStart,
         endDate: activeCustomEnd,
       }
     }
-    return { rangePreset: selectedPreset }
-  }, [selectedPreset, activeCustomStart, activeCustomEnd])
+    return { ...base, rangePreset: selectedPreset }
+  }, [selectedPreset, activeCustomStart, activeCustomEnd, revenueSource])
 
   useEffect(() => {
     let ignore = false
@@ -139,6 +169,26 @@ export default function FinancePage() {
   const isLoss = (data?.netProfit ?? 0) < 0
   const allData = view === "all" ? (data as AllBusinessesFinanceSummary | null) : null
 
+  const revenueBreakdown =
+    view === "all"
+      ? allData?.businesses?.reduce<
+          { storeSaleRevenue: number; miniBarRevenue: number } | undefined
+        >((acc, b) => {
+            if (b.storeSaleRevenue === undefined || b.miniBarRevenue === undefined) {
+              return acc
+            }
+            return {
+              storeSaleRevenue: (acc?.storeSaleRevenue ?? 0) + b.storeSaleRevenue,
+              miniBarRevenue: (acc?.miniBarRevenue ?? 0) + b.miniBarRevenue,
+            }
+          }, undefined)
+      : (data as FinanceSummary | null)?.storeSaleRevenue !== undefined
+        ? {
+            storeSaleRevenue: (data as FinanceSummary).storeSaleRevenue ?? 0,
+            miniBarRevenue: (data as FinanceSummary).miniBarRevenue ?? 0,
+          }
+        : undefined
+
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-6 lg:p-8">
       {/* Page header */}
@@ -153,7 +203,8 @@ export default function FinancePage() {
         <MobileFilterDrawer
           activeCount={
             (selectedPreset !== "this_month" ? 1 : 0) +
-            (view !== "current" ? 1 : 0)
+            (view !== "current" ? 1 : 0) +
+            (revenueSource !== "STORE_SALE" ? 1 : 0)
           }
           onApply={() => {
             if (selectedPreset === "custom") {
@@ -168,6 +219,7 @@ export default function FinancePage() {
             setCustomEndDate("")
             setActiveCustomStart("")
             setActiveCustomEnd("")
+            setRevenueSource("STORE_SALE")
           }}
           triggerClassName="sm:hidden"
         >
@@ -180,7 +232,7 @@ export default function FinancePage() {
               }}
             >
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue>{getPeriodLabel(t, selectedPreset)}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
@@ -229,32 +281,76 @@ export default function FinancePage() {
               </TabsList>
             </Tabs>
           </div>
+          {showSourceFilter ? (
+            <div className="flex flex-col gap-1.5">
+              <p className="text-sm font-medium leading-none">{t("revenueSource")}</p>
+              <Select
+                value={revenueSource}
+                onValueChange={(v) => {
+                  if (v) setRevenueSource(v as FinanceRevenueSource)
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue>{t(`revenueSource_${revenueSource}`)}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="STORE_SALE">{t("revenueSource_STORE_SALE")}</SelectItem>
+                    <SelectItem value="MINI_BAR">{t("revenueSource_MINI_BAR")}</SelectItem>
+                    <SelectItem value="ALL">{t("revenueSource_ALL")}</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
         </MobileFilterDrawer>
 
         {/* Desktop controls */}
-        <Select
-          value={selectedPreset}
-          onValueChange={(v) => {
-            if (v) setSelectedPreset(v)
-          }}
-        >
-          <SelectTrigger className="hidden w-44 sm:flex">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              <SelectItem value="today">{t("periodToday")}</SelectItem>
-              <SelectItem value="this_week">{t("periodThisWeek")}</SelectItem>
-              <SelectItem value="this_month">{t("periodThisMonth")}</SelectItem>
-              <SelectItem value="last_month">{t("periodLastMonth")}</SelectItem>
-              <SelectItem value="last_3_months">
-                {t("periodLast3Months")}
-              </SelectItem>
-              <SelectItem value="this_year">{t("periodThisYear")}</SelectItem>
-              <SelectItem value="custom">{t("periodCustom")}</SelectItem>
-            </SelectGroup>
-          </SelectContent>
-        </Select>
+        <div className="hidden items-center gap-3 sm:flex">
+          <Select
+            value={selectedPreset}
+            onValueChange={(v) => {
+              if (v) setSelectedPreset(v)
+            }}
+          >
+            <SelectTrigger className="w-44">
+              <SelectValue>{getPeriodLabel(t, selectedPreset)}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="today">{t("periodToday")}</SelectItem>
+                <SelectItem value="this_week">{t("periodThisWeek")}</SelectItem>
+                <SelectItem value="this_month">{t("periodThisMonth")}</SelectItem>
+                <SelectItem value="last_month">{t("periodLastMonth")}</SelectItem>
+                <SelectItem value="last_3_months">
+                  {t("periodLast3Months")}
+                </SelectItem>
+                <SelectItem value="this_year">{t("periodThisYear")}</SelectItem>
+                <SelectItem value="custom">{t("periodCustom")}</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+
+          {showSourceFilter ? (
+            <Select
+              value={revenueSource}
+              onValueChange={(v) => {
+                if (v) setRevenueSource(v as FinanceRevenueSource)
+              }}
+            >
+              <SelectTrigger className="w-44">
+                <SelectValue>{t(`revenueSource_${revenueSource}`)}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="STORE_SALE">{t("revenueSource_STORE_SALE")}</SelectItem>
+                  <SelectItem value="MINI_BAR">{t("revenueSource_MINI_BAR")}</SelectItem>
+                  <SelectItem value="ALL">{t("revenueSource_ALL")}</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          ) : null}
+        </div>
 
         <Tabs
           className="hidden sm:block"
@@ -351,6 +447,32 @@ export default function FinancePage() {
             label={isLoss ? t("netLoss") : t("netProfit")}
             value={formatPreferenceCurrency(
               Math.abs(data?.netProfit ?? 0),
+              preferences
+            )}
+          />
+        </div>
+      )}
+
+      {/* Store revenue source breakdown */}
+      {revenueBreakdown && !error && !isLoading && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FinanceMetricCard
+            detail={t("storeSaleRevenueDescription")}
+            icon={StoreIcon}
+            isLoading={isLoading}
+            label={t("storeSaleRevenue")}
+            value={formatPreferenceCurrency(
+              revenueBreakdown.storeSaleRevenue,
+              preferences
+            )}
+          />
+          <FinanceMetricCard
+            detail={t("miniBarRevenueDescription")}
+            icon={WalletIcon}
+            isLoading={isLoading}
+            label={t("miniBarRevenue")}
+            value={formatPreferenceCurrency(
+              revenueBreakdown.miniBarRevenue,
               preferences
             )}
           />

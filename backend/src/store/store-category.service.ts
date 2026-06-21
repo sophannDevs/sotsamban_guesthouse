@@ -62,6 +62,7 @@ export class StoreCategoryService {
     const pagination = getPaginationOptions(query, {
       allowedSortBy: categorySortFields,
       defaultSortBy: 'createdAt',
+      maxLimit: 200,
     });
 
     const where: Prisma.ProductCategoryWhereInput = {

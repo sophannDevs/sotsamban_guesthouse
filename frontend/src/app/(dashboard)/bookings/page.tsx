@@ -7,6 +7,7 @@ import {
   useState,
   type ComponentProps,
 } from "react"
+import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
   AirVentIcon,
@@ -17,11 +18,15 @@ import {
   CalendarPlusIcon,
   CalendarXIcon,
   CheckIcon,
+  CreditCardIcon,
   DoorOpenIcon,
   EyeIcon,
   FileDownIcon,
   LogInIcon,
   LogOutIcon,
+  MartiniIcon,
+  PlusIcon,
+  ReceiptIcon,
   RefreshCwIcon,
   SearchIcon,
   UserIcon,
@@ -69,6 +74,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
 import {
   Table,
   TableBody,
@@ -102,8 +108,20 @@ import {
   type RoomType,
 } from "@/lib/rooms"
 import { ActionMenu } from "@/components/app/action-menu"
+import {
+  MiniBarActionConfirmDialog,
+  type MiniBarConfirmAction,
+} from "@/components/app/mini-bar-action-confirm-dialog"
+import { MiniBarConsumptionDetailDialog } from "@/components/app/mini-bar-consumption-detail-dialog"
+import { MiniBarCreateSheet } from "@/components/app/mini-bar-create-sheet"
+import { MiniBarStatusBadge } from "@/components/app/mini-bar-status-badge"
 import { MobileFilterDrawer } from "@/components/app/mobile-filter-drawer"
 import { defaultPaginationMeta, type PaginatedResponse } from "@/lib/api"
+import {
+  getMiniBarErrorMessage,
+  miniBarConsumptionService,
+  type MiniBarConsumption,
+} from "@/lib/mini-bar-consumption"
 import { cn } from "@/lib/utils"
 
 type StatusFilter = "ALL" | BookingStatus
@@ -129,6 +147,7 @@ const defaultFormValues: BookingForm = {
 
 export default function BookingsPage() {
   const t = useTranslations()
+  const router = useRouter()
   const [bookings, setBookings] = useState<Booking[]>([])
   const [paginationMeta, setPaginationMeta] =
     useState<PaginatedResponse<Booking>["meta"]>(defaultPaginationMeta)
@@ -163,6 +182,13 @@ export default function BookingsPage() {
   const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<
     string | null
   >(null)
+  const [bookingConsumptions, setBookingConsumptions] = useState<MiniBarConsumption[]>([])
+  const [isLoadingConsumptions, setIsLoadingConsumptions] = useState(false)
+  const [consumptionsError, setConsumptionsError] = useState<string | null>(null)
+  const [viewingConsumption, setViewingConsumption] = useState<MiniBarConsumption | null>(null)
+  const [miniBarConfirmAction, setMiniBarConfirmAction] =
+    useState<MiniBarConfirmAction | null>(null)
+  const [isAddMiniBarItemOpen, setIsAddMiniBarItemOpen] = useState(false)
   const [isMobileWizard, setIsMobileWizard] = useState(false)
   const [wizardStep, setWizardStep] = useState(1)
   const [coolingOption, setCoolingOption] = useState<CoolingOption>("FAN")
@@ -524,6 +550,56 @@ export default function BookingsPage() {
     }
   }, [canCheckRoomAvailability, checkInDate, checkOutDate, selectedRoomId])
 
+  useEffect(() => {
+    if (!detailBooking) {
+      return
+    }
+
+    let ignore = false
+
+    async function fetchConsumptions(bookingId: string) {
+      setIsLoadingConsumptions(true)
+      setConsumptionsError(null)
+
+      try {
+        const response = await miniBarConsumptionService.listPaginated({
+          page: 1,
+          limit: 100,
+          bookingId,
+        })
+        if (!ignore) setBookingConsumptions(response.data)
+      } catch (error) {
+        if (!ignore) setConsumptionsError(getMiniBarErrorMessage(error))
+      } finally {
+        if (!ignore) setIsLoadingConsumptions(false)
+      }
+    }
+
+    void fetchConsumptions(detailBooking.id)
+
+    return () => {
+      ignore = true
+    }
+    // Re-fetch only when switching to a different booking, not on every
+    // detailBooking refresh (e.g. after check-in/check-out).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detailBooking?.id])
+
+  async function refreshDetailBooking(bookingId: string) {
+    try {
+      const updated = await bookingService.get(bookingId)
+      setDetailBooking((current) => (current?.id === bookingId ? updated : current))
+    } catch {
+      // Keep showing the last known booking totals if the refresh fails.
+    }
+  }
+
+  function applyUpdatedConsumption(updated: MiniBarConsumption) {
+    setBookingConsumptions((prev) => prev.map((c) => (c.id === updated.id ? updated : c)))
+    setViewingConsumption((current) => (current?.id === updated.id ? updated : current))
+    void refreshDetailBooking(updated.bookingId)
+  }
+
   function openCreateDialog() {
     const isMobile =
       typeof window !== "undefined" && window.innerWidth < 640
@@ -539,6 +615,15 @@ export default function BookingsPage() {
     reset(defaultFormValues)
     setIsCreateOpen(true)
   }
+
+  // Opens the create dialog when navigated here from the mobile FAB.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("action") === "new") {
+      openCreateDialog()
+      router.replace("/bookings", { scroll: false })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function closeWizard() {
     setIsCreateOpen(false)
@@ -731,7 +816,7 @@ export default function BookingsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={openCreateDialog}>
+            <Button className="hidden md:inline-flex" onClick={openCreateDialog}>
               <CalendarPlusIcon data-icon="inline-start" />
               {t("newBooking")}
             </Button>
@@ -784,6 +869,11 @@ export default function BookingsPage() {
                         {formatDateRange(booking.checkInDate, booking.checkOutDate)}
                       </span>
                       <span className="font-medium">{formatCurrency(booking.totalPrice)}</span>
+                      {booking.miniBarTotal > 0 ? (
+                        <span className="text-xs text-muted-foreground">
+                          {t("miniBarTotal")}: {formatCurrency(booking.miniBarTotal)}
+                        </span>
+                      ) : null}
                       <span className="text-xs text-muted-foreground">
                         {booking.coolingOption === "AIR_CONDITIONER" ? t("coolingAC") : t("coolingFan")}
                       </span>
@@ -851,6 +941,7 @@ export default function BookingsPage() {
                   <TableHead>{t("room")}</TableHead>
                   <TableHead>{t("dates")}</TableHead>
                   <TableHead>{t("total")}</TableHead>
+                  <TableHead>{t("miniBarTotal")}</TableHead>
                   <TableHead>{t("status")}</TableHead>
                   <TableHead className="text-right">{t("actions")}</TableHead>
                 </TableRow>
@@ -883,6 +974,9 @@ export default function BookingsPage() {
                         )}
                       </TableCell>
                       <TableCell>{formatCurrency(booking.totalPrice)}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {formatCurrency(booking.miniBarTotal)}
+                      </TableCell>
                       <TableCell>
                         <BookingStatusBadge status={booking.status} />
                       </TableCell>
@@ -1799,14 +1893,139 @@ export default function BookingsPage() {
                   value={formatCurrency(detailBooking.coolingPrice)}
                 />
                 <DetailItem
+                  label={t("miniBarTotal")}
+                  value={formatCurrency(detailBooking.miniBarTotal)}
+                />
+                <DetailItem
                   label={t("totalPrice")}
                   value={formatCurrency(detailBooking.totalPrice)}
+                />
+                <DetailItem
+                  label={t("paidAmount")}
+                  value={formatCurrency(detailBooking.paidAmount)}
+                />
+                <DetailItem
+                  label={t("balanceDue")}
+                  value={formatCurrency(detailBooking.balanceDue)}
                 />
                 <DetailItem
                   label={t("updated")}
                   value={formatDate(detailBooking.updatedAt)}
                 />
               </div>
+
+              <Separator />
+
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h3 className="flex items-center gap-1.5 text-sm font-semibold">
+                    <MartiniIcon className="size-4" />
+                    {t("miniBar.sectionTitle")}
+                  </h3>
+                  <Button
+                    onClick={() => setIsAddMiniBarItemOpen(true)}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    <PlusIcon data-icon="inline-start" />
+                    {t("miniBar.addMiniBarItem")}
+                  </Button>
+                </div>
+
+                {consumptionsError ? (
+                  <Alert variant="destructive">
+                    <AlertCircleIcon />
+                    <AlertDescription>{consumptionsError}</AlertDescription>
+                  </Alert>
+                ) : null}
+
+                {isLoadingConsumptions ? (
+                  <p className="text-sm text-muted-foreground">
+                    {t("miniBar.loadingConsumptions")}
+                  </p>
+                ) : bookingConsumptions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    {t("miniBar.noItemsForBooking")}
+                  </p>
+                ) : (
+                  <div className="overflow-hidden rounded-lg border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>{t("miniBar.consumedItems")}</TableHead>
+                          <TableHead className="text-right">{t("store.qty")}</TableHead>
+                          <TableHead className="text-right">{t("store.unitPrice")}</TableHead>
+                          <TableHead className="text-right">{t("store.subtotal")}</TableHead>
+                          <TableHead>{t("status")}</TableHead>
+                          <TableHead className="text-right">{t("actions")}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {bookingConsumptions.flatMap((consumption) =>
+                          consumption.items.map((item, itemIndex) => (
+                            <TableRow key={item.id}>
+                              <TableCell>{item.product.name}</TableCell>
+                              <TableCell className="text-right">{item.quantity}</TableCell>
+                              <TableCell className="text-right font-mono">
+                                {formatCurrency(item.unitPrice)}
+                              </TableCell>
+                              <TableCell className="text-right font-mono">
+                                {formatCurrency(item.subtotal)}
+                              </TableCell>
+                              {itemIndex === 0 ? (
+                                <TableCell rowSpan={consumption.items.length}>
+                                  <MiniBarStatusBadge status={consumption.status} />
+                                </TableCell>
+                              ) : null}
+                              {itemIndex === 0 ? (
+                                <TableCell
+                                  className="text-right"
+                                  rowSpan={consumption.items.length}
+                                >
+                                  <div className="flex justify-end gap-1">
+                                    <Button
+                                      aria-label={t("miniBar.viewConsumptionAria")}
+                                      onClick={() => setViewingConsumption(consumption)}
+                                      size="icon-sm"
+                                      type="button"
+                                      variant="outline"
+                                    >
+                                      <ReceiptIcon />
+                                    </Button>
+                                    {consumption.status === "DRAFT" ? (
+                                      <Button
+                                        aria-label={t("miniBar.chargeConsumption")}
+                                        onClick={() =>
+                                          setMiniBarConfirmAction({ type: "charge", consumption })
+                                        }
+                                        size="icon-sm"
+                                        type="button"
+                                        variant="outline"
+                                      >
+                                        <CreditCardIcon />
+                                      </Button>
+                                    ) : null}
+                                  </div>
+                                </TableCell>
+                              ) : null}
+                            </TableRow>
+                          )),
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between rounded-lg bg-muted/40 px-4 py-3">
+                  <span className="text-sm font-medium">{t("miniBar.totalMiniBarCharges")}</span>
+                  <span className="font-mono font-semibold">
+                    {formatCurrency(detailBooking.miniBarTotal)}
+                  </span>
+                </div>
+              </div>
+
+              <Separator />
 
               <div className="flex flex-wrap justify-end gap-2">
                 <Button
@@ -1830,6 +2049,37 @@ export default function BookingsPage() {
           ) : null}
         </DialogContent>
       </Dialog>
+
+      {detailBooking ? (
+        <MiniBarCreateSheet
+          lockedBooking={detailBooking}
+          onCreated={(created) => {
+            setBookingConsumptions((prev) => [created, ...prev])
+            void refreshDetailBooking(created.bookingId)
+          }}
+          onOpenChange={setIsAddMiniBarItemOpen}
+          open={isAddMiniBarItemOpen}
+        />
+      ) : null}
+
+      <MiniBarConsumptionDetailDialog
+        consumption={viewingConsumption}
+        onOpenChange={(open) => {
+          if (!open) setViewingConsumption(null)
+        }}
+        onUpdated={applyUpdatedConsumption}
+      />
+
+      <MiniBarActionConfirmDialog
+        action={miniBarConfirmAction}
+        onConfirmed={(updated) => {
+          applyUpdatedConsumption(updated)
+          setMiniBarConfirmAction(null)
+        }}
+        onOpenChange={(open) => {
+          if (!open) setMiniBarConfirmAction(null)
+        }}
+      />
     </>
   )
 }
@@ -2072,7 +2322,7 @@ function TableStateRow({ message }: { message: string }) {
     <TableRow>
       <TableCell
         className="h-28 text-center text-sm text-muted-foreground"
-        colSpan={7}
+        colSpan={8}
       >
         {message}
       </TableCell>

@@ -32,7 +32,11 @@ export class StoreSupplierService {
     userId: string,
     userRole: UserRole,
   ) {
-    await this.categoryService.validateStoreAccess(businessId, userId, userRole);
+    await this.categoryService.validateStoreAccess(
+      businessId,
+      userId,
+      userRole,
+    );
 
     const supplier = await this.prisma.supplier.create({
       data: {
@@ -53,11 +57,16 @@ export class StoreSupplierService {
     userId: string,
     userRole: UserRole,
   ) {
-    await this.categoryService.validateStoreAccess(businessId, userId, userRole);
+    await this.categoryService.validateStoreAccess(
+      businessId,
+      userId,
+      userRole,
+    );
 
     const pagination = getPaginationOptions(query, {
       allowedSortBy: supplierSortFields,
       defaultSortBy: 'name',
+      maxLimit: 200,
     });
 
     const where: Prisma.SupplierWhereInput = {
@@ -111,7 +120,11 @@ export class StoreSupplierService {
     userId: string,
     userRole: UserRole,
   ) {
-    await this.categoryService.validateStoreAccess(businessId, userId, userRole);
+    await this.categoryService.validateStoreAccess(
+      businessId,
+      userId,
+      userRole,
+    );
 
     const supplier = await this.prisma.supplier.findFirst({
       where: { id, businessId },
@@ -129,7 +142,11 @@ export class StoreSupplierService {
     userId: string,
     userRole: UserRole,
   ) {
-    await this.categoryService.validateStoreAccess(businessId, userId, userRole);
+    await this.categoryService.validateStoreAccess(
+      businessId,
+      userId,
+      userRole,
+    );
 
     const supplier = await this.prisma.supplier.findFirst({
       where: { id, businessId },
@@ -155,7 +172,11 @@ export class StoreSupplierService {
     userId: string,
     userRole: UserRole,
   ) {
-    await this.categoryService.validateStoreAccess(businessId, userId, userRole);
+    await this.categoryService.validateStoreAccess(
+      businessId,
+      userId,
+      userRole,
+    );
 
     const supplier = await this.prisma.supplier.findFirst({
       where: { id, businessId },

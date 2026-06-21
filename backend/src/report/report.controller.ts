@@ -45,7 +45,11 @@ export class ReportController {
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
   ) {
-    return this.reportService.getRevenueReport({ rangePreset, startDate, endDate });
+    return this.reportService.getRevenueReport({
+      rangePreset,
+      startDate,
+      endDate,
+    });
   }
 
   @Get('bookings')
@@ -100,11 +104,13 @@ export class ReportController {
     @Query('rangePreset') rangePreset?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('source') source?: string,
   ) {
     return this.reportService.getProfitLossReport(businessId, {
       rangePreset,
       startDate,
       endDate,
+      source,
     });
   }
 
@@ -114,11 +120,12 @@ export class ReportController {
     @Query('rangePreset') rangePreset?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('source') source?: string,
   ) {
     return this.reportService.getCombinedProfitLossReport(
       currentUser.userId,
       currentUser.role,
-      { rangePreset, startDate, endDate },
+      { rangePreset, startDate, endDate, source },
     );
   }
 
@@ -129,17 +136,19 @@ export class ReportController {
     @Query('rangePreset') rangePreset: string | undefined,
     @Query('startDate') startDate: string | undefined,
     @Query('endDate') endDate: string | undefined,
+    @Query('source') source: string | undefined,
     @Res() response: Response,
   ) {
     if (!this.isExportFormat(format)) {
       throw new BadRequestException('format must be excel or pdf.');
     }
 
-    const payload = await this.reportService.buildCombinedProfitLossExcelPayload(
-      currentUser.userId,
-      currentUser.role,
-      { rangePreset, startDate, endDate },
-    );
+    const payload =
+      await this.reportService.buildCombinedProfitLossExcelPayload(
+        currentUser.userId,
+        currentUser.role,
+        { rangePreset, startDate, endDate, source },
+      );
     const buffer =
       format === 'excel'
         ? await this.reportExcelService.generate(payload)
@@ -172,6 +181,7 @@ export class ReportController {
     @Query('paymentStatus') paymentStatus: PaymentStatus | undefined,
     @Query('method') method: PaymentMethod | undefined,
     @Query('search') search: string | undefined,
+    @Query('source') source: string | undefined,
     @Headers('x-business-id') businessId: string | undefined,
     @Res() response: Response,
   ) {
@@ -195,6 +205,7 @@ export class ReportController {
       paymentStatus,
       method,
       search,
+      source,
       businessId,
     });
     const buffer =

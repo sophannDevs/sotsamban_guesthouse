@@ -708,9 +708,34 @@ function QuickActionsSection({ isGuesthouse }: { isGuesthouse: boolean }) {
 }
 
 type FinanceView = "current" | "all"
+type FinancePeriodPreset =
+  | "today"
+  | "this_week"
+  | "this_month"
+  | "last_month"
+  | "last_3_months"
+  | "this_year"
+  | "custom"
 
 type FinanceSummaryData = (FinanceSummary | AllBusinessesFinanceSummary) & {
   businesses?: BusinessFinanceSummary[]
+}
+
+function getFinancePeriodLabel(
+  t: DashboardTranslation,
+  preset: string
+): string {
+  const labels: Record<FinancePeriodPreset, string> = {
+    today: t("periodToday"),
+    this_week: t("periodThisWeek"),
+    this_month: t("periodThisMonth"),
+    last_month: t("periodLastMonth"),
+    last_3_months: t("periodLast3Months"),
+    this_year: t("periodThisYear"),
+    custom: t("periodCustom"),
+  }
+
+  return labels[preset as FinancePeriodPreset] ?? preset
 }
 
 function FinanceSummarySection() {
@@ -820,7 +845,9 @@ function FinanceSummarySection() {
             }}
           >
             <SelectTrigger className="w-full sm:w-44">
-              <SelectValue />
+              <SelectValue>
+                {getFinancePeriodLabel(t, selectedPreset)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>

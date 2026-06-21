@@ -18,11 +18,12 @@ export class FinanceController {
     @Query('rangePreset') rangePreset?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('source') source?: string,
     @CurrentUser() currentUser?: AuthUser,
   ) {
     const summary = await this.financeService.getSummary(
       businessId,
-      { rangePreset, startDate, endDate },
+      { rangePreset, startDate, endDate, source },
       currentUser!,
     );
     return apiResponse('Finance summary retrieved successfully.', summary);
@@ -33,10 +34,11 @@ export class FinanceController {
     @Query('rangePreset') rangePreset?: string,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
+    @Query('source') source?: string,
     @CurrentUser() currentUser?: AuthUser,
   ) {
     const summary = await this.financeService.getAllBusinessesSummary(
-      { rangePreset, startDate, endDate },
+      { rangePreset, startDate, endDate, source },
       currentUser!,
     );
     return apiResponse(

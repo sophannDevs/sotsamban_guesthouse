@@ -14,6 +14,7 @@ import {
   HotelIcon,
   FileBarChartIcon,
   BellIcon,
+  MartiniIcon,
   PackageIcon,
   ReceiptIcon,
   ShoppingBagIcon,
@@ -68,6 +69,11 @@ const guesthouseNavItems: NavItem[] = [
     href: "/payments",
     icon: CircleDollarSignIcon,
     translationKey: "payments",
+  },
+  {
+    href: "/mini-bar",
+    icon: MartiniIcon,
+    translationKey: "miniBar.nav",
   },
   {
     href: "/reports",

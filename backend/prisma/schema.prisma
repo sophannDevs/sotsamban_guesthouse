@@ -92,74 +92,78 @@ enum BusinessRole {
 }
 
 model User {
-  id                   String                   @id @default(cuid())
-  name                 String
-  email                String                   @unique
-  phone                String?
-  password             String
-  role                 UserRole                 @default(RECEPTIONIST)
-  preferredLanguage    PreferredLanguage        @default(EN)
-  notifications        Notification[]
-  notificationSetting  UserNotificationSetting?
-  ownedBusinesses      Business[]               @relation("BusinessOwner")
-  businessMemberships  BusinessMember[]
-  sales                Sale[]                   @relation("SalesSoldBy")
-  purchases            Purchase[]               @relation("PurchasesCreatedBy")
-  expenses             Expense[]                @relation("ExpensesCreatedBy")
-  housekeepingTasks    HousekeepingTask[]       @relation("HousekeepingAssignedTo")
-  createdAt            DateTime                 @default(now())
-  updatedAt            DateTime                 @updatedAt
+  id                  String                   @id @default(cuid())
+  name                String
+  email               String                   @unique
+  phone               String?
+  password            String
+  role                UserRole                 @default(RECEPTIONIST)
+  preferredLanguage   PreferredLanguage        @default(EN)
+  notifications       Notification[]
+  notificationSetting UserNotificationSetting?
+  ownedBusinesses     Business[]               @relation("BusinessOwner")
+  businessMemberships BusinessMember[]
+  sales               Sale[]                   @relation("SalesSoldBy")
+  purchases           Purchase[]               @relation("PurchasesCreatedBy")
+  expenses            Expense[]                @relation("ExpensesCreatedBy")
+  housekeepingTasks   HousekeepingTask[]       @relation("HousekeepingAssignedTo")
+  miniBarConsumptions MiniBarConsumption[]     @relation("MiniBarConsumptionsCreatedBy")
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
 
   @@map("users")
 }
 
 model Room {
-  id            String     @id @default(cuid())
-  roomNumber    String     @unique
-  type          RoomType
-  pricePerNight Decimal    @db.Decimal(10, 2)
-  status        RoomStatus @default(AVAILABLE)
-  imageUrl          String?
-  bookings          Booking[]
-  housekeepingTasks HousekeepingTask[]
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
-  deletedAt         DateTime?
+  id                  String               @id @default(cuid())
+  roomNumber          String               @unique
+  type                RoomType
+  pricePerNight       Decimal              @db.Decimal(10, 2)
+  status              RoomStatus           @default(AVAILABLE)
+  imageUrl            String?
+  bookings            Booking[]
+  housekeepingTasks   HousekeepingTask[]
+  miniBarConsumptions MiniBarConsumption[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  deletedAt           DateTime?
 
   @@map("rooms")
 }
 
 model Guest {
-  id           String    @id @default(cuid())
-  fullName     String
-  phone        String
-  email        String?
-  idCardNumber String?
-  address      String?
-  bookings     Booking[]
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  id                  String               @id @default(cuid())
+  fullName            String
+  phone               String
+  email               String?
+  idCardNumber        String?
+  address             String?
+  bookings            Booking[]
+  miniBarConsumptions MiniBarConsumption[]
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
   @@map("guests")
 }
 
 model Booking {
-  id             String        @id @default(cuid())
-  guestId        String
-  roomId         String
-  checkInDate    DateTime
-  checkOutDate   DateTime
-  coolingOption  CoolingOption @default(FAN)
-  roomPriceTotal Decimal       @db.Decimal(10, 2)
-  coolingPrice   Decimal       @db.Decimal(10, 2)
-  totalPrice     Decimal       @db.Decimal(10, 2)
-  status            BookingStatus    @default(PENDING)
-  payments          Payment[]
-  housekeepingTasks HousekeepingTask[]
-  guest             Guest            @relation(fields: [guestId], references: [id], onDelete: Restrict)
-  room              Room             @relation(fields: [roomId], references: [id], onDelete: Restrict)
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
+  id                  String               @id @default(cuid())
+  guestId             String
+  roomId              String
+  checkInDate         DateTime
+  checkOutDate        DateTime
+  coolingOption       CoolingOption        @default(FAN)
+  roomPriceTotal      Decimal              @db.Decimal(10, 2)
+  coolingPrice        Decimal              @db.Decimal(10, 2)
+  totalPrice          Decimal              @db.Decimal(10, 2)
+  status              BookingStatus        @default(PENDING)
+  payments            Payment[]
+  housekeepingTasks   HousekeepingTask[]
+  miniBarConsumptions MiniBarConsumption[]
+  guest               Guest                @relation(fields: [guestId], references: [id], onDelete: Restrict)
+  room                Room                 @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
   @@index([guestId])
   @@index([roomId])
@@ -268,22 +272,32 @@ enum ExpensePaymentMethod {
   BANK_TRANSFER
 }
 
+enum MiniBarConsumptionStatus {
+  DRAFT
+  CHARGED
+  CANCELLED
+  REFUNDED
+}
+
 model Business {
-  id         String            @id @default(uuid())
-  name       String
-  type       BusinessType
-  ownerId    String
-  owner      User              @relation("BusinessOwner", fields: [ownerId], references: [id], onDelete: Restrict)
-  members           BusinessMember[]
-  categories        ProductCategory[]
-  products          Product[]
-  sales             Sale[]
-  suppliers         Supplier[]
-  purchases         Purchase[]
-  expenses          Expense[]
-  housekeepingTasks HousekeepingTask[]
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  id                       String                @id @default(uuid())
+  name                     String
+  type                     BusinessType
+  ownerId                  String
+  owner                    User                  @relation("BusinessOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  members                  BusinessMember[]
+  categories               ProductCategory[]
+  products                 Product[]
+  sales                    Sale[]
+  suppliers                Supplier[]
+  purchases                Purchase[]
+  expenses                 Expense[]
+  housekeepingTasks        HousekeepingTask[]
+  miniBarConsumptions      MiniBarConsumption[]
+  guesthouseStoreLink      GuesthouseStoreLink?  @relation("GuesthouseLink")
+  storeLinkedByGuesthouses GuesthouseStoreLink[] @relation("StoreLink")
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
 
   @@index([ownerId])
   @@map("businesses")
@@ -305,24 +319,25 @@ model ProductCategory {
 }
 
 model Product {
-  id            String           @id @default(cuid())
-  businessId    String
-  categoryId    String?
-  name          String
-  sku           String
-  barcode       String?
-  purchasePrice Decimal          @db.Decimal(10, 2)
-  sellingPrice  Decimal          @db.Decimal(10, 2)
-  stockQuantity Int              @default(0)
-  lowStockAlert Int              @default(10)
-  status        ProductStatus    @default(ACTIVE)
-  business      Business         @relation(fields: [businessId], references: [id], onDelete: Restrict)
-  category      ProductCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  saleItems     SaleItem[]
-  purchaseItems PurchaseItem[]
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
-  deletedAt     DateTime?
+  id                      String                   @id @default(cuid())
+  businessId              String
+  categoryId              String?
+  name                    String
+  sku                     String
+  barcode                 String?
+  purchasePrice           Decimal                  @db.Decimal(10, 2)
+  sellingPrice            Decimal                  @db.Decimal(10, 2)
+  stockQuantity           Int                      @default(0)
+  lowStockAlert           Int                      @default(10)
+  status                  ProductStatus            @default(ACTIVE)
+  business                Business                 @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  category                ProductCategory?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  saleItems               SaleItem[]
+  purchaseItems           PurchaseItem[]
+  miniBarConsumptionItems MiniBarConsumptionItem[]
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  deletedAt               DateTime?
 
   @@unique([businessId, sku])
   @@index([businessId])
@@ -489,4 +504,61 @@ model HousekeepingTask {
   @@index([status])
   @@index([priority])
   @@map("housekeeping_tasks")
+}
+
+model GuesthouseStoreLink {
+  id                   String   @id @default(cuid())
+  guesthouseBusinessId String   @unique
+  storeBusinessId      String
+  guesthouseBusiness   Business @relation("GuesthouseLink", fields: [guesthouseBusinessId], references: [id], onDelete: Cascade)
+  storeBusiness        Business @relation("StoreLink", fields: [storeBusinessId], references: [id], onDelete: Cascade)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([storeBusinessId])
+  @@map("guesthouse_store_links")
+}
+
+model MiniBarConsumption {
+  id          String                   @id @default(cuid())
+  businessId  String
+  bookingId   String
+  roomId      String
+  guestId     String
+  totalAmount Decimal                  @db.Decimal(10, 2)
+  status      MiniBarConsumptionStatus @default(DRAFT)
+  createdById String
+  business    Business                 @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  booking     Booking                  @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  room        Room                     @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  guest       Guest                    @relation(fields: [guestId], references: [id], onDelete: Restrict)
+  createdBy   User                     @relation("MiniBarConsumptionsCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  items       MiniBarConsumptionItem[]
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+
+  @@index([businessId])
+  @@index([bookingId])
+  @@index([roomId])
+  @@index([guestId])
+  @@index([createdById])
+  @@index([status])
+  @@map("mini_bar_consumptions")
+}
+
+model MiniBarConsumptionItem {
+  id            String             @id @default(cuid())
+  consumptionId String
+  productId     String
+  quantity      Int
+  unitPrice     Decimal            @db.Decimal(10, 2)
+  subtotal      Decimal            @db.Decimal(10, 2)
+  consumption   MiniBarConsumption @relation(fields: [consumptionId], references: [id], onDelete: Cascade)
+  product       Product            @relation(fields: [productId], references: [id], onDelete: Restrict)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([consumptionId])
+  @@index([productId])
+  @@map("mini_bar_consumption_items")
 }

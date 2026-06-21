@@ -475,6 +475,7 @@ export default function ProductsPage() {
                   <TableHead>{t("store.category")}</TableHead>
                   <TableHead>{t("store.sellingPrice")}</TableHead>
                   <TableHead>{t("store.stock")}</TableHead>
+                  <TableHead>{t("store.miniBarUsage")}</TableHead>
                   <TableHead>{t("status")}</TableHead>
                   <TableHead className="text-right">{t("actions")}</TableHead>
                 </TableRow>
@@ -482,7 +483,7 @@ export default function ProductsPage() {
               <TableBody>
                 {isLoading ? (
                   <ProductTableStateRow
-                    colSpan={7}
+                    colSpan={8}
                     message={t("store.loadingProducts")}
                   />
                 ) : products.length ? (
@@ -514,6 +515,9 @@ export default function ProductsPage() {
                       </TableCell>
                       <TableCell>
                         <StockBadge product={product} />
+                      </TableCell>
+                      <TableCell className="text-center font-mono">
+                        {product.miniBarUsageCount}
                       </TableCell>
                       <TableCell>
                         <ProductStatusBadge status={product.status} t={t} />
@@ -551,7 +555,7 @@ export default function ProductsPage() {
                   ))
                 ) : (
                   <ProductTableStateRow
-                    colSpan={7}
+                    colSpan={8}
                     message={t("store.noProductsFound")}
                   />
                 )}
@@ -596,6 +600,13 @@ export default function ProductsPage() {
                     </span>
                     <span>·</span>
                     <StockBadge product={product} />
+                    <span>·</span>
+                    <span>
+                      {t("store.miniBarUsage")}:{" "}
+                      <span className="font-mono font-medium text-foreground">
+                        {product.miniBarUsageCount}
+                      </span>
+                    </span>
                   </div>
                   <div className="flex justify-end">
                     <ActionMenu

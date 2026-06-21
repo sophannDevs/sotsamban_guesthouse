@@ -1,7 +1,18 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import PDFDocument from 'pdfkit';
 
-import { CoolingOption, PaymentStatus, Prisma } from '../../generated/prisma/client';
+import {
+  CoolingOption,
+  MiniBarConsumptionStatus,
+  PaymentStatus,
+  Prisma,
+} from '../../generated/prisma/client';
+import {
+  computeBalanceDue,
+  computeTotalPrice,
+  getMiniBarTotalForBooking,
+  getPaidAmountForBooking,
+} from '../common/booking-totals';
 import { translateError } from '../common/i18n';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -16,6 +27,23 @@ type InvoiceBooking = Prisma.BookingGetPayload<{
     };
   };
 }>;
+
+type InvoiceMiniBarConsumption = Prisma.MiniBarConsumptionGetPayload<{
+  include: {
+    items: {
+      include: {
+        product: { select: { name: true } };
+      };
+    };
+  };
+}>;
+
+type InvoiceTotals = {
+  miniBarTotal: number;
+  totalPrice: number;
+  paidAmount: number;
+  balanceDue: number;
+};
 
 type InvoiceLine = {
   label: string;
@@ -41,10 +69,14 @@ type InvoiceLabels = {
   coolingAC: string;
   coolingPrice: string;
   totalPrice: string;
+  miniBarSection: string;
+  miniBarTotal: string;
   paymentSection: string;
   paymentStatus: string;
   paymentMethod: string;
   noPayment: string;
+  paidAmount: string;
+  balanceDue: string;
   footer: string;
 };
 
@@ -68,10 +100,14 @@ const INVOICE_LABELS: Record<'en' | 'km', InvoiceLabels> = {
     coolingAC: 'Air Conditioner',
     coolingPrice: 'Cooling price',
     totalPrice: 'Total price',
+    miniBarSection: 'Mini Bar Consumption',
+    miniBarTotal: 'Mini bar total',
     paymentSection: 'Payment',
     paymentStatus: 'Payment status',
     paymentMethod: 'Payment method',
     noPayment: 'No payment',
+    paidAmount: 'Paid amount',
+    balanceDue: 'Balance due',
     footer: 'Thank you for choosing Sot Samban GuestHouse.',
   },
   // Khmer labels are defined here but require a Khmer-capable font registered
@@ -95,10 +131,14 @@ const INVOICE_LABELS: Record<'en' | 'km', InvoiceLabels> = {
     coolingAC: 'Air Conditioner',
     coolingPrice: 'Cooling price',
     totalPrice: 'Total price',
+    miniBarSection: 'Mini Bar Consumption',
+    miniBarTotal: 'Mini bar total',
     paymentSection: 'Payment',
     paymentStatus: 'Payment status',
     paymentMethod: 'Payment method',
     noPayment: 'No payment',
+    paidAmount: 'Paid amount',
+    balanceDue: 'Balance due',
     footer: 'Thank you for choosing Sot Samban GuestHouse.',
   },
 };
@@ -132,14 +172,40 @@ export class InvoicesService {
       throw new NotFoundException(translateError('bookingNotFound'));
     }
 
-    const preferences = await this.getPreferences();
+    const [miniBarConsumptions, miniBarTotal, paidAmount, preferences] =
+      await Promise.all([
+        this.prisma.miniBarConsumption.findMany({
+          where: { bookingId, status: MiniBarConsumptionStatus.CHARGED },
+          include: {
+            items: { include: { product: { select: { name: true } } } },
+          },
+          orderBy: { createdAt: 'asc' },
+        }),
+        getMiniBarTotalForBooking(this.prisma, bookingId),
+        getPaidAmountForBooking(this.prisma, bookingId),
+        this.getPreferences(),
+      ]);
 
-    return this.generatePdf(booking, preferences);
+    const totalPrice = computeTotalPrice(
+      booking.roomPriceTotal,
+      booking.coolingPrice,
+      miniBarTotal,
+    );
+    const totals: InvoiceTotals = {
+      miniBarTotal: Number(miniBarTotal),
+      totalPrice: Number(totalPrice),
+      paidAmount: Number(paidAmount),
+      balanceDue: Number(computeBalanceDue(totalPrice, paidAmount)),
+    };
+
+    return this.generatePdf(booking, preferences, miniBarConsumptions, totals);
   }
 
   private generatePdf(
     booking: InvoiceBooking,
     preferences: InvoicePreferences,
+    miniBarConsumptions: InvoiceMiniBarConsumption[],
+    totals: InvoiceTotals,
   ) {
     const labels = INVOICE_LABELS[preferences.language] ?? INVOICE_LABELS.en;
 
@@ -156,8 +222,15 @@ export class InvoicesService {
 
       this.renderHeader(document, booking, preferences, labels);
       this.renderInvoiceDetails(document, booking, labels);
-      this.renderStayDetails(document, booking, preferences, labels);
-      this.renderPaymentDetails(document, booking, labels);
+      this.renderStayDetails(document, booking, preferences, labels, totals);
+      this.renderMiniBarDetails(
+        document,
+        miniBarConsumptions,
+        preferences,
+        labels,
+        totals,
+      );
+      this.renderPaymentDetails(document, booking, preferences, labels, totals);
       this.renderFooter(document, labels);
 
       document.end();
@@ -182,7 +255,9 @@ export class InvoicesService {
       .fontSize(10)
       .fillColor('#4b5563')
       .text(`${labels.invoiceNumber}: ${this.getInvoiceNumber(booking.id)}`)
-      .text(`${labels.generatedDate}: ${this.formatDateTime(new Date(), preferences)}`);
+      .text(
+        `${labels.generatedDate}: ${this.formatDateTime(new Date(), preferences)}`,
+      );
 
     document.moveDown(1.2);
   }
@@ -204,6 +279,7 @@ export class InvoicesService {
     booking: InvoiceBooking,
     preferences: InvoicePreferences,
     labels: InvoiceLabels,
+    totals: InvoiceTotals,
   ) {
     const nights = this.calculateNights(
       booking.checkInDate,
@@ -212,7 +288,6 @@ export class InvoicesService {
     const pricePerNight = Number(booking.room.pricePerNight);
     const roomPriceTotal = Number(booking.roomPriceTotal);
     const coolingPrice = Number(booking.coolingPrice);
-    const totalPrice = Number(booking.totalPrice);
     const isAC = booking.coolingOption === CoolingOption.AIR_CONDITIONER;
 
     this.renderSection(document, labels.staySection, [
@@ -245,17 +320,53 @@ export class InvoicesService {
             },
           ]
         : []),
+      ...(totals.miniBarTotal > 0
+        ? [
+            {
+              label: labels.miniBarTotal,
+              value: this.formatCurrency(totals.miniBarTotal, preferences),
+            },
+          ]
+        : []),
       {
         label: labels.totalPrice,
-        value: this.formatCurrency(totalPrice, preferences),
+        value: this.formatCurrency(totals.totalPrice, preferences),
       },
     ]);
+  }
+
+  private renderMiniBarDetails(
+    document: PDFKit.PDFDocument,
+    consumptions: InvoiceMiniBarConsumption[],
+    preferences: InvoicePreferences,
+    labels: InvoiceLabels,
+    totals: InvoiceTotals,
+  ) {
+    if (consumptions.length === 0) {
+      return;
+    }
+
+    const lines: InvoiceLine[] = consumptions.flatMap((consumption) =>
+      consumption.items.map((item) => ({
+        label: item.product.name,
+        value: `${item.quantity} × ${this.formatCurrency(Number(item.unitPrice), preferences)} = ${this.formatCurrency(Number(item.subtotal), preferences)}`,
+      })),
+    );
+
+    lines.push({
+      label: labels.miniBarTotal,
+      value: this.formatCurrency(totals.miniBarTotal, preferences),
+    });
+
+    this.renderSection(document, labels.miniBarSection, lines);
   }
 
   private renderPaymentDetails(
     document: PDFKit.PDFDocument,
     booking: InvoiceBooking,
+    preferences: InvoicePreferences,
     labels: InvoiceLabels,
+    totals: InvoiceTotals,
   ) {
     const payment = this.getPrimaryPayment(booking);
 
@@ -267,6 +378,14 @@ export class InvoicesService {
       {
         label: labels.paymentMethod,
         value: payment ? this.formatEnum(payment.method) : labels.noPayment,
+      },
+      {
+        label: labels.paidAmount,
+        value: this.formatCurrency(totals.paidAmount, preferences),
+      },
+      {
+        label: labels.balanceDue,
+        value: this.formatCurrency(totals.balanceDue, preferences),
       },
     ]);
   }

@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 
 import {
+  MiniBarConsumptionStatus,
   Prisma,
   ProductStatus,
   UserRole,
@@ -55,7 +56,11 @@ export class StoreProductService {
     userId: string,
     userRole: UserRole,
   ) {
-    await this.categoryService.validateStoreAccess(businessId, userId, userRole);
+    await this.categoryService.validateStoreAccess(
+      businessId,
+      userId,
+      userRole,
+    );
 
     if (dto.categoryId) {
       const category = await this.prisma.productCategory.findFirst({
@@ -103,7 +108,11 @@ export class StoreProductService {
     userId: string,
     userRole: UserRole,
   ) {
-    await this.categoryService.validateStoreAccess(businessId, userId, userRole);
+    await this.categoryService.validateStoreAccess(
+      businessId,
+      userId,
+      userRole,
+    );
 
     const pagination = getPaginationOptions(query, {
       allowedSortBy: productSortFields,
@@ -152,8 +161,10 @@ export class StoreProductService {
       this.prisma.product.count({ where }),
     ]);
 
+    const usageCounts = await this.getMiniBarUsageCounts(data.map((p) => p.id));
+
     return createPaginatedResult(
-      data.map((p) => this.serialize(p)),
+      data.map((p) => this.serialize(p, usageCounts.get(p.id) ?? 0)),
       total,
       pagination,
     );
@@ -165,7 +176,11 @@ export class StoreProductService {
     userId: string,
     userRole: UserRole,
   ) {
-    await this.categoryService.validateStoreAccess(businessId, userId, userRole);
+    await this.categoryService.validateStoreAccess(
+      businessId,
+      userId,
+      userRole,
+    );
 
     const product = await this.prisma.product.findFirst({
       where: { id, businessId, deletedAt: null },
@@ -176,7 +191,12 @@ export class StoreProductService {
       throw new NotFoundException('Product not found.');
     }
 
-    return apiResponse('Product found.', this.serialize(product));
+    const usageCounts = await this.getMiniBarUsageCounts([product.id]);
+
+    return apiResponse(
+      'Product found.',
+      this.serialize(product, usageCounts.get(product.id) ?? 0),
+    );
   }
 
   async update(
@@ -186,7 +206,11 @@ export class StoreProductService {
     userId: string,
     userRole: UserRole,
   ) {
-    await this.categoryService.validateStoreAccess(businessId, userId, userRole);
+    await this.categoryService.validateStoreAccess(
+      businessId,
+      userId,
+      userRole,
+    );
 
     const existing = await this.prisma.product.findFirst({
       where: { id, businessId, deletedAt: null },
@@ -258,7 +282,11 @@ export class StoreProductService {
     userId: string,
     userRole: UserRole,
   ) {
-    await this.categoryService.validateStoreAccess(businessId, userId, userRole);
+    await this.categoryService.validateStoreAccess(
+      businessId,
+      userId,
+      userRole,
+    );
 
     const existing = await this.prisma.product.findFirst({
       where: { id, businessId, deletedAt: null },
@@ -276,7 +304,27 @@ export class StoreProductService {
     return apiResponse('Product deleted.', null);
   }
 
-  private serialize(product: ProductWithCategory) {
+  /** Sums charged mini bar quantities per product, batched to avoid N+1 queries. */
+  private async getMiniBarUsageCounts(
+    productIds: string[],
+  ): Promise<Map<string, number>> {
+    if (productIds.length === 0) {
+      return new Map();
+    }
+
+    const groups = await this.prisma.miniBarConsumptionItem.groupBy({
+      by: ['productId'],
+      where: {
+        productId: { in: productIds },
+        consumption: { status: MiniBarConsumptionStatus.CHARGED },
+      },
+      _sum: { quantity: true },
+    });
+
+    return new Map(groups.map((g) => [g.productId, g._sum.quantity ?? 0]));
+  }
+
+  private serialize(product: ProductWithCategory, miniBarUsageCount = 0) {
     return {
       id: product.id,
       businessId: product.businessId,
@@ -290,6 +338,7 @@ export class StoreProductService {
       stockQuantity: product.stockQuantity,
       lowStockAlert: product.lowStockAlert,
       status: product.status,
+      miniBarUsageCount,
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
       deletedAt: product.deletedAt,

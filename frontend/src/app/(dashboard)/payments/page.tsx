@@ -774,13 +774,26 @@ export default function PaymentsPage() {
                       {t("bookingTotalIs", {
                         amount: formatCurrency(selectedBooking.totalPrice, preferences),
                       })}
-                      {selectedBooking.coolingOption === "AIR_CONDITIONER" && (
-                        <span className="block text-xs">
-                          {t("roomPriceTotal")}: {formatCurrency(selectedBooking.roomPriceTotal, preferences)}
-                          {" · "}
-                          {t("coolingAC")}: {formatCurrency(selectedBooking.coolingPrice, preferences)}
-                        </span>
-                      )}
+                      <span className="block text-xs">
+                        {t("roomPriceTotal")}: {formatCurrency(selectedBooking.roomPriceTotal, preferences)}
+                        {selectedBooking.coolingOption === "AIR_CONDITIONER" && (
+                          <>
+                            {" · "}
+                            {t("coolingAC")}: {formatCurrency(selectedBooking.coolingPrice, preferences)}
+                          </>
+                        )}
+                        {selectedBooking.miniBarTotal > 0 && (
+                          <>
+                            {" · "}
+                            {t("miniBarTotal")}: {formatCurrency(selectedBooking.miniBarTotal, preferences)}
+                          </>
+                        )}
+                      </span>
+                      <span className="block text-xs">
+                        {t("paidAmount")}: {formatCurrency(selectedBooking.paidAmount, preferences)}
+                        {" · "}
+                        {t("balanceDue")}: {formatCurrency(selectedBooking.balanceDue, preferences)}
+                      </span>
                     </>
                   ) : t("selectingBookingFillsAmount")}
                 </FieldDescription>

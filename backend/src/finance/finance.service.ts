@@ -10,10 +10,15 @@ import {
   BusinessType,
   PaymentStatus,
   Prisma,
-  SaleStatus,
   UserRole,
 } from '../../generated/prisma/client';
 import type { AuthUser } from '../auth/types';
+import {
+  getStoreRevenueBreakdown,
+  getStoreRevenueTotal,
+  isStoreRevenueSource,
+  type StoreRevenueSource,
+} from '../common/store-revenue';
 import { PrismaService } from '../prisma/prisma.service';
 import { SettingsService } from '../settings/settings.service';
 import { getDateRangeFromPreset } from '../report/report-date.helper';
@@ -22,6 +27,8 @@ type FinanceSummaryFilters = {
   rangePreset?: string;
   startDate?: string;
   endDate?: string;
+  /** STORE-only revenue filter; ignored for GUESTHOUSE businesses. */
+  source?: string;
 };
 
 @Injectable()
@@ -86,9 +93,14 @@ export class FinanceService {
         }
       : undefined;
 
-    const [totalRevenue, totalExpense] = await Promise.all([
-      this.getTotalRevenue(business.type, businessId!, dateRange),
+    const source = this.parseRevenueSource(filters.source);
+
+    const [totalRevenue, totalExpense, breakdown] = await Promise.all([
+      this.getTotalRevenue(business.type, businessId!, dateRange, source),
       this.getTotalExpense(businessId!, dateRange),
+      business.type === BusinessType.STORE
+        ? getStoreRevenueBreakdown(this.prisma, businessId!, dateRange)
+        : Promise.resolve(undefined),
     ]);
 
     const netProfit = totalRevenue - totalExpense;
@@ -100,6 +112,7 @@ export class FinanceService {
       totalRevenue,
       totalExpense,
       netProfit,
+      ...(breakdown ?? {}),
     };
   }
 
@@ -125,6 +138,8 @@ export class FinanceService {
           }
         : undefined;
 
+    const source = this.parseRevenueSource(filters.source);
+
     const businesses = await this.getAccessibleBusinesses(
       currentUser.userId,
       currentUser.role,
@@ -132,9 +147,12 @@ export class FinanceService {
 
     const businessSummaries = await Promise.all(
       businesses.map(async (business) => {
-        const [revenue, expense] = await Promise.all([
-          this.getTotalRevenue(business.type, business.id, dateRange),
+        const [revenue, expense, breakdown] = await Promise.all([
+          this.getTotalRevenue(business.type, business.id, dateRange, source),
           this.getTotalExpense(business.id, dateRange),
+          business.type === BusinessType.STORE
+            ? getStoreRevenueBreakdown(this.prisma, business.id, dateRange)
+            : Promise.resolve(undefined),
         ]);
         return {
           businessId: business.id,
@@ -143,6 +161,7 @@ export class FinanceService {
           revenue,
           expense,
           netProfit: revenue - expense,
+          ...(breakdown ?? {}),
         };
       }),
     );
@@ -195,20 +214,13 @@ export class FinanceService {
     businessType: BusinessType,
     businessId: string,
     dateRange: Prisma.DateTimeFilter | undefined,
+    source: StoreRevenueSource,
   ): Promise<number> {
     if (businessType === BusinessType.STORE) {
-      const result = await this.prisma.sale.aggregate({
-        _sum: { totalAmount: true },
-        where: {
-          businessId,
-          status: SaleStatus.COMPLETED,
-          ...(dateRange ? { createdAt: dateRange } : {}),
-        },
-      });
-      return Number(result._sum.totalAmount ?? 0);
+      return getStoreRevenueTotal(this.prisma, businessId, dateRange, source);
     }
 
-    // GUESTHOUSE: sum PAID payment amounts
+    // GUESTHOUSE: sum PAID payment amounts (the source filter only applies to STORE revenue)
     const result = await this.prisma.payment.aggregate({
       _sum: { amount: true },
       where: {
@@ -217,6 +229,22 @@ export class FinanceService {
       },
     });
     return Number(result._sum.amount ?? 0);
+  }
+
+  /**
+   * Defaults to STORE_SALE so existing finance summaries keep their current
+   * revenue figures unless a caller explicitly opts into mini bar revenue.
+   */
+  private parseRevenueSource(source: string | undefined): StoreRevenueSource {
+    if (!source) {
+      return 'STORE_SALE';
+    }
+    if (!isStoreRevenueSource(source)) {
+      throw new BadRequestException(
+        `source must be one of the following values: STORE_SALE, MINI_BAR, ALL`,
+      );
+    }
+    return source;
   }
 
   private async getTotalExpense(

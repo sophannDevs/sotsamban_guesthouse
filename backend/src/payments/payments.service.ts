@@ -6,6 +6,14 @@ import {
 } from '@nestjs/common';
 import { PaymentStatus, Prisma } from '../../generated/prisma/client';
 
+import {
+  computeBalanceDue,
+  computeTotalPrice,
+  getMiniBarTotalForBooking,
+  getMiniBarTotalsByBookingIds,
+  getPaidAmountForBooking,
+  getPaidAmountsByBookingIds,
+} from '../common/booking-totals';
 import { translateError } from '../common/i18n';
 import {
   createPaginatedResult,
@@ -57,9 +65,9 @@ export class PaymentsService {
     const booking = await this.findBookingById(createPaymentDto.bookingId);
     const status = createPaymentDto.status ?? PaymentStatus.PENDING;
 
-    this.ensureAmountDoesNotExceedBookingTotal(
+    await this.ensureAmountDoesNotExceedBookingTotal(
       createPaymentDto.amount,
-      booking.totalPrice,
+      booking,
     );
 
     const payment = await this.prisma.payment.create({
@@ -154,7 +162,7 @@ export class PaymentsService {
     ]);
 
     return createPaginatedResult(
-      payments.map((payment) => this.serializePayment(payment)),
+      await this.serializePayments(payments),
       total,
       pagination,
     );
@@ -177,7 +185,7 @@ export class PaymentsService {
     const status = updatePaymentDto.status ?? existingPayment.status;
     const booking = await this.findBookingById(bookingId);
 
-    this.ensureAmountDoesNotExceedBookingTotal(amount, booking.totalPrice);
+    await this.ensureAmountDoesNotExceedBookingTotal(amount, booking);
 
     try {
       const payment = await this.prisma.payment.update({
@@ -238,11 +246,25 @@ export class PaymentsService {
     return booking;
   }
 
-  private ensureAmountDoesNotExceedBookingTotal(
+  private async ensureAmountDoesNotExceedBookingTotal(
     amount: number,
-    bookingTotalPrice: Prisma.Decimal,
+    booking: {
+      id: string;
+      roomPriceTotal: Prisma.Decimal;
+      coolingPrice: Prisma.Decimal;
+    },
   ) {
-    if (amount > Number(bookingTotalPrice)) {
+    const miniBarTotal = await getMiniBarTotalForBooking(
+      this.prisma,
+      booking.id,
+    );
+    const totalPrice = computeTotalPrice(
+      booking.roomPriceTotal,
+      booking.coolingPrice,
+      miniBarTotal,
+    );
+
+    if (amount > Number(totalPrice)) {
       throw new ConflictException(
         'Payment amount cannot be greater than booking totalPrice.',
       );
@@ -264,13 +286,54 @@ export class PaymentsService {
     throw error;
   }
 
-  private serializePayment(payment: PaymentWithRelations) {
+  private async serializePayment(payment: PaymentWithRelations) {
+    const [miniBarTotal, paidAmount] = await Promise.all([
+      getMiniBarTotalForBooking(this.prisma, payment.booking.id),
+      getPaidAmountForBooking(this.prisma, payment.booking.id),
+    ]);
+
+    return this.buildPaymentResponse(payment, miniBarTotal, paidAmount);
+  }
+
+  private async serializePayments(payments: PaymentWithRelations[]) {
+    const bookingIds = payments.map((payment) => payment.booking.id);
+    const [miniBarTotals, paidAmounts] = await Promise.all([
+      getMiniBarTotalsByBookingIds(this.prisma, bookingIds),
+      getPaidAmountsByBookingIds(this.prisma, bookingIds),
+    ]);
+
+    return payments.map((payment) =>
+      this.buildPaymentResponse(
+        payment,
+        miniBarTotals.get(payment.booking.id) ?? new Prisma.Decimal(0),
+        paidAmounts.get(payment.booking.id) ?? new Prisma.Decimal(0),
+      ),
+    );
+  }
+
+  private buildPaymentResponse(
+    payment: PaymentWithRelations,
+    miniBarTotal: Prisma.Decimal,
+    paidAmount: Prisma.Decimal,
+  ) {
+    const totalPrice = computeTotalPrice(
+      payment.booking.roomPriceTotal,
+      payment.booking.coolingPrice,
+      miniBarTotal,
+    );
+    const balanceDue = computeBalanceDue(totalPrice, paidAmount);
+
     return {
       ...payment,
       amount: Number(payment.amount),
       booking: {
         ...payment.booking,
-        totalPrice: Number(payment.booking.totalPrice),
+        roomPriceTotal: Number(payment.booking.roomPriceTotal),
+        coolingPrice: Number(payment.booking.coolingPrice),
+        miniBarTotal: Number(miniBarTotal),
+        totalPrice: Number(totalPrice),
+        paidAmount: Number(paidAmount),
+        balanceDue: Number(balanceDue),
         room: {
           ...payment.booking.room,
           pricePerNight: Number(payment.booking.room.pricePerNight),

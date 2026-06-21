@@ -234,6 +234,10 @@ export default function ReportsPage() {
       })),
     [reportDefinitions]
   )
+  const rangePresetOptions = useMemo(() => getRangePresetOptions(t), [t])
+  const selectedRangePresetLabel =
+    rangePresetOptions.find((option) => option.value === rangePreset)?.label ??
+    rangePreset
   const previewRows = useMemo(
     () =>
       reportData
@@ -387,7 +391,7 @@ export default function ReportsPage() {
             <div className="flex flex-col gap-1.5">
               <p className="text-sm font-medium leading-none">{t("dateRangePreset")}</p>
               <Select
-                items={getRangePresetOptions(t)}
+                items={rangePresetOptions}
                 value={rangePreset}
                 onValueChange={(value) => {
                   if (value) {
@@ -398,11 +402,11 @@ export default function ReportsPage() {
               >
                 <SelectTrigger>
                   <CalendarIcon className="mr-1 h-4 w-4 text-muted-foreground" />
-                  <SelectValue />
+                  <SelectValue>{selectedRangePresetLabel}</SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
-                    {getRangePresetOptions(t).map((option) => (
+                    {rangePresetOptions.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
                       </SelectItem>
@@ -558,7 +562,7 @@ export default function ReportsPage() {
                 <FieldLabel htmlFor="rangePreset">{t("dateRangePreset")}</FieldLabel>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                   <Select
-                    items={getRangePresetOptions(t)}
+                    items={rangePresetOptions}
                     onValueChange={(value) => {
                       if (value) {
                         setRangePreset(value as RangePreset)
@@ -569,11 +573,11 @@ export default function ReportsPage() {
                   >
                     <SelectTrigger className="w-full sm:w-64" id="rangePreset">
                       <CalendarIcon className="mr-1 h-4 w-4 text-muted-foreground" />
-                      <SelectValue />
+                      <SelectValue>{selectedRangePresetLabel}</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectGroup>
-                        {getRangePresetOptions(t).map((option) => (
+                        {rangePresetOptions.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
                             {option.label}
                           </SelectItem>
@@ -1134,6 +1138,10 @@ function normalizeReportRows(
       {
         metric: t("pendingRevenue"),
         value: formatCurrency(report.pendingRevenue, preferences),
+      },
+      {
+        metric: t("miniBarRevenue"),
+        value: formatCurrency(report.miniBarRevenue, preferences),
       },
       ...report.revenueByDate.map((row) => ({
         metric: t("revenueOnDate", {

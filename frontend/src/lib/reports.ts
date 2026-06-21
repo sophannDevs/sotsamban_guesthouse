@@ -53,6 +53,7 @@ export type RevenueReport = {
   totalRevenue: number
   paidRevenue: number
   pendingRevenue: number
+  miniBarRevenue: number
   revenueByDate: Array<{
     date: string
     revenue: number

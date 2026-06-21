@@ -8,14 +8,12 @@ import {
   Building2Icon,
   LockKeyholeIcon,
   LogOutIcon,
-  MenuIcon,
   SearchIcon,
   SlidersHorizontalIcon,
   UserRoundIcon,
 } from "lucide-react"
 import { useTranslations } from "next-intl"
 
-import { AppSidebar } from "@/components/app/app-sidebar"
 import { useAuth } from "@/components/app/auth-provider"
 import { BusinessSwitcher } from "@/components/app/business-switcher"
 import { LanguageSwitcher } from "@/components/app/language-switcher"
@@ -45,13 +43,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Separator } from "@/components/ui/separator"
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
 
 type PageTitleKey =
@@ -141,31 +132,15 @@ export function Header() {
 
   return (
     <>
-    <header className="sticky top-0 flex h-16 shrink-0 items-center justify-between border-b bg-background/95 px-4 backdrop-blur supports-backdrop-filter:bg-background/80 sm:px-6 lg:px-8">
-      <div className="flex min-w-0 items-center gap-3">
-        <Sheet>
-          <SheetTrigger
-            render={<Button className="lg:hidden" size="icon" variant="outline" />}
-          >
-            <MenuIcon />
-            <span className="sr-only">{t("openNavigation")}</span>
-          </SheetTrigger>
-          <SheetContent className="w-72 p-0" side="left" showCloseButton={false}>
-            <SheetHeader className="sr-only">
-              <SheetTitle>{t("navigation")}</SheetTitle>
-            </SheetHeader>
-            <AppSidebar className="h-full w-full border-r-0" />
-          </SheetContent>
-        </Sheet>
-        <div className="min-w-0">
-          <h1 className="truncate text-lg font-semibold">{title}</h1>
-          <p className="hidden truncate text-xs text-muted-foreground sm:block">
-            {t("frontDeskOverview", { date: today })}
-          </p>
-        </div>
+    <header className="sticky top-0 flex h-16 shrink-0 items-center justify-between border-b bg-background/95 px-4 backdrop-blur supports-backdrop-filter:bg-background/80 md:px-8">
+      <div className="min-w-0">
+        <h1 className="truncate text-lg font-semibold">{title}</h1>
+        <p className="hidden truncate text-xs text-muted-foreground md:block">
+          {t("frontDeskOverview", { date: today })}
+        </p>
       </div>
       <div className="flex items-center gap-2">
-        <Button aria-label={t("searchRecords")} className="hidden sm:flex" size="icon" variant="ghost">
+        <Button aria-label={t("searchRecords")} className="hidden md:flex" size="icon" variant="ghost">
           <SearchIcon />
         </Button>
         <LanguageSwitcher />
@@ -176,7 +151,7 @@ export function Header() {
             <Avatar size="sm">
               <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
-            <span className="hidden text-sm font-medium sm:inline">
+            <span className="hidden text-sm font-medium md:inline">
               {displayName}
             </span>
           </DropdownMenuTrigger>

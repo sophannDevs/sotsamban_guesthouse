@@ -40,6 +40,7 @@ export type Product = {
   stockQuantity: number
   lowStockAlert: number
   status: ProductStatus
+  miniBarUsageCount: number
   createdAt: string
   updatedAt: string
   deletedAt: string | null

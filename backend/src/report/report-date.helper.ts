@@ -70,14 +70,23 @@ export function getDateRangeFromPreset(
       break;
     }
     case 'this_week':
-      startDate = fromZonedTime(startOfWeek(now, { weekStartsOn: 1 }), timezone); // Monday start
+      startDate = fromZonedTime(
+        startOfWeek(now, { weekStartsOn: 1 }),
+        timezone,
+      ); // Monday start
       endDate = fromZonedTime(endOfWeek(now, { weekStartsOn: 1 }), timezone);
       label = 'This Week';
       break;
     case 'last_week': {
       const lastWeek = subWeeks(now, 1);
-      startDate = fromZonedTime(startOfWeek(lastWeek, { weekStartsOn: 1 }), timezone);
-      endDate = fromZonedTime(endOfWeek(lastWeek, { weekStartsOn: 1 }), timezone);
+      startDate = fromZonedTime(
+        startOfWeek(lastWeek, { weekStartsOn: 1 }),
+        timezone,
+      );
+      endDate = fromZonedTime(
+        endOfWeek(lastWeek, { weekStartsOn: 1 }),
+        timezone,
+      );
       label = 'Last Week';
       break;
     }

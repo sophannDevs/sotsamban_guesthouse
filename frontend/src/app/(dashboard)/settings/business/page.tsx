@@ -2,12 +2,20 @@
 
 import { useEffect, useMemo, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { AlertCircleIcon, Building2Icon, SaveIcon } from "lucide-react"
+import {
+  AlertCircleIcon,
+  Building2Icon,
+  Link2Icon,
+  MartiniIcon,
+  SaveIcon,
+  Unlink2Icon,
+} from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useForm } from "react-hook-form"
 import { toast } from "sonner"
 import { z } from "zod"
 
+import { useActiveBusiness } from "@/components/app/business-provider"
 import { useAuth } from "@/components/app/auth-provider"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -27,6 +35,20 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  getStoreLinkErrorMessage,
+  guesthouseStoreLinkService,
+  type EligibleStore,
+  type StoreLink,
+} from "@/lib/guesthouse-store-link"
 import {
   getSettingsErrorMessage,
   settingsService,
@@ -139,6 +161,7 @@ export default function BusinessSettingsPage() {
   }
 
   return (
+    <div className="flex flex-col gap-5">
     <Card>
       <CardHeader>
         <div className="flex size-11 items-center justify-center rounded-lg border bg-muted/40">
@@ -243,6 +266,186 @@ export default function BusinessSettingsPage() {
             </Alert>
           )}
         </form>
+      </CardContent>
+    </Card>
+
+    <MiniBarStoreLinkSection />
+    </div>
+  )
+}
+
+function MiniBarStoreLinkSection() {
+  const t = useTranslations("miniBarStoreLinkSection")
+  const { activeBusiness } = useActiveBusiness()
+  const isGuesthouse = activeBusiness?.businessType === "GUESTHOUSE"
+
+  const [isLoading, setIsLoading] = useState(true)
+  const [permissionDenied, setPermissionDenied] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [link, setLink] = useState<StoreLink | null>(null)
+  const [stores, setStores] = useState<EligibleStore[]>([])
+  const [selectedStoreId, setSelectedStoreId] = useState("")
+  const [isSaving, setIsSaving] = useState(false)
+  const [isRemoving, setIsRemoving] = useState(false)
+
+  useEffect(() => {
+    if (!isGuesthouse) {
+      return
+    }
+
+    let isMounted = true
+
+    async function load() {
+      setIsLoading(true)
+      setErrorMessage(null)
+      setPermissionDenied(false)
+
+      const [linkResult, storesResult] = await Promise.allSettled([
+        guesthouseStoreLinkService.getLink(),
+        guesthouseStoreLinkService.listEligibleStores(),
+      ])
+
+      if (!isMounted) return
+
+      if (linkResult.status === "fulfilled") {
+        setLink(linkResult.value)
+        setSelectedStoreId(linkResult.value?.storeBusinessId ?? "")
+      } else {
+        setPermissionDenied(true)
+        setErrorMessage(getStoreLinkErrorMessage(linkResult.reason))
+      }
+
+      if (storesResult.status === "fulfilled") {
+        setStores(storesResult.value)
+      }
+
+      setIsLoading(false)
+    }
+
+    void load()
+
+    return () => {
+      isMounted = false
+    }
+  }, [isGuesthouse, activeBusiness?.businessId])
+
+  async function handleSave() {
+    if (!selectedStoreId) return
+
+    setIsSaving(true)
+    try {
+      const result = await guesthouseStoreLinkService.saveLink(selectedStoreId)
+      setLink(result)
+      toast.success(t("savedSuccessfully"))
+    } catch (error) {
+      toast.error(getStoreLinkErrorMessage(error))
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  async function handleRemove() {
+    setIsRemoving(true)
+    try {
+      await guesthouseStoreLinkService.removeLink()
+      setLink(null)
+      setSelectedStoreId("")
+      toast.success(t("removedSuccessfully"))
+    } catch (error) {
+      toast.error(getStoreLinkErrorMessage(error))
+    } finally {
+      setIsRemoving(false)
+    }
+  }
+
+  if (!isGuesthouse) {
+    return null
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex size-11 items-center justify-center rounded-lg border bg-muted/40">
+          <MartiniIcon />
+        </div>
+        <CardTitle>{t("title")}</CardTitle>
+        <CardDescription>{t("description")}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {permissionDenied ? (
+          <Alert variant="destructive">
+            <AlertCircleIcon />
+            <AlertTitle>{t("permissionDeniedTitle")}</AlertTitle>
+            <AlertDescription>
+              {errorMessage ?? t("permissionDeniedDescription")}
+            </AlertDescription>
+          </Alert>
+        ) : (
+          <div className="max-w-2xl">
+            <FieldGroup>
+              <Field>
+                <FieldLabel htmlFor="linkedStore">{t("linkedStore")}</FieldLabel>
+                <Input
+                  id="linkedStore"
+                  readOnly
+                  value={link ? link.store.name : t("noStoreLinked")}
+                />
+              </Field>
+
+              <Field>
+                <FieldLabel htmlFor="selectStore">{t("selectStore")}</FieldLabel>
+                <Select
+                  disabled={isLoading || isSaving || stores.length === 0}
+                  onValueChange={(value) => setSelectedStoreId(value ?? "")}
+                  value={selectedStoreId}
+                >
+                  <SelectTrigger id="selectStore">
+                    <SelectValue>
+                      {(value: string) =>
+                        stores.find((store) => store.id === value)?.name ??
+                        t("selectStorePlaceholder")
+                      }
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {stores.map((store) => (
+                        <SelectItem key={store.id} value={store.id}>
+                          {store.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                <FieldDescription>
+                  {stores.length === 0 && !isLoading
+                    ? t("noEligibleStores")
+                    : t("selectStoreDescription")}
+                </FieldDescription>
+              </Field>
+            </FieldGroup>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button
+                disabled={isLoading || isSaving || !selectedStoreId}
+                onClick={handleSave}
+                type="button"
+              >
+                <Link2Icon data-icon="inline-start" />
+                {isSaving ? t("saving") : t("saveLink")}
+              </Button>
+              <Button
+                disabled={isLoading || isRemoving || !link}
+                onClick={handleRemove}
+                type="button"
+                variant="outline"
+              >
+                <Unlink2Icon data-icon="inline-start" />
+                {isRemoving ? t("removing") : t("removeLink")}
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   )

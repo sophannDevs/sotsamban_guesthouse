@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   AlertCircleIcon,
   CalendarIcon,
@@ -91,6 +92,7 @@ const emptyForm: ExpenseForm = {
 
 export default function ExpensesPage() {
   const t = useTranslations()
+  const router = useRouter()
 
   // ─── List state ───
   const [expenses, setExpenses] = useState<Expense[]>([])
@@ -194,6 +196,15 @@ export default function ExpensesPage() {
     setFormError(null)
     setIsDialogOpen(true)
   }
+
+  // Opens the create dialog when navigated here from the mobile FAB.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("action") === "new") {
+      openCreateDialog()
+      router.replace("/expenses", { scroll: false })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   function openEditDialog(expense: Expense) {
     setDialogMode("edit")
@@ -371,7 +382,7 @@ export default function ExpensesPage() {
                 </div>
               </div>
             </MobileFilterDrawer>
-            <Button onClick={openCreateDialog}>
+            <Button className="hidden md:inline-flex" onClick={openCreateDialog}>
               <PlusIcon data-icon="inline-start" />
               {t("expenses.newExpense")}
             </Button>

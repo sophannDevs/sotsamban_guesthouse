@@ -31,7 +31,10 @@ export type Booking = {
   coolingOption: CoolingOption
   roomPriceTotal: number
   coolingPrice: number
+  miniBarTotal: number
   totalPrice: number
+  paidAmount: number
+  balanceDue: number
   status: BookingStatus
   guest: Guest
   room: Room

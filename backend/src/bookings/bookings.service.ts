@@ -14,6 +14,14 @@ import {
   RoomStatus,
 } from '../../generated/prisma/client';
 
+import {
+  computeBalanceDue,
+  computeTotalPrice,
+  getMiniBarTotalForBooking,
+  getMiniBarTotalsByBookingIds,
+  getPaidAmountForBooking,
+  getPaidAmountsByBookingIds,
+} from '../common/booking-totals';
 import { translateError } from '../common/i18n';
 import {
   createPaginatedResult,
@@ -177,7 +185,7 @@ export class BookingsService {
     ]);
 
     return createPaginatedResult(
-      bookings.map((booking) => this.serializeBooking(booking)),
+      await this.serializeBookingsList(bookings),
       total,
       pagination,
     );
@@ -611,12 +619,56 @@ export class BookingsService {
     throw error;
   }
 
-  private serializeBooking(booking: BookingWithRelations) {
+  private async serializeBooking(booking: BookingWithRelations) {
+    const [miniBarTotal, paidAmount] = await Promise.all([
+      getMiniBarTotalForBooking(this.prisma, booking.id),
+      getPaidAmountForBooking(this.prisma, booking.id),
+    ]);
+
+    return this.buildBookingResponse(booking, miniBarTotal, paidAmount);
+  }
+
+  private async serializeBookingsList(bookings: BookingWithRelations[]) {
+    const bookingIds = bookings.map((booking) => booking.id);
+    const [miniBarTotals, paidAmounts] = await Promise.all([
+      getMiniBarTotalsByBookingIds(this.prisma, bookingIds),
+      getPaidAmountsByBookingIds(this.prisma, bookingIds),
+    ]);
+
+    return bookings.map((booking) =>
+      this.buildBookingResponse(
+        booking,
+        miniBarTotals.get(booking.id) ?? new Prisma.Decimal(0),
+        paidAmounts.get(booking.id) ?? new Prisma.Decimal(0),
+      ),
+    );
+  }
+
+  /**
+   * booking.totalPrice in the DB is room + cooling only; the API response's
+   * totalPrice additionally folds in CHARGED mini bar consumptions, computed
+   * live so it can never drift from refunds/charges.
+   */
+  private buildBookingResponse(
+    booking: BookingWithRelations,
+    miniBarTotal: Prisma.Decimal,
+    paidAmount: Prisma.Decimal,
+  ) {
+    const totalPrice = computeTotalPrice(
+      booking.roomPriceTotal,
+      booking.coolingPrice,
+      miniBarTotal,
+    );
+    const balanceDue = computeBalanceDue(totalPrice, paidAmount);
+
     return {
       ...booking,
       roomPriceTotal: Number(booking.roomPriceTotal),
       coolingPrice: Number(booking.coolingPrice),
-      totalPrice: Number(booking.totalPrice),
+      miniBarTotal: Number(miniBarTotal),
+      totalPrice: Number(totalPrice),
+      paidAmount: Number(paidAmount),
+      balanceDue: Number(balanceDue),
       room: {
         ...booking.room,
         pricePerNight: Number(booking.room.pricePerNight),
