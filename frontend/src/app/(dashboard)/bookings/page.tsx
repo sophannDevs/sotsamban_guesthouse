@@ -189,6 +189,7 @@ export default function BookingsPage() {
   const [miniBarConfirmAction, setMiniBarConfirmAction] =
     useState<MiniBarConfirmAction | null>(null)
   const [isAddMiniBarItemOpen, setIsAddMiniBarItemOpen] = useState(false)
+  const [quickMiniBarBooking, setQuickMiniBarBooking] = useState<Booking | null>(null)
   const [isMobileWizard, setIsMobileWizard] = useState(false)
   const [wizardStep, setWizardStep] = useState(1)
   const [coolingOption, setCoolingOption] = useState<CoolingOption>("FAN")
@@ -316,14 +317,12 @@ export default function BookingsPage() {
       case 1:
         return Boolean(selectedGuestId)
       case 2:
+        return Boolean(selectedRoomId)
+      case 3:
         return (
           Boolean(checkInDate) &&
           Boolean(checkOutDate) &&
-          calculateNights(checkInDate, checkOutDate) !== null
-        )
-      case 3:
-        return (
-          Boolean(selectedRoomId) &&
+          calculateNights(checkInDate, checkOutDate) !== null &&
           !isAvailabilityLoading &&
           !isCheckingConflict &&
           !isSelectedRoomUnavailable &&
@@ -618,10 +617,13 @@ export default function BookingsPage() {
 
   // Opens the create dialog when navigated here from the mobile FAB.
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("action") === "new") {
-      openCreateDialog()
-      router.replace("/bookings", { scroll: false })
+    function run() {
+      if (new URLSearchParams(window.location.search).get("action") === "new") {
+        openCreateDialog()
+        router.replace("/bookings", { scroll: false })
+      }
     }
+    void run()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -765,7 +767,7 @@ export default function BookingsPage() {
                 setStatusFilter("ALL")
                 setPage(1)
               }}
-              triggerClassName="sm:hidden"
+              triggerClassName="md:hidden"
             >
               <div className="flex flex-col gap-1.5">
                 <p className="text-sm font-medium leading-none">{t("status")}</p>
@@ -792,7 +794,7 @@ export default function BookingsPage() {
                 </Select>
               </div>
             </MobileFilterDrawer>
-            <div className="hidden sm:flex">
+            <div className="hidden md:flex">
               <Select
                 items={filterOptions}
                 value={statusFilter}
@@ -850,14 +852,14 @@ export default function BookingsPage() {
           ) : null}
 
           {/* Mobile card list */}
-          <div className="flex flex-col divide-y sm:hidden">
+          <div className="flex flex-col gap-3 md:hidden">
             {isLoading ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 {t("loadingBookings")}
               </p>
             ) : bookings.length ? (
               bookings.map((booking) => (
-                <div className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0" key={booking.id}>
+                <div className="flex flex-col gap-3 rounded-lg border p-4" key={booking.id}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex min-w-0 flex-col gap-0.5">
                       <span className="font-medium leading-tight">{booking.guest.fullName}</span>
@@ -908,6 +910,17 @@ export default function BookingsPage() {
                     <ActionMenu
                       items={[
                         { label: t("viewBookingAria", { bookingId: booking.id }), icon: <EyeIcon />, onClick: () => void openDetailDialog(booking) },
+                        {
+                          label: downloadingInvoiceId === booking.id ? t("downloading") : t("downloadInvoice"),
+                          icon: <FileDownIcon />,
+                          onClick: () => void downloadInvoice(booking.id),
+                          disabled: downloadingInvoiceId === booking.id,
+                        },
+                        (booking.status === "CHECKED_IN" || booking.status === "CHECKED_OUT") ? {
+                          label: t("miniBar.addMiniBarItem"),
+                          icon: <MartiniIcon />,
+                          onClick: () => setQuickMiniBarBooking(booking),
+                        } : null,
                         (booking.status === "PENDING" || booking.status === "CONFIRMED") ? {
                           label: t("cancelBooking"),
                           icon: <CalendarXIcon />,
@@ -932,7 +945,7 @@ export default function BookingsPage() {
           </div>
 
           {/* Desktop table */}
-          <div className="hidden sm:block">
+          <div className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -1035,21 +1048,8 @@ export default function BookingsPage() {
         <div className="fixed inset-0 z-50 flex flex-col bg-background">
           {/* Header */}
           <div className="flex shrink-0 items-center gap-3 border-b px-4 py-3">
-            <Button
-              onClick={
-                wizardStep === 1
-                  ? closeWizard
-                  : () => setWizardStep((s) => s - 1)
-              }
-              size="icon"
-              type="button"
-              variant="ghost"
-            >
-              {wizardStep === 1 ? (
-                <XIcon className="size-5" />
-              ) : (
-                <ArrowLeftIcon className="size-5" />
-              )}
+            <Button onClick={closeWizard} size="icon" type="button" variant="ghost">
+              <XIcon className="size-5" />
             </Button>
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-medium text-muted-foreground">
@@ -1059,8 +1059,8 @@ export default function BookingsPage() {
                 {
                   [
                     t("wizardSelectGuest"),
-                    t("wizardSelectDates"),
                     t("wizardSelectRoom"),
+                    t("wizardSelectDates"),
                     t("wizardCoolingOption"),
                     t("wizardReviewConfirm"),
                   ][wizardStep - 1]
@@ -1159,8 +1159,64 @@ export default function BookingsPage() {
               </div>
             ) : null}
 
-            {/* Step 2 — Select Dates */}
+            {/* Step 2 — Select Room (instant, general status) */}
             {wizardStep === 2 ? (
+              <div className="flex flex-col gap-3">
+                <Alert>
+                  <AlertCircleIcon />
+                  <AlertDescription>{t("roomSelectionHint")}</AlertDescription>
+                </Alert>
+                <div className="flex flex-col gap-2">
+                  {rooms.map((room) => {
+                    const isSelected = selectedRoomId === room.id
+                    return (
+                      <button
+                        className={cn(
+                          "flex items-center gap-3 rounded-xl border-2 p-3 text-left transition-colors",
+                          isSelected
+                            ? "border-primary bg-primary/5"
+                            : "border-border hover:border-primary/50"
+                        )}
+                        key={room.id}
+                        onClick={() => {
+                          setValue("roomId", room.id, {
+                            shouldDirty: true,
+                            shouldValidate: true,
+                          })
+                        }}
+                        type="button"
+                      >
+                        <div
+                          className={cn(
+                            "flex size-10 shrink-0 items-center justify-center rounded-lg border bg-muted",
+                            isSelected &&
+                              "border-primary bg-primary/10 text-primary"
+                          )}
+                        >
+                          <BedDoubleIcon className="size-5" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium">
+                            {t("roomLabel", {
+                              roomNumber: room.roomNumber,
+                            })}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {getRoomTypeLabel(room.type, t)} ·{" "}
+                            {formatCurrency(room.pricePerNight)}
+                            {t("perNight")}
+                          </p>
+                        </div>
+                        <RoomAvailabilityBadge status={room.status} />
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            {/* Step 3 — Select Dates (live availability + inline conflict warning) */}
+            {wizardStep === 3 ? (
               <div className="flex flex-col gap-4">
                 <Field data-invalid={Boolean(errors.checkInDate)}>
                   <FieldLabel htmlFor="mw-checkInDate">
@@ -1201,20 +1257,7 @@ export default function BookingsPage() {
                     </p>
                   </div>
                 ) : null}
-              </div>
-            ) : null}
 
-            {/* Step 3 — Select Room */}
-            {wizardStep === 3 ? (
-              <div className="flex flex-col gap-3">
-                {!canCheckRoomAvailability ? (
-                  <Alert>
-                    <AlertCircleIcon />
-                    <AlertDescription>
-                      {t("selectDatesBeforeRoom")}
-                    </AlertDescription>
-                  </Alert>
-                ) : null}
                 {effectiveAvailabilityError ? (
                   <Alert variant="destructive">
                     <AlertCircleIcon />
@@ -1229,70 +1272,23 @@ export default function BookingsPage() {
                     conflict={(bookingConflict || liveConflict)!}
                   />
                 ) : null}
-                {isAvailabilityLoading ? (
+                {isAvailabilityLoading || isCheckingConflict ? (
                   <p className="text-sm text-muted-foreground">
                     {t("checkingRoomAvailability")}
                   </p>
+                ) : canCheckRoomAvailability &&
+                  selectedRoom &&
+                  !effectiveAvailabilityError &&
+                  !isSelectedRoomUnavailable &&
+                  !liveConflict &&
+                  !bookingConflict ? (
+                  <Alert>
+                    <CheckIcon className="text-emerald-600" />
+                    <AlertDescription>
+                      {t("roomAvailableForDates")}
+                    </AlertDescription>
+                  </Alert>
                 ) : null}
-                <div className="flex flex-col gap-2">
-                  {rooms.map((room) => {
-                    const roomStatus: RoomAvailabilityStatus | "UNKNOWN" =
-                      effectiveRoomAvailability[room.id] ?? "UNKNOWN"
-                    const isDisabled =
-                      canCheckRoomAvailability &&
-                      (roomStatus === "BOOKED" ||
-                        roomStatus === "OCCUPIED" ||
-                        roomStatus === "MAINTENANCE" ||
-                        roomStatus === "NEEDS_CLEANING" ||
-                        roomStatus === "CLEANING_IN_PROGRESS")
-                    const isSelected = selectedRoomId === room.id
-                    return (
-                      <button
-                        className={cn(
-                          "flex items-center gap-3 rounded-xl border-2 p-3 text-left transition-colors",
-                          isSelected
-                            ? "border-primary bg-primary/5"
-                            : "border-border",
-                          isDisabled
-                            ? "cursor-not-allowed opacity-50"
-                            : "hover:border-primary/50"
-                        )}
-                        disabled={isDisabled}
-                        key={room.id}
-                        onClick={() => {
-                          setValue("roomId", room.id, {
-                            shouldDirty: true,
-                            shouldValidate: true,
-                          })
-                        }}
-                        type="button"
-                      >
-                        <div
-                          className={cn(
-                            "flex size-10 shrink-0 items-center justify-center rounded-lg border bg-muted",
-                            isSelected &&
-                              "border-primary bg-primary/10 text-primary"
-                          )}
-                        >
-                          <BedDoubleIcon className="size-5" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium">
-                            {t("roomLabel", {
-                              roomNumber: room.roomNumber,
-                            })}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {getRoomTypeLabel(room.type, t)} ·{" "}
-                            {formatCurrency(room.pricePerNight)}
-                            {t("perNight")}
-                          </p>
-                        </div>
-                        <RoomAvailabilityBadge status={roomStatus} />
-                      </button>
-                    )
-                  })}
-                </div>
               </div>
             ) : null}
 
@@ -1515,11 +1511,22 @@ export default function BookingsPage() {
             ) : null}
           </div>
 
-          {/* Sticky footer */}
-          <div className="shrink-0 border-t bg-background px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-4">
+          {/* Sticky footer — Back/Next, or sticky Confirm Booking on the last step */}
+          <div className="flex shrink-0 gap-2 border-t bg-background px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-4">
+            {wizardStep > 1 ? (
+              <Button
+                className="flex-1"
+                onClick={() => setWizardStep((s) => s - 1)}
+                type="button"
+                variant="outline"
+              >
+                <ArrowLeftIcon data-icon="inline-start" />
+                {t("back")}
+              </Button>
+            ) : null}
             {wizardStep < 5 ? (
               <Button
-                className="w-full"
+                className="flex-1"
                 disabled={!canGoToNextStep}
                 onClick={() => setWizardStep((s) => s + 1)}
                 type="button"
@@ -1528,7 +1535,7 @@ export default function BookingsPage() {
               </Button>
             ) : (
               <Button
-                className="w-full"
+                className="flex-1"
                 disabled={
                   isSubmitting ||
                   isAvailabilityLoading ||
@@ -1541,7 +1548,7 @@ export default function BookingsPage() {
                 onClick={() => void handleSubmit(onSubmit)()}
                 type="button"
               >
-                {isSubmitting ? t("saving") : t("saveBooking")}
+                {isSubmitting ? t("saving") : t("confirmBooking")}
               </Button>
             )}
           </div>
@@ -2059,6 +2066,17 @@ export default function BookingsPage() {
           }}
           onOpenChange={setIsAddMiniBarItemOpen}
           open={isAddMiniBarItemOpen}
+        />
+      ) : null}
+
+      {quickMiniBarBooking ? (
+        <MiniBarCreateSheet
+          lockedBooking={quickMiniBarBooking}
+          onCreated={() => {}}
+          onOpenChange={(open) => {
+            if (!open) setQuickMiniBarBooking(null)
+          }}
+          open={Boolean(quickMiniBarBooking)}
         />
       ) : null}
 

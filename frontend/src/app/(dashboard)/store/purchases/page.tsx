@@ -372,7 +372,7 @@ export default function PurchasesPage() {
                 setActiveDateTo("")
                 setPage(1)
               }}
-              triggerClassName="sm:hidden"
+              triggerClassName="md:hidden"
             >
               <div className="flex flex-col gap-1.5">
                 <p className="text-sm font-medium leading-none">{t("store.searchPurchases")}</p>
@@ -428,7 +428,7 @@ export default function PurchasesPage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {/* Filters (desktop only) */}
-          <div className="hidden flex-wrap items-end gap-2 sm:flex">
+          <div className="hidden flex-wrap items-end gap-2 md:flex">
             <div className="flex gap-1">
               <Input
                 className="h-9 w-44"
@@ -495,7 +495,7 @@ export default function PurchasesPage() {
           ) : null}
 
           {/* Desktop Table */}
-          <div className="hidden sm:block">
+          <div className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -589,7 +589,7 @@ export default function PurchasesPage() {
           </div>
 
           {/* Mobile Cards */}
-          <div className="flex flex-col gap-3 sm:hidden">
+          <div className="flex flex-col gap-3 md:hidden">
             {isLoading ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 {t("store.loadingPurchases")}

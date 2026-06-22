@@ -85,8 +85,13 @@ import {
 } from "@/lib/finance"
 import type { Payment, PaymentStatus } from "@/lib/payments"
 import { cn } from "@/lib/utils"
+import { CheckInOutSheet } from "@/components/app/check-in-out-sheet"
+import { ExpenseCreateDialog } from "@/components/app/expense-create-dialog"
+import { PaymentCreateDialog } from "@/components/app/payment-create-dialog"
+import { QuickBookingDialog } from "@/components/app/quick-booking-dialog"
 
 type DashboardTranslation = ReturnType<typeof useTranslations<"dashboardPage">>
+type QuickAction = "newBooking" | "checkIn" | "checkOut" | "addPayment" | "addExpense"
 
 const emptySummary: DashboardSummary = {
   totalRooms: 0,
@@ -110,6 +115,7 @@ export default function DashboardPage() {
   const [recentBookings, setRecentBookings] = useState<Booking[]>([])
   const [recentPayments, setRecentPayments] = useState<Payment[]>([])
   const [housekeeping, setHousekeeping] = useState<HousekeepingDashboardSummary | null>(null)
+  const [activeQuickAction, setActiveQuickAction] = useState<QuickAction | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -202,7 +208,7 @@ export default function DashboardPage() {
     } finally {
       setIsLoading(false)
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [isGuesthouse])
 
   useEffect(() => {
@@ -279,7 +285,35 @@ export default function DashboardPage() {
         </Alert>
       ) : null}
 
-      <QuickActionsSection isGuesthouse={isGuesthouse} />
+      <QuickActionsSection isGuesthouse={isGuesthouse} onAction={setActiveQuickAction} />
+
+      <QuickBookingDialog
+        onCreated={() => void loadDashboard()}
+        onOpenChange={(open) => setActiveQuickAction(open ? "newBooking" : null)}
+        open={activeQuickAction === "newBooking"}
+      />
+      <CheckInOutSheet
+        mode="checkIn"
+        onActionComplete={() => void loadDashboard()}
+        onOpenChange={(open) => setActiveQuickAction(open ? "checkIn" : null)}
+        open={activeQuickAction === "checkIn"}
+      />
+      <CheckInOutSheet
+        mode="checkOut"
+        onActionComplete={() => void loadDashboard()}
+        onOpenChange={(open) => setActiveQuickAction(open ? "checkOut" : null)}
+        open={activeQuickAction === "checkOut"}
+      />
+      <PaymentCreateDialog
+        onCreated={() => void loadDashboard()}
+        onOpenChange={(open) => setActiveQuickAction(open ? "addPayment" : null)}
+        open={activeQuickAction === "addPayment"}
+      />
+      <ExpenseCreateDialog
+        onCreated={() => void loadDashboard()}
+        onOpenChange={(open) => setActiveQuickAction(open ? "addExpense" : null)}
+        open={activeQuickAction === "addExpense"}
+      />
 
       <FinanceSummarySection />
 
@@ -665,35 +699,60 @@ function getPaymentStatusLabel(status: PaymentStatus, t: DashboardTranslation) {
   return labels[status]
 }
 
-function QuickActionsSection({ isGuesthouse }: { isGuesthouse: boolean }) {
+function QuickActionsSection({
+  isGuesthouse,
+  onAction,
+}: {
+  isGuesthouse: boolean
+  onAction: (action: QuickAction) => void
+}) {
   const t = useTranslations("dashboardPage")
 
   const actions = [
-    { href: "/bookings", icon: CalendarPlusIcon, label: t("quickNewBooking"), variant: "default" as const },
-    { href: "/bookings", icon: LogInIcon, label: t("quickCheckIn"), variant: "outline" as const },
-    { href: "/bookings", icon: LogOutIcon, label: t("quickCheckOut"), variant: "outline" as const },
-    { href: "/payments", icon: ReceiptIcon, label: t("quickAddPayment"), variant: "outline" as const },
-    { href: "/expenses", icon: WalletIcon, label: t("quickAddExpense"), variant: "outline" as const },
-    ...(isGuesthouse
-      ? [
-          { href: "/housekeeping", icon: BrushIcon, label: t("quickViewHousekeeping"), variant: "outline" as const },
-          { href: "/housekeeping", icon: PlusIcon, label: t("quickCreateCleaningTask"), variant: "outline" as const },
-        ]
-      : []),
+    { action: "newBooking" as const, icon: CalendarPlusIcon, label: t("quickNewBooking"), variant: "default" as const },
+    { action: "checkIn" as const, icon: LogInIcon, label: t("quickCheckIn"), variant: "outline" as const },
+    { action: "checkOut" as const, icon: LogOutIcon, label: t("quickCheckOut"), variant: "outline" as const },
+    { action: "addPayment" as const, icon: ReceiptIcon, label: t("quickAddPayment"), variant: "outline" as const },
+    { action: "addExpense" as const, icon: WalletIcon, label: t("quickAddExpense"), variant: "outline" as const },
   ]
 
+  const links = isGuesthouse
+    ? [
+        { href: "/housekeeping", icon: BrushIcon, label: t("quickViewHousekeeping") },
+        { href: "/housekeeping", icon: PlusIcon, label: t("quickCreateCleaningTask") },
+      ]
+    : []
+
   return (
-    <section aria-label={t("quickActions")} className="lg:hidden">
+    <section aria-label={t("quickActions")} className="md:hidden">
       <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {t("quickActions")}
       </p>
       <div className="grid grid-cols-2 gap-2">
-        {actions.map(({ href, icon: Icon, label, variant }, index) => (
-          <Link
+        {actions.map(({ action, icon: Icon, label, variant }, index) => (
+          <button
             className={cn(
               buttonVariants({ variant }),
               "h-auto flex-col gap-1.5 py-3",
-              index === actions.length - 1 && actions.length % 2 !== 0 && "col-span-2"
+              links.length === 0 &&
+                index === actions.length - 1 &&
+                actions.length % 2 !== 0 &&
+                "col-span-2"
+            )}
+            key={action}
+            onClick={() => onAction(action)}
+            type="button"
+          >
+            <Icon className="size-5" />
+            <span className="text-xs font-medium">{label}</span>
+          </button>
+        ))}
+        {links.map(({ href, icon: Icon, label }, index) => (
+          <Link
+            className={cn(
+              buttonVariants({ variant: "outline" }),
+              "h-auto flex-col gap-1.5 py-3",
+              index === links.length - 1 && links.length % 2 !== 0 && "col-span-2"
             )}
             href={href}
             key={href + label}
@@ -797,7 +856,7 @@ function FinanceSummarySection() {
     return () => {
       ignore = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [
     view,
     selectedPreset,

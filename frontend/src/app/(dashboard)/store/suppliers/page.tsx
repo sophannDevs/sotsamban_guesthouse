@@ -192,7 +192,7 @@ export default function SuppliersPage() {
                 setActiveSearch("")
                 setPage(1)
               }}
-              triggerClassName="sm:hidden"
+              triggerClassName="md:hidden"
             >
               <div className="flex flex-col gap-1.5">
                 <p className="text-sm font-medium leading-none">{t("store.searchSuppliers")}</p>
@@ -211,7 +211,7 @@ export default function SuppliersPage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {/* Search (desktop only) */}
-          <div className="hidden gap-1 sm:flex">
+          <div className="hidden gap-1 md:flex">
             <Input
               className="h-9 w-52"
               placeholder={t("store.searchSuppliers")}
@@ -242,7 +242,7 @@ export default function SuppliersPage() {
           ) : null}
 
           {/* Desktop Table */}
-          <div className="hidden sm:block">
+          <div className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -301,7 +301,7 @@ export default function SuppliersPage() {
           </div>
 
           {/* Mobile Cards */}
-          <div className="flex flex-col gap-3 sm:hidden">
+          <div className="flex flex-col gap-3 md:hidden">
             {isLoading ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 {t("store.loadingSuppliers")}

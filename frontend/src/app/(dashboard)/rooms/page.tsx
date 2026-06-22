@@ -376,7 +376,7 @@ export default function RoomsPage() {
                 setStatusFilter("ALL")
                 setPage(1)
               }}
-              triggerClassName="sm:hidden"
+              triggerClassName="md:hidden"
             >
               <div className="flex flex-col gap-1.5">
                 <p className="text-sm font-medium leading-none">{t("status")}</p>
@@ -403,7 +403,7 @@ export default function RoomsPage() {
                 </Select>
               </div>
             </MobileFilterDrawer>
-            <div className="hidden sm:flex">
+            <div className="hidden md:flex">
               <Select
                 items={filterOptions}
                 value={statusFilter}
@@ -452,7 +452,7 @@ export default function RoomsPage() {
           ) : null}
 
           {/* Mobile card list */}
-          <div className="flex flex-col divide-y sm:hidden">
+          <div className="flex flex-col gap-3 md:hidden">
             {isLoading ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 {t("loadingRooms")}
@@ -460,7 +460,7 @@ export default function RoomsPage() {
             ) : rooms.length ? (
               rooms.map((room) => (
                 <div
-                  className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"
+                  className="flex items-center gap-3 rounded-lg border p-4"
                   key={room.id}
                 >
                   <RoomThumbnail room={room} />
@@ -497,7 +497,7 @@ export default function RoomsPage() {
           </div>
 
           {/* Desktop table */}
-          <div className="hidden sm:block">
+          <div className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>

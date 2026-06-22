@@ -258,10 +258,13 @@ export default function SalesPage() {
 
   // Opens the create sheet when navigated here from the mobile FAB.
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("action") === "new") {
-      void openCreateSheet()
-      router.replace("/store/sales", { scroll: false })
+    async function run() {
+      if (new URLSearchParams(window.location.search).get("action") === "new") {
+        await openCreateSheet()
+        router.replace("/store/sales", { scroll: false })
+      }
     }
+    void run()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -379,7 +382,7 @@ export default function SalesPage() {
                 setActiveDateTo("")
                 setPage(1)
               }}
-              triggerClassName="sm:hidden"
+              triggerClassName="md:hidden"
             >
               <div className="flex flex-col gap-1.5">
                 <p className="text-sm font-medium leading-none">{t("store.searchSales")}</p>
@@ -438,7 +441,7 @@ export default function SalesPage() {
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {/* Filters (desktop only) */}
-          <div className="hidden flex-wrap items-end gap-2 sm:flex">
+          <div className="hidden flex-wrap items-end gap-2 md:flex">
             <div className="flex gap-1">
               <Input
                 className="h-9 w-44"
@@ -513,7 +516,7 @@ export default function SalesPage() {
           ) : null}
 
           {/* Desktop Table */}
-          <div className="hidden sm:block">
+          <div className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -602,7 +605,7 @@ export default function SalesPage() {
           </div>
 
           {/* Mobile Cards */}
-          <div className="flex flex-col gap-3 sm:hidden">
+          <div className="flex flex-col gap-3 md:hidden">
             {isLoading ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 {t("store.loadingSales")}

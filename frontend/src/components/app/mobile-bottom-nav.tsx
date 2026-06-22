@@ -50,7 +50,10 @@ export function MobileBottomNav() {
 
   // Close the "More" sheet on navigation
   useEffect(() => {
-    setMoreOpen(false)
+    function run() {
+      setMoreOpen(false)
+    }
+    void run()
   }, [pathname])
 
   const isInBottomNav = bottomNavItems.some(({ href, exact }) =>

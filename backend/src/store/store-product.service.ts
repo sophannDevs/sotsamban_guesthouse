@@ -117,6 +117,7 @@ export class StoreProductService {
     const pagination = getPaginationOptions(query, {
       allowedSortBy: productSortFields,
       defaultSortBy: 'createdAt',
+      maxLimit: 200,
     });
 
     const where: Prisma.ProductWhereInput = {

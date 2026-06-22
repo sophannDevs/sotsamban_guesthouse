@@ -362,7 +362,7 @@ export default function ProductsPage() {
                 setStatusFilter("ALL")
                 setPage(1)
               }}
-              triggerClassName="sm:hidden"
+              triggerClassName="md:hidden"
             >
               <div className="flex flex-col gap-1.5">
                 <p className="text-sm font-medium leading-none">{t("store.searchProducts")}</p>
@@ -394,7 +394,7 @@ export default function ProductsPage() {
                 </Select>
               </div>
             </MobileFilterDrawer>
-            <div className="hidden items-center gap-1 sm:flex">
+            <div className="hidden items-center gap-1 md:flex">
               <Input
                 className="h-9 w-44"
                 placeholder={t("store.searchProducts")}
@@ -414,7 +414,7 @@ export default function ProductsPage() {
                 <SearchIcon />
               </Button>
             </div>
-            <div className="hidden sm:block">
+            <div className="hidden md:block">
               <Select
                 items={statusOptions}
                 value={statusFilter}
@@ -466,7 +466,7 @@ export default function ProductsPage() {
           ) : null}
 
           {/* Desktop Table */}
-          <div className="hidden sm:block">
+          <div className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -564,7 +564,7 @@ export default function ProductsPage() {
           </div>
 
           {/* Mobile Cards */}
-          <div className="flex flex-col gap-3 sm:hidden">
+          <div className="flex flex-col gap-3 md:hidden">
             {isLoading ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 {t("store.loadingProducts")}

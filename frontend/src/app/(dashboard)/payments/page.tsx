@@ -1,7 +1,6 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { zodResolver } from "@hookform/resolvers/zod"
 import {
   AlertCircleIcon,
   CheckCircleIcon,
@@ -12,8 +11,6 @@ import {
   XCircleIcon,
 } from "lucide-react"
 import { useTranslations } from "next-intl"
-import { useForm, useWatch } from "react-hook-form"
-import { z } from "zod"
 
 import { Pagination } from "@/components/Pagination"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -34,23 +31,6 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import {
   Select,
   SelectContent,
   SelectGroup,
@@ -66,11 +46,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import {
-  bookingService,
-  type Booking,
-} from "@/lib/bookings"
 import { MobileFilterDrawer } from "@/components/app/mobile-filter-drawer"
+import { PaymentCreateDialog } from "@/components/app/payment-create-dialog"
 import { defaultPaginationMeta, type PaginatedResponse } from "@/lib/api"
 import {
   downloadInvoiceFile,
@@ -79,12 +56,10 @@ import {
 } from "@/lib/invoices"
 import {
   getPaymentErrorMessage,
-  paymentMethods,
   paymentService,
   paymentStatuses,
   type Payment,
   type PaymentMethod,
-  type PaymentPayload,
   type PaymentStatus,
 } from "@/lib/payments"
 
@@ -96,18 +71,6 @@ type Option<T extends string> = {
 }
 
 type TranslationFn = ReturnType<typeof useTranslations>
-type PaymentFormInput = Omit<PaymentPayload, "amount"> & {
-  amount: unknown
-  status: PaymentStatus
-}
-type PaymentForm = PaymentPayload & { status: PaymentStatus }
-
-const defaultFormValues: PaymentFormInput = {
-  bookingId: "",
-  amount: 0,
-  method: "CASH",
-  status: "PENDING",
-}
 
 export default function PaymentsPage() {
   const t = useTranslations()
@@ -117,14 +80,10 @@ export default function PaymentsPage() {
     useState<PaginatedResponse<Payment>["meta"]>(defaultPaginationMeta)
   const [page, setPage] = useState(1)
   const [limit, setLimit] = useState(10)
-  const [bookings, setBookings] = useState<Booking[]>([])
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL")
   const [isLoading, setIsLoading] = useState(true)
-  const [isOptionsLoading, setIsOptionsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [optionsError, setOptionsError] = useState<string | null>(null)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [formError, setFormError] = useState<string | null>(null)
   const [statusError, setStatusError] = useState<string | null>(null)
   const [updatingPaymentId, setUpdatingPaymentId] = useState<string | null>(
     null
@@ -143,52 +102,6 @@ export default function PaymentsPage() {
   const filterOptions: Option<StatusFilter>[] = useMemo(
     () => [{ value: "ALL", label: t("allStatuses") }, ...statusOptions],
     [statusOptions, t]
-  )
-  const methodOptions: Option<PaymentMethod>[] = useMemo(
-    () =>
-      paymentMethods.map((method) => ({
-        value: method,
-        label: getPaymentMethodLabel(method, t),
-      })),
-    [t]
-  )
-  const paymentSchema = z.object({
-    bookingId: z.string().min(1, t("selectBooking")),
-    amount: z.coerce
-      .number({ message: t("enterAmount") })
-      .positive(t("amountMustBePositive")),
-    method: z.enum(paymentMethods, { message: t("selectPaymentMethod") }),
-    status: z.enum(paymentStatuses, { message: t("selectPaymentStatus") }),
-  }) satisfies z.ZodType<PaymentForm>
-
-  const {
-    control,
-    formState: { errors, isSubmitting },
-    handleSubmit,
-    register,
-    reset,
-    setValue,
-  } = useForm<PaymentFormInput, unknown, PaymentForm>({
-    resolver: zodResolver(paymentSchema),
-    defaultValues: defaultFormValues,
-  })
-
-  const selectedBookingId = useWatch({ control, name: "bookingId" })
-  const selectedMethod = useWatch({ control, name: "method" })
-  const selectedStatus = useWatch({ control, name: "status" })
-
-  const selectedBooking = useMemo(
-    () => bookings.find((booking) => booking.id === selectedBookingId),
-    [bookings, selectedBookingId]
-  )
-
-  const bookingOptions = useMemo(
-    () =>
-      bookings.map((booking) => ({
-        value: booking.id,
-        label: `${booking.id} - ${booking.guest.fullName} - ${t("roomLabel", { roomNumber: booking.room.roomNumber })}`,
-      })),
-    [bookings, t]
   )
 
   const loadPayments = useCallback(async (filter: StatusFilter, nextPage = page) => {
@@ -209,20 +122,6 @@ export default function PaymentsPage() {
       setIsLoading(false)
     }
   }, [limit, page])
-
-  const loadBookings = useCallback(async () => {
-    setIsOptionsLoading(true)
-    setOptionsError(null)
-
-    try {
-      const data = await bookingService.list()
-      setBookings(data)
-    } catch (error) {
-      setOptionsError(getPaymentErrorMessage(error))
-    } finally {
-      setIsOptionsLoading(false)
-    }
-  }, [])
 
   useEffect(() => {
     let ignore = false
@@ -260,55 +159,12 @@ export default function PaymentsPage() {
     }
   }, [limit, page, statusFilter])
 
-  useEffect(() => {
-    let ignore = false
-
-    async function fetchBookings() {
-      try {
-        const data = await bookingService.list()
-
-        if (!ignore) {
-          setBookings(data)
-        }
-      } catch (error) {
-        if (!ignore) {
-          setOptionsError(getPaymentErrorMessage(error))
-        }
-      } finally {
-        if (!ignore) {
-          setIsOptionsLoading(false)
-        }
-      }
-    }
-
-    void fetchBookings()
-
-    return () => {
-      ignore = true
-    }
-  }, [])
-
-  function openCreateDialog() {
-    setFormError(null)
-    reset(defaultFormValues)
-    setIsCreateOpen(true)
-  }
-
-  async function onSubmit(values: PaymentForm) {
-    setFormError(null)
-
-    try {
-      const createdPayment = await paymentService.create(values)
-      setPayments((currentPayments) =>
-        statusFilter === "ALL" || statusFilter === createdPayment.status
-          ? [createdPayment, ...currentPayments]
-          : currentPayments
-      )
-      setIsCreateOpen(false)
-      reset(defaultFormValues)
-    } catch (error) {
-      setFormError(getPaymentErrorMessage(error))
-    }
+  function handlePaymentCreated(createdPayment: Payment) {
+    setPayments((currentPayments) =>
+      statusFilter === "ALL" || statusFilter === createdPayment.status
+        ? [createdPayment, ...currentPayments]
+        : currentPayments
+    )
   }
 
   async function updatePaymentStatus(
@@ -377,7 +233,7 @@ export default function PaymentsPage() {
                 setStatusFilter("ALL")
                 setPage(1)
               }}
-              triggerClassName="sm:hidden"
+              triggerClassName="md:hidden"
             >
               <div className="flex flex-col gap-1.5">
                 <p className="text-sm font-medium leading-none">{t("status")}</p>
@@ -404,7 +260,7 @@ export default function PaymentsPage() {
                 </Select>
               </div>
             </MobileFilterDrawer>
-            <div className="hidden sm:flex">
+            <div className="hidden md:flex">
               <Select
                 items={filterOptions}
                 value={statusFilter}
@@ -428,7 +284,7 @@ export default function PaymentsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={openCreateDialog}>
+            <Button onClick={() => setIsCreateOpen(true)}>
               <ReceiptIcon data-icon="inline-start" />
               {t("recordPayment")}
             </Button>
@@ -470,14 +326,14 @@ export default function PaymentsPage() {
           ) : null}
 
           {/* Mobile card list */}
-          <div className="flex flex-col divide-y sm:hidden">
+          <div className="flex flex-col gap-3 md:hidden">
             {isLoading ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 {t("loadingPayments")}
               </p>
             ) : payments.length ? (
               payments.map((payment) => (
-                <div className="flex flex-col gap-2 py-3 first:pt-0 last:pb-0" key={payment.id}>
+                <div className="flex flex-col gap-3 rounded-lg border p-4" key={payment.id}>
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex min-w-0 flex-col gap-0.5">
                       <span className="font-medium leading-tight">{payment.booking.guest.fullName}</span>
@@ -547,7 +403,7 @@ export default function PaymentsPage() {
           </div>
 
           {/* Desktop table */}
-          <div className="hidden sm:block">
+          <div className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -678,204 +534,11 @@ export default function PaymentsPage() {
         </CardContent>
       </Card>
 
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>{t("createPayment")}</DialogTitle>
-            <DialogDescription>
-              {t("createPaymentDescription")}
-            </DialogDescription>
-          </DialogHeader>
-          <form className="contents" onSubmit={handleSubmit(onSubmit)}>
-            <FieldGroup>
-              {optionsError ? (
-                <Alert variant="destructive">
-                  <AlertCircleIcon />
-                  <AlertTitle>{t("couldNotLoadBookingOptions")}</AlertTitle>
-                  <AlertDescription>{optionsError}</AlertDescription>
-                  <Button
-                    className="mt-3 w-fit"
-                    onClick={() => void loadBookings()}
-                    size="sm"
-                    type="button"
-                    variant="outline"
-                  >
-                    <RefreshCwIcon data-icon="inline-start" />
-                    {t("retry")}
-                  </Button>
-                </Alert>
-              ) : null}
-
-              {formError ? (
-                <Alert variant="destructive">
-                  <AlertCircleIcon />
-                  <AlertTitle>{t("paymentCouldNotBeSaved")}</AlertTitle>
-                  <AlertDescription>{formError}</AlertDescription>
-                </Alert>
-              ) : null}
-
-              <Field data-invalid={Boolean(errors.bookingId)}>
-                <FieldLabel htmlFor="bookingId">{t("booking")}</FieldLabel>
-                <Select
-                  items={bookingOptions}
-                  value={selectedBookingId}
-                  onValueChange={(value) => {
-                    const nextBookingId = value as string
-                    const booking = bookings.find(
-                      (bookingItem) => bookingItem.id === nextBookingId
-                    )
-
-                    setValue("bookingId", nextBookingId, {
-                      shouldDirty: true,
-                      shouldValidate: true,
-                    })
-
-                    if (booking) {
-                      setValue("amount", booking.totalPrice, {
-                        shouldDirty: true,
-                        shouldValidate: true,
-                      })
-                    }
-                  }}
-                >
-                  <SelectTrigger
-                    aria-invalid={Boolean(errors.bookingId)}
-                    disabled={isOptionsLoading}
-                    id="bookingId"
-                  >
-                    <SelectValue placeholder={t("selectBooking")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {bookingOptions.map((booking) => (
-                        <SelectItem key={booking.value} value={booking.value}>
-                          {booking.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-                <FieldError>{errors.bookingId?.message}</FieldError>
-              </Field>
-
-              <Field data-invalid={Boolean(errors.amount)}>
-                <FieldLabel htmlFor="amount">{t("amount")}</FieldLabel>
-                <Input
-                  aria-invalid={Boolean(errors.amount)}
-                  id="amount"
-                  min="0.01"
-                  step="0.01"
-                  type="number"
-                  {...register("amount")}
-                />
-                <FieldDescription>
-                  {selectedBooking ? (
-                    <>
-                      {t("bookingTotalIs", {
-                        amount: formatCurrency(selectedBooking.totalPrice, preferences),
-                      })}
-                      <span className="block text-xs">
-                        {t("roomPriceTotal")}: {formatCurrency(selectedBooking.roomPriceTotal, preferences)}
-                        {selectedBooking.coolingOption === "AIR_CONDITIONER" && (
-                          <>
-                            {" · "}
-                            {t("coolingAC")}: {formatCurrency(selectedBooking.coolingPrice, preferences)}
-                          </>
-                        )}
-                        {selectedBooking.miniBarTotal > 0 && (
-                          <>
-                            {" · "}
-                            {t("miniBarTotal")}: {formatCurrency(selectedBooking.miniBarTotal, preferences)}
-                          </>
-                        )}
-                      </span>
-                      <span className="block text-xs">
-                        {t("paidAmount")}: {formatCurrency(selectedBooking.paidAmount, preferences)}
-                        {" · "}
-                        {t("balanceDue")}: {formatCurrency(selectedBooking.balanceDue, preferences)}
-                      </span>
-                    </>
-                  ) : t("selectingBookingFillsAmount")}
-                </FieldDescription>
-                <FieldError>{errors.amount?.message}</FieldError>
-              </Field>
-
-              <Field data-invalid={Boolean(errors.method)}>
-                <FieldLabel htmlFor="method">{t("method")}</FieldLabel>
-                <Select
-                  items={methodOptions}
-                  value={selectedMethod}
-                  onValueChange={(value) =>
-                    setValue("method", value as PaymentMethod, {
-                      shouldDirty: true,
-                      shouldValidate: true,
-                    })
-                  }
-                >
-                  <SelectTrigger
-                    aria-invalid={Boolean(errors.method)}
-                    id="method"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {methodOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-                <FieldError>{errors.method?.message}</FieldError>
-              </Field>
-
-              <Field data-invalid={Boolean(errors.status)}>
-                <FieldLabel htmlFor="status">{t("status")}</FieldLabel>
-                <Select
-                  items={statusOptions}
-                  value={selectedStatus}
-                  onValueChange={(value) =>
-                    setValue("status", value as PaymentStatus, {
-                      shouldDirty: true,
-                      shouldValidate: true,
-                    })
-                  }
-                >
-                  <SelectTrigger
-                    aria-invalid={Boolean(errors.status)}
-                    id="status"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {statusOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-                <FieldError>{errors.status?.message}</FieldError>
-              </Field>
-            </FieldGroup>
-            <DialogFooter>
-              <DialogClose render={<Button type="button" variant="outline" />}>
-                {t("cancel")}
-              </DialogClose>
-              <Button
-                disabled={isSubmitting || isOptionsLoading}
-                type="submit"
-              >
-                {isSubmitting ? t("saving") : t("savePayment")}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <PaymentCreateDialog
+        onCreated={handlePaymentCreated}
+        onOpenChange={setIsCreateOpen}
+        open={isCreateOpen}
+      />
     </>
   )
 }

@@ -199,10 +199,13 @@ export default function ExpensesPage() {
 
   // Opens the create dialog when navigated here from the mobile FAB.
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("action") === "new") {
-      openCreateDialog()
-      router.replace("/expenses", { scroll: false })
+    function run() {
+      if (new URLSearchParams(window.location.search).get("action") === "new") {
+        openCreateDialog()
+        router.replace("/expenses", { scroll: false })
+      }
     }
+    void run()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -313,7 +316,7 @@ export default function ExpensesPage() {
                 setActiveDateTo("")
                 setPage(1)
               }}
-              triggerClassName="sm:hidden"
+              triggerClassName="md:hidden"
             >
               <div className="flex flex-col gap-1.5">
                 <p className="text-sm font-medium leading-none">{t("expenses.searchExpenses")}</p>
@@ -391,7 +394,7 @@ export default function ExpensesPage() {
 
         <CardContent className="flex flex-col gap-4">
           {/* ── Filters (desktop only) ── */}
-          <div className="hidden flex-wrap items-end gap-2 sm:flex">
+          <div className="hidden flex-wrap items-end gap-2 md:flex">
             <div className="flex gap-1">
               <Input
                 className="h-9 w-44"
@@ -493,7 +496,7 @@ export default function ExpensesPage() {
           ) : null}
 
           {/* ── Desktop Table ── */}
-          <div className="hidden sm:block">
+          <div className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -567,7 +570,7 @@ export default function ExpensesPage() {
           </div>
 
           {/* ── Mobile Cards ── */}
-          <div className="flex flex-col gap-3 sm:hidden">
+          <div className="flex flex-col gap-3 md:hidden">
             {isLoading ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 {t("expenses.loadingExpenses")}

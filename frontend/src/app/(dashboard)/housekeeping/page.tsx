@@ -190,7 +190,7 @@ function MobileTaskCard({
   t: TranslationFn
 }) {
   return (
-    <div className="flex flex-col gap-2 py-4 first:pt-0 last:pb-0">
+    <div className="flex flex-col gap-3 rounded-lg border p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex items-center gap-2">
@@ -583,7 +583,7 @@ export default function HousekeepingPage() {
                 setPriorityFilter("ALL")
                 setPage(1)
               }}
-              triggerClassName="sm:hidden"
+              triggerClassName="md:hidden"
             >
               <div className="flex flex-col gap-1.5">
                 <p className="text-sm font-medium leading-none">
@@ -640,7 +640,7 @@ export default function HousekeepingPage() {
             </MobileFilterDrawer>
 
             {/* Desktop: inline filters */}
-            <div className="hidden items-center gap-2 sm:flex">
+            <div className="hidden items-center gap-2 md:flex">
               <div className="relative">
                 <SearchIcon className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -703,7 +703,7 @@ export default function HousekeepingPage() {
             </div>
 
             {/* Mobile: search */}
-            <div className="relative sm:hidden">
+            <div className="relative md:hidden">
               <SearchIcon className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
               <Input
                 className="h-8 w-40 pl-8 text-sm"
@@ -740,7 +740,7 @@ export default function HousekeepingPage() {
           ) : null}
 
           {/* Mobile card list */}
-          <div className="flex flex-col divide-y sm:hidden">
+          <div className="flex flex-col gap-3 md:hidden">
             {isLoading ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 {t("loading")}
@@ -765,7 +765,7 @@ export default function HousekeepingPage() {
           </div>
 
           {/* Desktop table */}
-          <div className="hidden sm:block">
+          <div className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>

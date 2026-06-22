@@ -287,7 +287,7 @@ export default function GuestsPage() {
                 setActiveSearch("")
                 setPage(1)
               }}
-              triggerClassName="sm:hidden"
+              triggerClassName="md:hidden"
             >
               <div className="flex flex-col gap-1.5">
                 <p className="text-sm font-medium leading-none">{t("searchGuests")}</p>
@@ -306,7 +306,7 @@ export default function GuestsPage() {
           </CardAction>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="hidden sm:block">
+          <div className="hidden md:block">
             <Field>
               <FieldLabel htmlFor="guestSearch">{t("searchGuests")}</FieldLabel>
               <div className="flex flex-col gap-2 sm:flex-row">
@@ -355,14 +355,14 @@ export default function GuestsPage() {
           <div className="text-sm text-muted-foreground">{searchCaption}</div>
 
           {/* Mobile card list */}
-          <div className="flex flex-col divide-y sm:hidden">
+          <div className="flex flex-col gap-3 md:hidden">
             {isLoading ? (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 {t("loadingGuests")}
               </p>
             ) : guests.length ? (
               guests.map((guest) => (
-                <div className="flex items-start gap-3 py-3 first:pt-0 last:pb-0" key={guest.id}>
+                <div className="flex items-start gap-3 rounded-lg border p-4" key={guest.id}>
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-muted/40">
                     <UserPlusIcon />
                   </span>
@@ -405,7 +405,7 @@ export default function GuestsPage() {
           </div>
 
           {/* Desktop table */}
-          <div className="hidden sm:block">
+          <div className="hidden md:block">
             <Table>
               <TableHeader>
                 <TableRow>
