@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   AlertCircleIcon,
   BrushIcon,
@@ -74,6 +74,7 @@ import {
 } from "@/components/ui/table"
 import { Textarea } from "@/components/ui/textarea"
 import { defaultPaginationMeta, type PaginatedResponse } from "@/lib/api"
+import { useDebounce } from "@/lib/hooks"
 import {
   getHousekeepingErrorMessage,
   housekeepingPriorities,
@@ -199,11 +200,11 @@ function MobileTaskCard({
             </span>
             <span className="text-xs text-muted-foreground">{task.room.type}</span>
           </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            <Badge variant={getStatusVariant(task.status)}>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge className="h-7 px-2.5 text-sm" variant={getStatusVariant(task.status)}>
               {getStatusLabel(task.status, t)}
             </Badge>
-            <Badge variant={getPriorityVariant(task.priority)}>
+            <Badge className="h-7 px-2.5 text-sm" variant={getPriorityVariant(task.priority)}>
               {getPriorityLabel(task.priority, t)}
             </Badge>
           </div>
@@ -275,10 +276,9 @@ export default function HousekeepingPage() {
 
   // Filters
   const [search, setSearch] = useState("")
-  const [debouncedSearch, setDebouncedSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL")
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("ALL")
-  const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const debouncedSearch = useDebounce(search, 400)
 
   // Reference data for dialogs
   const [rooms, setRooms] = useState<Room[]>([])
@@ -359,14 +359,10 @@ export default function HousekeepingPage() {
     userService.list().then(setUsers).catch(() => {})
   }, [])
 
-  function handleSearchChange(value: string) {
-    setSearch(value)
-    if (searchTimeout.current) clearTimeout(searchTimeout.current)
-    searchTimeout.current = setTimeout(() => {
-      setDebouncedSearch(value)
-      setPage(1)
-    }, 400)
-  }
+  // Reset to first page whenever the debounced search term changes
+  useEffect(() => {
+    setPage(1)
+  }, [debouncedSearch])
 
   // ---------- Filter options ----------
 
@@ -392,7 +388,9 @@ export default function HousekeepingPage() {
   )
 
   const activeFilterCount =
-    (statusFilter !== "ALL" ? 1 : 0) + (priorityFilter !== "ALL" ? 1 : 0)
+    (debouncedSearch !== "" ? 1 : 0) +
+    (statusFilter !== "ALL" ? 1 : 0) +
+    (priorityFilter !== "ALL" ? 1 : 0)
 
   // ---------- Create / Edit ----------
 
@@ -579,12 +577,23 @@ export default function HousekeepingPage() {
             <MobileFilterDrawer
               activeCount={activeFilterCount}
               onClear={() => {
+                setSearch("")
                 setStatusFilter("ALL")
                 setPriorityFilter("ALL")
                 setPage(1)
               }}
               triggerClassName="md:hidden"
             >
+              <div className="flex flex-col gap-1.5">
+                <p className="text-sm font-medium leading-none">
+                  {t("searchPlaceholder")}
+                </p>
+                <Input
+                  placeholder={t("searchPlaceholder")}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
               <div className="flex flex-col gap-1.5">
                 <p className="text-sm font-medium leading-none">
                   {t("filterByStatus")}
@@ -647,7 +656,7 @@ export default function HousekeepingPage() {
                   className="h-8 w-44 pl-8 text-sm"
                   placeholder={t("searchPlaceholder")}
                   value={search}
-                  onChange={(e) => handleSearchChange(e.target.value)}
+                  onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
               <Select
@@ -709,7 +718,7 @@ export default function HousekeepingPage() {
                 className="h-8 w-40 pl-8 text-sm"
                 placeholder={t("searchPlaceholder")}
                 value={search}
-                onChange={(e) => handleSearchChange(e.target.value)}
+                onChange={(e) => setSearch(e.target.value)}
               />
             </div>
 

@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import type { ChangeEvent } from "react"
 import { useEffect, useMemo, useState } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -860,13 +861,23 @@ function RoomImagePreview({
 
   return (
     <div
-      aria-label={imageUrl ? alt : t("noRoomImageSelected")}
-      className="flex aspect-video min-h-32 w-full shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-muted/40 bg-cover bg-center sm:w-44"
-      role="img"
-      style={imageUrl ? { backgroundImage: `url(${imageUrl})` } : undefined}
+      className={`relative aspect-video min-h-32 w-full shrink-0 overflow-hidden rounded-lg border sm:w-44${!imageUrl ? " bg-muted/40" : ""}`}
     >
-      {imageUrl ? null : (
-        <div className="flex flex-col items-center gap-2 text-muted-foreground">
+      {imageUrl ? (
+        <Image
+          alt={alt}
+          className="object-cover"
+          fill
+          loading="lazy"
+          sizes="(max-width: 640px) 100vw, 176px"
+          src={imageUrl}
+        />
+      ) : (
+        <div
+          aria-label={t("noRoomImageSelected")}
+          className="flex h-full min-h-32 w-full flex-col items-center justify-center gap-2 text-muted-foreground"
+          role="img"
+        >
           <ImageIcon />
           <span className="text-xs">{t("noImage")}</span>
         </div>
@@ -888,7 +899,7 @@ function RoomStatusBadge({ status }: { status: RoomStatus }) {
             ? "secondary"
             : "outline"
 
-  return <Badge variant={variant}>{getRoomStatusLabel(status, t)}</Badge>
+  return <Badge className="h-7 shrink-0 px-2.5 text-sm" variant={variant}>{getRoomStatusLabel(status, t)}</Badge>
 }
 
 function getRoomStatusLabel(status: RoomStatus, t: TranslationFn) {

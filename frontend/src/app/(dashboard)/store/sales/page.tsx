@@ -634,11 +634,10 @@ export default function SalesPage() {
                     <span>·</span>
                     <PaymentBadge method={sale.paymentMethod} t={t} />
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <Button
-                      className="flex-1"
+                      className="min-h-11 flex-1"
                       onClick={() => { setActionError(null); setViewingSale(sale) }}
-                      size="sm"
                       type="button"
                       variant="outline"
                     >
@@ -1076,7 +1075,7 @@ function SaleStatusBadge({
         ? t("store.saleCancelled")
         : t("store.saleRefunded")
 
-  return <Badge variant={variant}>{label}</Badge>
+  return <Badge className="h-7 shrink-0 px-2.5 text-sm" variant={variant}>{label}</Badge>
 }
 
 function PaymentBadge({

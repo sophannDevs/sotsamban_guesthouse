@@ -1,4 +1,4 @@
-import type * as React from "react"
+import { memo } from "react"
 
 import {
   Table,
@@ -25,7 +25,7 @@ type DataTableProps<T> = {
   emptyLabel?: string
 }
 
-export function DataTable<T>({
+function DataTableInner<T>({
   columns,
   data,
   getRowId,
@@ -71,3 +71,6 @@ export function DataTable<T>({
     </Table>
   )
 }
+
+// Cast preserves the generic signature through memo
+export const DataTable = memo(DataTableInner) as typeof DataTableInner

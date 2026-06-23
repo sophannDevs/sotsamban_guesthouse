@@ -331,203 +331,189 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5 pb-20 sm:pb-0">
       <section className="flex flex-col gap-3 rounded-xl border bg-card p-4 text-card-foreground sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <h1 className="font-heading text-xl font-semibold leading-tight">
-            {t("reportsPageTitle")}
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {t("reportsPageDescription")}
-          </p>
+        {/* Title row */}
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h1 className="font-heading text-xl font-semibold leading-tight">
+              {t("reportsPageTitle")}
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t("reportsPageDescription")}
+            </p>
+          </div>
+          <Badge className="sm:hidden" variant="secondary">{t("liveApi")}</Badge>
         </div>
-        <div className="flex items-center gap-2">
-          <MobileDateRangeSheet
-            startDate={startDate}
-            endDate={endDate}
-            onApply={(start, end) => {
-              setStartDate(start)
-              setEndDate(end)
-              if (start || end) setRangePreset("custom")
-              setPage(1)
-              void loadReport(1, limit)
-            }}
-            onClear={() => {
-              setStartDate("")
-              setEndDate("")
-              setRangePreset("this_month")
-              setPage(1)
-              setReportData(null)
-              setGeneratedAt(null)
-            }}
-            triggerClassName="sm:hidden"
-          />
-          <MobileFilterDrawer
-            activeCount={
-              (rangePreset !== "this_month" ? 1 : 0) +
-              (statusFilter !== "ALL" ? 1 : 0) +
-              (roomId ? 1 : 0) +
-              (guestId ? 1 : 0) +
-              (search ? 1 : 0)
-            }
-            onApply={() => {
-              setPage(1)
-              void loadReport(1, limit)
-            }}
-            onClear={() => {
-              setRangePreset("this_month")
-              setStartDate("")
-              setEndDate("")
-              setStatusFilter("ALL")
-              setRoomId("")
-              setGuestId("")
-              setSearch("")
-              setPage(1)
-              setReportData(null)
-              setGeneratedAt(null)
-            }}
-            triggerClassName="sm:hidden"
-          >
-            <div className="flex flex-col gap-1.5">
-              <p className="text-sm font-medium leading-none">{t("dateRangePreset")}</p>
-              <Select
-                items={rangePresetOptions}
-                value={rangePreset}
-                onValueChange={(value) => {
-                  if (value) {
-                    setRangePreset(value as RangePreset)
-                    setPage(1)
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <CalendarIcon className="mr-1 h-4 w-4 text-muted-foreground" />
-                  <SelectValue>{selectedRangePresetLabel}</SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {rangePresetOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-            {isCustomPreset ? (
-              <div className="flex flex-col gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <p className="text-sm font-medium leading-none">{t("startDate")}</p>
-                  <Input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => { setStartDate(e.target.value); setPage(1) }}
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <p className="text-sm font-medium leading-none">{t("endDate")}</p>
-                  <Input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => { setEndDate(e.target.value); setPage(1) }}
-                  />
-                </div>
-              </div>
-            ) : null}
-            <div className="flex flex-col gap-1.5">
-              <p className="text-sm font-medium leading-none">{t("reportType")}</p>
-              <Select
-                items={reportOptions}
-                value={reportType}
-                onValueChange={handleReportTypeChange}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {reportOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <p className="text-sm font-medium leading-none">{activeReport.statusLabel}</p>
-              <Select
-                items={activeReport.statuses}
-                value={statusFilter}
-                onValueChange={(value) => {
-                  if (value) {
-                    setStatusFilter(value as StatusFilter)
-                    setPage(1)
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {activeReport.statuses.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-            {reportType === "bookings" ? (
-              <>
-                <div className="flex flex-col gap-1.5">
-                  <p className="text-sm font-medium leading-none">{t("roomId")}</p>
-                  <Input
-                    placeholder={t("optionalRoomId")}
-                    value={roomId}
-                    onChange={(e) => { setRoomId(e.target.value); setPage(1) }}
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <p className="text-sm font-medium leading-none">{t("guestId")}</p>
-                  <Input
-                    placeholder={t("optionalGuestId")}
-                    value={guestId}
-                    onChange={(e) => { setGuestId(e.target.value); setPage(1) }}
-                  />
-                </div>
-              </>
-            ) : null}
-            {reportType === "guests" ? (
+
+        {/* Desktop badge */}
+        <Badge className="hidden sm:inline-flex" variant="secondary">{t("liveApi")}</Badge>
+
+        {/* Mobile-only: report type + date preset + generate */}
+        <div className="flex flex-col gap-3 sm:hidden">
+          {/* Report type dropdown + secondary filter drawer */}
+          <div className="flex gap-2">
+            <Select
+              items={reportOptions}
+              value={reportType}
+              onValueChange={handleReportTypeChange}
+            >
+              <SelectTrigger className="flex-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {reportOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            <MobileFilterDrawer
+              activeCount={
+                (statusFilter !== "ALL" ? 1 : 0) +
+                (roomId ? 1 : 0) +
+                (guestId ? 1 : 0) +
+                (search ? 1 : 0)
+              }
+              onApply={() => {
+                setPage(1)
+                void loadReport(1, limit)
+              }}
+              onClear={() => {
+                setStatusFilter("ALL")
+                setRoomId("")
+                setGuestId("")
+                setSearch("")
+                setPage(1)
+                setReportData(null)
+                setGeneratedAt(null)
+              }}
+            >
               <div className="flex flex-col gap-1.5">
-                <p className="text-sm font-medium leading-none">{t("search")}</p>
-                <Input
-                  placeholder={t("searchGuestPlaceholder")}
-                  value={search}
-                  onChange={(e) => { setSearch(e.target.value); setPage(1) }}
-                />
+                <p className="text-sm font-medium leading-none">{activeReport.statusLabel}</p>
+                <Select
+                  items={activeReport.statuses}
+                  value={statusFilter}
+                  onValueChange={(value) => {
+                    if (value) {
+                      setStatusFilter(value as StatusFilter)
+                      setPage(1)
+                    }
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {activeReport.statuses.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
+              {reportType === "bookings" ? (
+                <>
+                  <div className="flex flex-col gap-1.5">
+                    <p className="text-sm font-medium leading-none">{t("roomId")}</p>
+                    <Input
+                      placeholder={t("optionalRoomId")}
+                      value={roomId}
+                      onChange={(e) => { setRoomId(e.target.value); setPage(1) }}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <p className="text-sm font-medium leading-none">{t("guestId")}</p>
+                    <Input
+                      placeholder={t("optionalGuestId")}
+                      value={guestId}
+                      onChange={(e) => { setGuestId(e.target.value); setPage(1) }}
+                    />
+                  </div>
+                </>
+              ) : null}
+              {reportType === "guests" ? (
+                <div className="flex flex-col gap-1.5">
+                  <p className="text-sm font-medium leading-none">{t("search")}</p>
+                  <Input
+                    placeholder={t("searchGuestPlaceholder")}
+                    value={search}
+                    onChange={(e) => { setSearch(e.target.value); setPage(1) }}
+                  />
+                </div>
+              ) : null}
+            </MobileFilterDrawer>
+          </div>
+
+          {/* Date range preset + custom date picker bottom sheet */}
+          <div className="flex gap-2">
+            <Select
+              items={rangePresetOptions}
+              value={rangePreset}
+              onValueChange={(value) => {
+                if (value) {
+                  setRangePreset(value as RangePreset)
+                  setPage(1)
+                }
+              }}
+            >
+              <SelectTrigger className="flex-1">
+                <CalendarIcon className="mr-1 h-4 w-4 text-muted-foreground" />
+                <SelectValue>{selectedRangePresetLabel}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {rangePresetOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            {isCustomPreset ? (
+              <MobileDateRangeSheet
+                startDate={startDate}
+                endDate={endDate}
+                onApply={(start, end) => {
+                  setStartDate(start)
+                  setEndDate(end)
+                  if (start || end) setRangePreset("custom")
+                  setPage(1)
+                }}
+                onClear={() => {
+                  setStartDate("")
+                  setEndDate("")
+                  setRangePreset("this_month")
+                  setPage(1)
+                  setReportData(null)
+                  setGeneratedAt(null)
+                }}
+              />
             ) : null}
-          </MobileFilterDrawer>
-          <Badge className="sm:flex" variant="secondary">{t("liveApi")}</Badge>
+          </div>
+
+          {/* Generate button */}
+          <Button
+            className="w-full"
+            disabled={isLoading}
+            onClick={() => { setPage(1); void loadReport(1, limit) }}
+            type="button"
+          >
+            {isLoading ? (
+              <RefreshCwIcon data-icon="inline-start" />
+            ) : (
+              <PlayIcon data-icon="inline-start" />
+            )}
+            {t("generateReport")}
+          </Button>
         </div>
-        <Button
-          className="w-full sm:hidden"
-          disabled={isLoading}
-          onClick={() => { setPage(1); void loadReport(1, limit) }}
-          type="button"
-        >
-          {isLoading ? (
-            <RefreshCwIcon data-icon="inline-start" />
-          ) : (
-            <PlayIcon data-icon="inline-start" />
-          )}
-          {t("generateReport")}
-        </Button>
       </section>
 
       {errorMessage ? (
@@ -757,7 +743,7 @@ export default function ReportsPage() {
             </CardTitle>
             <CardDescription>{activeReport.description}</CardDescription>
           </div>
-          <CardAction className="flex flex-col gap-2 sm:flex-row">
+          <CardAction className="hidden flex-col gap-2 sm:flex sm:flex-row">
             <Button
               disabled={Boolean(exportingFormat)}
               onClick={() => void exportReport("excel")}
@@ -911,6 +897,38 @@ export default function ReportsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Mobile: fixed bottom export bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 flex gap-3 border-t bg-background px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-3 sm:hidden">
+        <Button
+          className="flex-1"
+          disabled={Boolean(exportingFormat)}
+          onClick={() => void exportReport("excel")}
+          type="button"
+          variant="outline"
+        >
+          {exportingFormat === "excel" ? (
+            <RefreshCwIcon data-icon="inline-start" />
+          ) : (
+            <FileSpreadsheetIcon data-icon="inline-start" />
+          )}
+          {exportingFormat === "excel" ? t("exporting") : t("exportExcel")}
+        </Button>
+        <Button
+          className="flex-1"
+          disabled={Boolean(exportingFormat)}
+          onClick={() => void exportReport("pdf")}
+          type="button"
+          variant="outline"
+        >
+          {exportingFormat === "pdf" ? (
+            <RefreshCwIcon data-icon="inline-start" />
+          ) : (
+            <FileTextIcon data-icon="inline-start" />
+          )}
+          {exportingFormat === "pdf" ? t("exporting") : t("exportPdf")}
+        </Button>
+      </div>
     </div>
   )
 }

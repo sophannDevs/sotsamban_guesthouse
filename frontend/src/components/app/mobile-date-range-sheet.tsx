@@ -8,12 +8,15 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
+  BottomSheet,
+  BottomSheetBody,
+  BottomSheetClose,
+  BottomSheetContent,
+  BottomSheetFooter,
+  BottomSheetHeader,
+  BottomSheetTitle,
+  BottomSheetTrigger,
+} from "@/components/app/bottom-sheet"
 import { cn } from "@/lib/utils"
 
 interface MobileDateRangeSheetProps {
@@ -59,8 +62,8 @@ export function MobileDateRangeSheet({
   }
 
   return (
-    <Sheet open={open} onOpenChange={handleOpen}>
-      <SheetTrigger
+    <BottomSheet open={open} onOpenChange={handleOpen}>
+      <BottomSheetTrigger
         render={
           <Button
             className={cn("relative gap-1.5", triggerClassName)}
@@ -79,55 +82,50 @@ export function MobileDateRangeSheet({
             {(startDate ? 1 : 0) + (endDate ? 1 : 0)}
           </Badge>
         ) : null}
-      </SheetTrigger>
-      <SheetContent
-        className="max-h-[85dvh] gap-0 overflow-y-auto rounded-t-xl"
-        showCloseButton={false}
-        side="bottom"
-      >
-        <SheetHeader className="border-b px-4 py-3">
-          <SheetTitle className="text-left">{t("dateRange")}</SheetTitle>
-        </SheetHeader>
-        <div className="px-4 py-4">
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <p className="text-sm font-medium leading-none">{t("startDate")}</p>
-              <Input
-                type="date"
-                value={localStart}
-                onChange={(e) => setLocalStart(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <p className="text-sm font-medium leading-none">{t("endDate")}</p>
-              <Input
-                type="date"
-                value={localEnd}
-                onChange={(e) => setLocalEnd(e.target.value)}
-              />
-            </div>
+      </BottomSheetTrigger>
+
+      <BottomSheetContent>
+        <BottomSheetHeader>
+          <BottomSheetTitle>{t("dateRange")}</BottomSheetTitle>
+        </BottomSheetHeader>
+
+        <BottomSheetBody>
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm font-medium leading-none">{t("startDate")}</p>
+            <Input
+              type="date"
+              value={localStart}
+              onChange={(e) => setLocalStart(e.target.value)}
+            />
           </div>
-        </div>
-        <div className="sticky bottom-0 border-t bg-popover px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-3">
-          <div className="flex gap-2">
-            <Button
-              className="flex-1"
-              onClick={handleApply}
-              type="button"
-            >
-              {t("applyFilters")}
-            </Button>
-            <Button
-              className="flex-1"
-              onClick={handleClear}
-              type="button"
-              variant="outline"
-            >
-              {t("clearFilters")}
-            </Button>
+          <div className="flex flex-col gap-1.5">
+            <p className="text-sm font-medium leading-none">{t("endDate")}</p>
+            <Input
+              type="date"
+              value={localEnd}
+              onChange={(e) => setLocalEnd(e.target.value)}
+            />
           </div>
-        </div>
-      </SheetContent>
-    </Sheet>
+        </BottomSheetBody>
+
+        <BottomSheetFooter>
+          <Button className="flex-1" onClick={handleApply} type="button">
+            {t("applyFilters")}
+          </Button>
+          <BottomSheetClose
+            render={
+              <Button
+                className="flex-1"
+                onClick={handleClear}
+                type="button"
+                variant="outline"
+              />
+            }
+          >
+            {t("clearFilters")}
+          </BottomSheetClose>
+        </BottomSheetFooter>
+      </BottomSheetContent>
+    </BottomSheet>
   )
 }

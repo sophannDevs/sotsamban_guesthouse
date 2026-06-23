@@ -26,5 +26,5 @@ export function MiniBarStatusBadge({ status }: { status: MiniBarConsumptionStatu
           ? t("miniBar.statusRefunded")
           : t("miniBar.statusCancelled")
 
-  return <Badge variant={variant}>{label}</Badge>
+  return <Badge className="h-7 px-2.5 text-sm" variant={variant}>{label}</Badge>
 }

@@ -351,11 +351,11 @@ export default function PaymentsPage() {
                     </div>
                     <PaymentStatusBadge status={payment.status} />
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-3">
                     <Button
+                      className="min-h-11 flex-1"
                       disabled={downloadingInvoiceBookingId === payment.bookingId}
                       onClick={() => void downloadInvoice(payment.bookingId)}
-                      size="sm"
                       type="button"
                       variant="outline"
                     >
@@ -373,8 +373,8 @@ export default function PaymentsPage() {
                     >
                       <SelectTrigger
                         aria-label={t("updatePaymentStatusAria", { paymentId: payment.id })}
+                        className="min-h-11"
                         disabled={updatingPaymentId === payment.id}
-                        size="sm"
                       >
                         <SelectValue />
                       </SelectTrigger>
@@ -564,7 +564,7 @@ function PaymentStatusBadge({ status }: { status: PaymentStatus }) {
           : ReceiptIcon
 
   return (
-    <Badge variant={variant}>
+    <Badge className="h-7 shrink-0 px-2.5 text-sm" variant={variant}>
       <Icon data-icon="inline-start" />
       {getPaymentStatusLabel(status, t)}
     </Badge>

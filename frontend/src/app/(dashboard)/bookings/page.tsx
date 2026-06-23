@@ -882,12 +882,12 @@ export default function BookingsPage() {
                     </div>
                     <BookingStatusBadge status={booking.status} />
                   </div>
-                  <div className="flex flex-wrap items-center gap-1.5">
+                  <div className="flex flex-wrap items-center gap-3">
                     {booking.status === "CONFIRMED" ? (
                       <Button
+                        className="min-h-11 flex-1"
                         disabled={actingBookingId === booking.id}
                         onClick={() => void runBookingAction(booking, "checkIn")}
-                        size="sm"
                         type="button"
                         variant="secondary"
                       >
@@ -897,9 +897,9 @@ export default function BookingsPage() {
                     ) : null}
                     {booking.status === "CHECKED_IN" ? (
                       <Button
+                        className="min-h-11 flex-1"
                         disabled={actingBookingId === booking.id}
                         onClick={() => void runBookingAction(booking, "checkOut")}
-                        size="sm"
                         type="button"
                         variant="secondary"
                       >
@@ -2258,7 +2258,7 @@ function BookingStatusBadge({ status }: { status: BookingStatus }) {
           : CalendarPlusIcon
 
   return (
-    <Badge variant={variant}>
+    <Badge className="h-7 shrink-0 px-2.5 text-sm" variant={variant}>
       <Icon data-icon="inline-start" />
       {getBookingStatusLabel(status, t)}
     </Badge>

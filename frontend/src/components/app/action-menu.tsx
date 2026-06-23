@@ -40,6 +40,7 @@ export function ActionMenu({ items, triggerLabel }: ActionMenuProps) {
         render={
           <Button
             aria-label={triggerLabel ?? t("actions")}
+            className="min-h-11 min-w-11 md:min-h-0 md:min-w-0"
             size="icon-sm"
             type="button"
             variant="outline"

@@ -937,7 +937,7 @@ function ProductStatusBadge({
   t: ReturnType<typeof useTranslations>
 }) {
   return (
-    <Badge variant={status === "ACTIVE" ? "default" : "secondary"}>
+    <Badge className="h-7 shrink-0 px-2.5 text-sm" variant={status === "ACTIVE" ? "default" : "secondary"}>
       {status === "ACTIVE" ? t("store.active") : t("store.inactive")}
     </Badge>
   )

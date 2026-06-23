@@ -616,10 +616,10 @@ export default function PurchasesPage() {
                       {formatCurrency(p.totalAmount)}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <Button
+                      className="min-h-11 flex-1"
                       onClick={() => { setActionError(null); setViewingPurchase(p) }}
-                      size="sm"
                       type="button"
                       variant="outline"
                     >
@@ -1102,7 +1102,7 @@ function PurchaseStatusBadge({
         ? t("store.draft")
         : t("store.purchaseCancelled")
 
-  return <Badge variant={variant}>{label}</Badge>
+  return <Badge className="h-7 shrink-0 px-2.5 text-sm" variant={variant}>{label}</Badge>
 }
 
 function formatCurrency(value: number) {

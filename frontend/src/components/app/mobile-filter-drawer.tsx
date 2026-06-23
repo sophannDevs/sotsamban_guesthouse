@@ -7,12 +7,15 @@ import { useTranslations } from "next-intl"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
+  BottomSheet,
+  BottomSheetBody,
+  BottomSheetClose,
+  BottomSheetContent,
+  BottomSheetFooter,
+  BottomSheetHeader,
+  BottomSheetTitle,
+  BottomSheetTrigger,
+} from "@/components/app/bottom-sheet"
 import { cn } from "@/lib/utils"
 
 interface MobileFilterDrawerProps {
@@ -34,8 +37,8 @@ export function MobileFilterDrawer({
   const [open, setOpen] = useState(false)
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger
+    <BottomSheet open={open} onOpenChange={setOpen}>
+      <BottomSheetTrigger
         render={
           <Button
             className={cn("gap-1.5", triggerClassName)}
@@ -55,44 +58,40 @@ export function MobileFilterDrawer({
             {activeCount}
           </Badge>
         ) : null}
-      </SheetTrigger>
-      <SheetContent
-        className="max-h-[85dvh] gap-0 overflow-y-auto rounded-t-xl"
-        showCloseButton={false}
-        side="bottom"
-      >
-        <SheetHeader className="border-b px-4 py-3">
-          <SheetTitle className="text-left">{t("filters")}</SheetTitle>
-        </SheetHeader>
-        <div className="px-4 py-4">
-          <div className="flex flex-col gap-4">{children}</div>
-        </div>
-        <div className="sticky bottom-0 border-t bg-popover px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-3">
-          <div className="flex gap-2">
-            <Button
-              className="flex-1"
-              onClick={() => {
-                onApply?.()
-                setOpen(false)
-              }}
-              type="button"
-            >
-              {t("applyFilters")}
-            </Button>
-            <Button
-              className="flex-1"
-              onClick={() => {
-                onClear()
-                setOpen(false)
-              }}
-              type="button"
-              variant="outline"
-            >
-              {t("clearFilters")}
-            </Button>
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
+      </BottomSheetTrigger>
+
+      <BottomSheetContent>
+        <BottomSheetHeader>
+          <BottomSheetTitle>{t("filters")}</BottomSheetTitle>
+        </BottomSheetHeader>
+
+        <BottomSheetBody>{children}</BottomSheetBody>
+
+        <BottomSheetFooter>
+          <Button
+            className="flex-1"
+            onClick={() => {
+              onApply?.()
+              setOpen(false)
+            }}
+            type="button"
+          >
+            {t("applyFilters")}
+          </Button>
+          <BottomSheetClose
+            render={
+              <Button
+                className="flex-1"
+                onClick={onClear}
+                type="button"
+                variant="outline"
+              />
+            }
+          >
+            {t("clearFilters")}
+          </BottomSheetClose>
+        </BottomSheetFooter>
+      </BottomSheetContent>
+    </BottomSheet>
   )
 }

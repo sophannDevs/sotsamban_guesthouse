@@ -7,6 +7,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react"
 import { toast } from "sonner"
@@ -23,6 +24,8 @@ import {
   removeStoredActiveBusiness,
   setStoredActiveBusiness,
 } from "@/lib/business-token"
+
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
 type BusinessContextValue = {
   activeBusiness: ActiveBusiness | null
@@ -42,40 +45,59 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false)
   const [isSwitching, setIsSwitching] = useState(false)
 
-  const refreshBusinesses = useCallback(async () => {
-    setIsLoading(true)
+  // Cache: avoid re-fetching the business list more than once per CACHE_TTL
+  const cacheRef = useRef<{ data: BusinessListItem[]; fetchedAt: number } | null>(null)
 
-    try {
-      const list = await businessService.getMyBusinesses()
-      setBusinesses(list)
+  const resolveActiveBusiness = useCallback((list: BusinessListItem[]) => {
+    const stored = getStoredActiveBusiness()
+    const isStoredValid = stored !== null && list.some((b) => b.id === stored.businessId)
 
-      const stored = getStoredActiveBusiness()
-      const isStoredValid =
-        stored !== null && list.some((b) => b.id === stored.businessId)
-
-      if (isStoredValid && stored) {
-        setActiveBusiness(stored)
-      } else if (list.length > 0) {
-        const first = list[0]
-        const auto: ActiveBusiness = {
-          businessId: first.id,
-          businessName: first.name,
-          businessType: first.type,
-        }
-        setStoredActiveBusiness(auto)
-        setActiveBusiness(auto)
-      } else {
-        removeStoredActiveBusiness()
-        setActiveBusiness(null)
+    if (isStoredValid && stored) {
+      setActiveBusiness(stored)
+    } else if (list.length > 0) {
+      const first = list[0]
+      const auto: ActiveBusiness = {
+        businessId: first.id,
+        businessName: first.name,
+        businessType: first.type,
       }
-    } catch (error) {
-      toast.error(
-        getBusinessErrorMessage(error, "Failed to load your businesses.")
-      )
-    } finally {
-      setIsLoading(false)
+      setStoredActiveBusiness(auto)
+      setActiveBusiness(auto)
+    } else {
+      removeStoredActiveBusiness()
+      setActiveBusiness(null)
     }
   }, [])
+
+  const refreshBusinesses = useCallback(
+    async (forceRefresh = false) => {
+      const now = Date.now()
+      const cache = cacheRef.current
+
+      // Serve from cache if still fresh
+      if (!forceRefresh && cache && now - cache.fetchedAt < CACHE_TTL) {
+        setBusinesses(cache.data)
+        resolveActiveBusiness(cache.data)
+        return
+      }
+
+      setIsLoading(true)
+
+      try {
+        const list = await businessService.getMyBusinesses()
+        cacheRef.current = { data: list, fetchedAt: Date.now() }
+        setBusinesses(list)
+        resolveActiveBusiness(list)
+      } catch (error) {
+        toast.error(
+          getBusinessErrorMessage(error, "Failed to load your businesses.")
+        )
+      } finally {
+        setIsLoading(false)
+      }
+    },
+    [resolveActiveBusiness]
+  )
 
   const switchBusiness = useCallback(async (businessId: string) => {
     setIsSwitching(true)
@@ -84,6 +106,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       const result = await businessService.switchTo(businessId)
       setStoredActiveBusiness(result)
       setActiveBusiness(result)
+      // The business list did not change — no need to invalidate cache
     } catch (error) {
       toast.error(
         getBusinessErrorMessage(error, "Failed to switch business.")
@@ -99,6 +122,8 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
     if (isAuthenticated) {
       void refreshBusinesses()
     } else {
+      // Clear cache on sign-out so the next sign-in starts fresh
+      cacheRef.current = null
       removeStoredActiveBusiness()
       setActiveBusiness(null)
       setBusinesses([])
@@ -112,7 +137,7 @@ export function BusinessProvider({ children }: { children: ReactNode }) {
       isLoading,
       isSwitching,
       switchBusiness,
-      refreshBusinesses,
+      refreshBusinesses: () => refreshBusinesses(true), // external callers always force-refresh
     }),
     [activeBusiness, businesses, isLoading, isSwitching, refreshBusinesses, switchBusiness]
   )

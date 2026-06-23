@@ -531,11 +531,10 @@ export default function MiniBarPage() {
                       {formatCurrency(consumption.totalAmount)}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-3">
                     <Button
-                      className="flex-1"
+                      className="min-h-11 flex-1"
                       onClick={() => setViewingConsumption(consumption)}
-                      size="sm"
                       type="button"
                       variant="outline"
                     >

@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import {
   AlertCircleIcon,
   BuildingIcon,
@@ -18,6 +18,7 @@ import {
 } from "@/components/app/system-preferences-provider"
 import { useActiveBusiness } from "@/components/app/business-provider"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -105,6 +106,19 @@ export default function FinancePage() {
   const [error, setError] = useState<string | null>(null)
 
   const showSourceFilter = view === "all" || activeBusiness?.businessType === "STORE"
+
+  const touchStartX = useRef<number>(0)
+
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    const delta = e.changedTouches[0].clientX - touchStartX.current
+    if (Math.abs(delta) < 60) return
+    if (delta < 0 && view === "current") setView("all")
+    if (delta > 0 && view === "all") setView("current")
+  }
 
   const buildParams = useCallback(() => {
     const base = { source: revenueSource }
@@ -197,13 +211,26 @@ export default function FinancePage() {
         <p className="mt-1 text-sm text-muted-foreground">{t("description")}</p>
       </div>
 
+      {/* Mobile: view switcher tabs directly visible */}
+      <Tabs
+        className="sm:hidden"
+        value={view}
+        onValueChange={(v) => {
+          if (v) setView(v as View)
+        }}
+      >
+        <TabsList className="w-full">
+          <TabsTrigger className="flex-1" value="current">{t("currentBusiness")}</TabsTrigger>
+          <TabsTrigger className="flex-1" value="all">{t("allBusinesses")}</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {/* Controls: period selector + view toggle */}
       <div className="flex flex-wrap items-start gap-3 sm:items-center sm:justify-between">
         {/* Mobile filter drawer */}
         <MobileFilterDrawer
           activeCount={
             (selectedPreset !== "this_month" ? 1 : 0) +
-            (view !== "current" ? 1 : 0) +
             (revenueSource !== "STORE_SALE" ? 1 : 0)
           }
           onApply={() => {
@@ -267,20 +294,6 @@ export default function FinancePage() {
               </div>
             </div>
           ) : null}
-          <div className="flex flex-col gap-1.5">
-            <p className="text-sm font-medium leading-none">{t("view")}</p>
-            <Tabs
-              value={view}
-              onValueChange={(v) => {
-                if (v) setView(v as View)
-              }}
-            >
-              <TabsList className="w-full">
-                <TabsTrigger className="flex-1" value="current">{t("currentBusiness")}</TabsTrigger>
-                <TabsTrigger className="flex-1" value="all">{t("allBusinesses")}</TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
           {showSourceFilter ? (
             <div className="flex flex-col gap-1.5">
               <p className="text-sm font-medium leading-none">{t("revenueSource")}</p>
@@ -404,6 +417,12 @@ export default function FinancePage() {
         </div>
       )}
 
+      {/* Swipeable content area (touch left/right to switch view on mobile) */}
+      <div
+        className="flex flex-col gap-6"
+        onTouchEnd={handleTouchEnd}
+        onTouchStart={handleTouchStart}
+      >
       {/* No business selected — current view only */}
       {view === "current" && !activeBusiness && !isLoading && (
         <Alert>
@@ -539,6 +558,7 @@ export default function FinancePage() {
           </CardContent>
         </Card>
       )}
+      </div>
     </div>
   )
 }
@@ -684,8 +704,8 @@ function LoadingRows() {
     <div className="flex flex-col divide-y">
       {[1, 2].map((i) => (
         <div className="flex items-center gap-4 px-6 py-4" key={i}>
-          <div className="h-4 w-32 animate-pulse rounded bg-muted" />
-          <div className="ml-auto h-4 w-20 animate-pulse rounded bg-muted" />
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="ml-auto h-4 w-20" />
         </div>
       ))}
     </div>
