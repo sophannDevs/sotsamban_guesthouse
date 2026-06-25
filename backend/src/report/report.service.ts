@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 
 import {
+  BookingSource,
   BookingStatus,
   BusinessRole,
   BusinessType,
@@ -217,7 +218,7 @@ export class ReportService {
     });
     const dateRange = await this.getDateRange(filters);
     const where = this.buildBookingWhere(filters, dateRange);
-    const [bookings, total] = await Promise.all([
+    const [bookings, total, bookingSourceAnalytics] = await Promise.all([
       this.prisma.booking.findMany({
         where,
         include: this.bookingInclude,
@@ -228,13 +229,28 @@ export class ReportService {
         take: pagination.limit,
       }),
       this.prisma.booking.count({ where }),
+      this.getBookingSourceAnalytics(where),
     ]);
 
-    return createPaginatedResult(
-      bookings.map((booking) => this.serializeBookingReport(booking)),
-      total,
-      pagination,
-    );
+    return {
+      ...createPaginatedResult(
+        bookings.map((booking) => this.serializeBookingReport(booking)),
+        total,
+        pagination,
+      ),
+      bookingSourceAnalytics,
+    };
+  }
+
+  async getSummaryReport(filters: RevenueReportFilters) {
+    const dateRange = await this.getDateRange(filters);
+    const where = this.buildBookingWhere({}, dateRange);
+    const bookingSourceAnalytics = await this.getBookingSourceAnalytics(where);
+
+    return {
+      period: dateRange.label,
+      bookingSourceAnalytics,
+    };
   }
 
   async getPaymentReport(filters: PaymentReportFilters & PaginationQuery) {
@@ -708,6 +724,46 @@ export class ReportService {
     return payments.filter((payment) => payment.status === PaymentStatus.PAID);
   }
 
+  private async getBookingSourceAnalytics(where: Prisma.BookingWhereInput) {
+    const [bookingCounts, payments] = await Promise.all([
+      this.prisma.booking.groupBy({
+        by: ['source'],
+        where,
+        _count: { _all: true },
+      }),
+      this.prisma.payment.findMany({
+        where: {
+          status: PaymentStatus.PAID,
+          booking: where,
+        },
+        select: {
+          amount: true,
+          booking: { select: { source: true } },
+        },
+      }),
+    ]);
+
+    const countBySource = new Map(
+      bookingCounts.map((row) => [row.source, row._count._all]),
+    );
+    const revenueBySource = new Map<BookingSource, number>();
+
+    for (const payment of payments) {
+      revenueBySource.set(
+        payment.booking.source,
+        (revenueBySource.get(payment.booking.source) ?? 0) +
+          Number(payment.amount),
+      );
+    }
+
+    return {
+      totalOnlineBookings: countBySource.get(BookingSource.ONLINE) ?? 0,
+      totalWalkInBookings: countBySource.get(BookingSource.WALK_IN) ?? 0,
+      revenueFromOnline: revenueBySource.get(BookingSource.ONLINE) ?? 0,
+      revenueFromWalkIn: revenueBySource.get(BookingSource.WALK_IN) ?? 0,
+    };
+  }
+
   private async buildRevenueExcelPayload(filters: RevenueReportFilters) {
     const report = await this.getRevenueReport(filters);
     const dateRange = await this.getDateRange(filters);
@@ -918,6 +974,7 @@ export class ReportService {
       coolingPrice: Number(booking.coolingPrice),
       totalPrice: Number(booking.totalPrice),
       bookingStatus: booking.status,
+      bookingSource: booking.source,
     };
   }
 

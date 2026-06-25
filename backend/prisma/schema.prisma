@@ -60,6 +60,25 @@ enum BookingSource {
   WALK_IN
 }
 
+enum BookingType {
+  HOURLY
+  HALF_DAY
+  DAILY
+}
+
+enum StayDuration {
+  TWO_HOURS
+  THREE_HOURS
+  SIX_HOURS
+  TWELVE_HOURS
+  TWENTY_FOUR_HOURS
+}
+
+enum SessionType {
+  DAY
+  NIGHT
+}
+
 enum CoolingOption {
   FAN
   AIR_CONDITIONER
@@ -138,16 +157,23 @@ model Room {
 
 model Guest {
   id                  String               @id @default(cuid())
+  businessId          String
   fullName            String
-  phone               String
+  phone               String?
   email               String?
   idCardNumber        String?
   address             String?
+  business            Business             @relation(fields: [businessId], references: [id], onDelete: Restrict)
   bookings            Booking[]
   miniBarConsumptions MiniBarConsumption[]
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
 
+  // Phone is the primary search key for repeat-guest lookup; unique per
+  // business but optional since unique indexes never conflict on NULL.
+  @@unique([businessId, phone])
+  @@index([phone])
+  @@index([businessId])
   @@map("guests")
 }
 
@@ -155,11 +181,20 @@ model Booking {
   id                  String               @id @default(cuid())
   guestId             String
   roomId              String
+  bookingType         BookingType          @default(DAILY)
+  stayDuration        StayDuration?
+  sessionType         SessionType?
   checkInDate         DateTime
   checkOutDate        DateTime
+  checkInTime         DateTime?
+  checkOutTime        DateTime?
+  autoCheckoutAt      DateTime?
   checkInAt           DateTime?
   checkOutAt          DateTime?
   coolingOption       CoolingOption        @default(FAN)
+  basePrice           Decimal              @default(0) @db.Decimal(10, 2)
+  durationPrice       Decimal              @default(0) @db.Decimal(10, 2)
+  sessionPrice        Decimal              @default(0) @db.Decimal(10, 2)
   roomPriceTotal      Decimal              @db.Decimal(10, 2)
   coolingPrice        Decimal              @db.Decimal(10, 2)
   totalPrice          Decimal              @db.Decimal(10, 2)
@@ -302,6 +337,7 @@ model Business {
   expenses                 Expense[]
   housekeepingTasks        HousekeepingTask[]
   miniBarConsumptions      MiniBarConsumption[]
+  guests                   Guest[]
   guesthouseStoreLink      GuesthouseStoreLink?  @relation("GuesthouseLink")
   storeLinkedByGuesthouses GuesthouseStoreLink[] @relation("StoreLink")
   createdAt                DateTime              @default(now())

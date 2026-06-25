@@ -43,6 +43,12 @@ export type RoomPayload = {
 
 export type RoomAvailabilityStatus = RoomStatus
 
+export type RoomTimeAvailabilityStatus =
+  | "AVAILABLE"
+  | "BOOKED"
+  | "OCCUPIED"
+  | "BLOCKED"
+
 export type RoomAvailabilityDate = {
   date: string
   status: RoomAvailabilityStatus
@@ -54,6 +60,11 @@ export type RoomAvailability = {
   roomType: RoomType
   pricePerNight: number
   dates: RoomAvailabilityDate[]
+}
+
+export type RoomTimeAvailability = {
+  roomId: string
+  status: RoomTimeAvailabilityStatus
 }
 
 type ApiResponse<T> = {
@@ -99,6 +110,18 @@ export const roomService = {
   async availability(params: { startDate: string; endDate: string }) {
     const response = await apiClient.get<ApiResponse<RoomAvailability[]>>(
       "/rooms/availability",
+      { params }
+    )
+
+    return response.data.data
+  },
+
+  async checkRoomAvailability(
+    roomId: string,
+    params: { startTime: string; endTime: string },
+  ) {
+    const response = await apiClient.get<ApiResponse<RoomTimeAvailability>>(
+      `/rooms/${roomId}/availability`,
       { params }
     )
 

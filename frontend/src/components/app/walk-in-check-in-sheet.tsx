@@ -10,7 +10,7 @@ import {
   UserIcon,
   WindIcon,
 } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { toast } from "sonner"
 
 import {
@@ -33,6 +33,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import {
   bookingService,
   getBookingErrorMessage,
+  type Booking,
   type CoolingOption,
 } from "@/lib/bookings"
 import { roomService, type Room } from "@/lib/rooms"
@@ -103,9 +104,9 @@ export function WalkInCheckInSheet({
 }: {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onComplete?: () => void
+  onComplete?: (booking: Booking) => void
 }) {
-  const router = useRouter()
+  const t = useTranslations()
   const { preferences } = useSystemPreferences()
   const [step, setStep] = useState<Step>(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -170,9 +171,8 @@ export function WalkInCheckInSheet({
         description: `${form.guestName.trim()} checked in to Room ${selectedRoom?.roomNumber ?? ""}.`,
       })
 
-      onComplete?.()
       onOpenChange(false)
-      router.push(`/bookings/${booking.id}`)
+      onComplete?.(booking)
     } catch (err) {
       toast.error("Check-in failed", {
         description: getBookingErrorMessage(err),
@@ -202,7 +202,7 @@ export function WalkInCheckInSheet({
               />
             ))}
           </div>
-          <SheetTitle>Walk-in Check-in</SheetTitle>
+          <SheetTitle>{t("walkInCheckInTitle")}</SheetTitle>
           <SheetDescription>
             {step === 1
               ? "Step 1 of 2 — Enter guest information"
@@ -218,7 +218,7 @@ export function WalkInCheckInSheet({
               <Field>
                 <FieldLabel className="flex items-center gap-1.5">
                   <UserIcon className="size-3.5 shrink-0" />
-                  Guest Name
+                  {t("walkInGuestName")}
                   <span className="text-destructive">*</span>
                 </FieldLabel>
                 <Input

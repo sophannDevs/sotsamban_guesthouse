@@ -7,11 +7,14 @@ import {
 import {
   BookingSource,
   BookingStatus,
+  BookingType,
   CoolingOption,
   HousekeepingPriority,
   HousekeepingStatus,
   Prisma,
   RoomStatus,
+  SessionType,
+  StayDuration,
   UserRole,
 } from '../../generated/prisma/client';
 
@@ -32,8 +35,14 @@ import {
 } from '../common/pagination';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { PricingService } from '../pricing/pricing.service';
 import { SettingsService } from '../settings/settings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import {
+  CreateHourlyBookingDto,
+  PreviewHourlyBookingPriceDto,
+} from './dto/create-hourly-booking.dto';
+import { ExpressCheckInDto } from './dto/express-check-in.dto';
 import { UpdateBookingDto } from './dto/update-booking.dto';
 import { WalkInCheckInDto } from './dto/walk-in-check-in.dto';
 
@@ -57,6 +66,33 @@ const bookingSortFields = [
   'status',
 ] as const;
 
+const stayDurationHours: Record<StayDuration, number> = {
+  [StayDuration.TWO_HOURS]: 2,
+  [StayDuration.THREE_HOURS]: 3,
+  [StayDuration.SIX_HOURS]: 6,
+  [StayDuration.TWELVE_HOURS]: 12,
+  [StayDuration.TWENTY_FOUR_HOURS]: 24,
+};
+
+type BookingScheduleInput = {
+  bookingType?: BookingType;
+  stayDuration?: StayDuration;
+  sessionType?: SessionType;
+  checkInDate?: string;
+  checkOutDate?: string;
+  checkInTime?: string;
+};
+
+type ExistingBookingSchedule = Pick<
+  BookingWithRelations,
+  | 'bookingType'
+  | 'stayDuration'
+  | 'sessionType'
+  | 'checkInDate'
+  | 'checkOutDate'
+  | 'checkInTime'
+>;
+
 @Injectable()
 export class BookingsService {
   private readonly bookingInclude = {
@@ -67,29 +103,39 @@ export class BookingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
+    private readonly pricingService: PricingService,
     private readonly settingsService: SettingsService,
   ) {}
 
   async create(createBookingDto: CreateBookingDto, actorUserId?: string) {
     const status = createBookingDto.status ?? BookingStatus.PENDING;
     const coolingOption = createBookingDto.coolingOption ?? CoolingOption.FAN;
-    const checkInDate = this.parseDate(createBookingDto.checkInDate);
-    const checkOutDate = this.parseDate(createBookingDto.checkOutDate);
-
-    this.validateDateRange(checkInDate, checkOutDate);
+    const schedule = this.normalizeBookingSchedule(createBookingDto);
 
     const [guest, room] = await Promise.all([
       this.findGuest(createBookingDto.guestId),
       this.findActiveRoom(createBookingDto.roomId),
     ]);
 
-    await this.ensureRoomCanBeBooked(room, checkInDate, checkOutDate);
+    await this.ensureRoomCanBeBooked(
+      room,
+      schedule.checkInDate,
+      schedule.checkOutDate,
+    );
 
     const acPricePerNight = await this.fetchAcPricePerNight();
-    const { roomPriceTotal, coolingPrice, totalPrice } = this.calculatePricing(
-      checkInDate,
-      checkOutDate,
+    const {
+      basePrice,
+      durationPrice,
+      sessionPrice,
+      roomPriceTotal,
+      coolingPrice,
+      totalPrice,
+    } = this.calculatePricing(
+      schedule.checkInDate,
+      schedule.checkOutDate,
       room.pricePerNight,
+      schedule,
       coolingOption,
       acPricePerNight,
     );
@@ -106,9 +152,11 @@ export class BookingsService {
         data: {
           guestId: guest.id,
           roomId: room.id,
-          checkInDate,
-          checkOutDate,
+          ...schedule,
           coolingOption,
+          basePrice,
+          durationPrice,
+          sessionPrice,
           roomPriceTotal,
           coolingPrice,
           totalPrice,
@@ -129,7 +177,11 @@ export class BookingsService {
   }
 
   async findAll(
-    query: PaginationQuery & { status?: BookingStatus; source?: BookingSource },
+    query: PaginationQuery & {
+      status?: BookingStatus;
+      source?: BookingSource;
+      bookingType?: BookingType;
+    },
   ) {
     const pagination = getPaginationOptions(query, {
       allowedSortBy: bookingSortFields,
@@ -152,9 +204,21 @@ export class BookingsService {
       );
     }
 
+    if (
+      query.bookingType &&
+      !Object.values(BookingType).includes(query.bookingType)
+    ) {
+      throw new BadRequestException(
+        `bookingType must be one of the following values: ${Object.values(
+          BookingType,
+        ).join(', ')}`,
+      );
+    }
+
     const where: Prisma.BookingWhereInput = {
       ...(query.status ? { status: query.status } : {}),
       ...(query.source ? { source: query.source } : {}),
+      ...(query.bookingType ? { bookingType: query.bookingType } : {}),
       ...(pagination.search
         ? {
             OR: [
@@ -325,34 +389,46 @@ export class BookingsService {
   ) {
     await assertGuesthouseAccess(this.prisma, businessId, userId, userRole);
 
-    const checkInDate = this.parseDate(dto.checkInDate);
-    // Default check-out to the next day when omitted (minimum one-night stay)
-    const checkOutDate = dto.checkOutDate
-      ? this.parseDate(dto.checkOutDate)
-      : new Date(checkInDate.getTime() + 24 * 60 * 60 * 1000);
-
-    this.validateDateRange(checkInDate, checkOutDate);
+    const schedule = this.normalizeBookingSchedule(dto, undefined, {
+      defaultDailyCheckout: true,
+    });
 
     const room = await this.findActiveRoom(dto.roomId);
 
     // Respect the same conflict rules as regular bookings
-    await this.ensureRoomCanBeBooked(room, checkInDate, checkOutDate);
+    await this.ensureRoomCanBeBooked(
+      room,
+      schedule.checkInDate,
+      schedule.checkOutDate,
+    );
 
     const coolingOption = dto.coolingOption ?? CoolingOption.FAN;
     const acPricePerNight = await this.fetchAcPricePerNight();
-    const { roomPriceTotal, coolingPrice, totalPrice } = this.calculatePricing(
-      checkInDate,
-      checkOutDate,
+    const {
+      basePrice,
+      durationPrice,
+      sessionPrice,
+      roomPriceTotal,
+      coolingPrice,
+      totalPrice,
+    } = this.calculatePricing(
+      schedule.checkInDate,
+      schedule.checkOutDate,
       room.pricePerNight,
+      schedule,
       coolingOption,
       acPricePerNight,
     );
 
-    // Attempt guest lookup before the transaction (read-only, keeps tx short)
+    // Attempt guest lookup before the transaction (read-only, keeps tx short).
+    // Scoped to this business and backed by the @@unique([businessId, phone])
+    // index — a single indexed read, not a table scan.
     let existingGuestId: string | null = null;
     if (dto.guest.phone) {
-      const found = await this.prisma.guest.findFirst({
-        where: { phone: dto.guest.phone },
+      const found = await this.prisma.guest.findUnique({
+        where: {
+          businessId_phone: { businessId, phone: dto.guest.phone },
+        },
         select: { id: true },
       });
       existingGuestId = found?.id ?? null;
@@ -365,8 +441,9 @@ export class BookingsService {
         (
           await tx.guest.create({
             data: {
+              businessId,
               fullName: dto.guest.name,
-              phone: dto.guest.phone ?? '',
+              phone: dto.guest.phone,
             },
             select: { id: true },
           })
@@ -381,10 +458,12 @@ export class BookingsService {
         data: {
           guestId,
           roomId: room.id,
-          checkInDate,
-          checkOutDate,
+          ...schedule,
           checkInAt: new Date(),
           coolingOption,
+          basePrice,
+          durationPrice,
+          sessionPrice,
           roomPriceTotal,
           coolingPrice,
           totalPrice,
@@ -398,6 +477,262 @@ export class BookingsService {
     await this.notificationsService.notifyBookingCheckedIn(userId, booking.id);
 
     return this.serializeBooking(booking);
+  }
+
+  /**
+   * Fast desk check-in for a guest who already has a Guest record — skips
+   * the guest-form/creation step that walkInCheckIn does, trading it for a
+   * single scoped existence check. Still runs the same conflict and pricing
+   * logic as every other booking-creation path.
+   */
+  async expressCheckIn(
+    userId: string,
+    userRole: UserRole,
+    businessId: string,
+    dto: ExpressCheckInDto,
+  ) {
+    await assertGuesthouseAccess(this.prisma, businessId, userId, userRole);
+
+    const [guest, room] = await Promise.all([
+      this.findGuestInBusiness(dto.guestId, businessId),
+      this.findActiveRoom(dto.roomId),
+    ]);
+
+    const schedule = this.normalizeBookingSchedule(dto, undefined, {
+      defaultDailyCheckout: true,
+    });
+
+    // Respect the same conflict rules as every other booking-creation path
+    await this.ensureRoomCanBeBooked(
+      room,
+      schedule.checkInDate,
+      schedule.checkOutDate,
+    );
+
+    const coolingOption = dto.coolingOption ?? CoolingOption.FAN;
+    const acPricePerNight = await this.fetchAcPricePerNight();
+    const {
+      basePrice,
+      durationPrice,
+      sessionPrice,
+      roomPriceTotal,
+      coolingPrice,
+      totalPrice,
+    } = this.calculatePricing(
+      schedule.checkInDate,
+      schedule.checkOutDate,
+      room.pricePerNight,
+      schedule,
+      coolingOption,
+      acPricePerNight,
+    );
+
+    const booking = await this.prisma.$transaction(async (tx) => {
+      await tx.room.update({
+        where: { id: room.id },
+        data: { status: RoomStatus.OCCUPIED },
+      });
+
+      return tx.booking.create({
+        data: {
+          guestId: guest.id,
+          roomId: room.id,
+          ...schedule,
+          checkInAt: new Date(),
+          coolingOption,
+          basePrice,
+          durationPrice,
+          sessionPrice,
+          roomPriceTotal,
+          coolingPrice,
+          totalPrice,
+          status: BookingStatus.CHECKED_IN,
+          // Express check-in is a desk-initiated, in-person check-in just
+          // like walk-in — it only skips guest-form creation because the
+          // Guest record already exists. Always WALK_IN, never ONLINE.
+          source: BookingSource.WALK_IN,
+        },
+        include: this.bookingInclude,
+      });
+    });
+
+    await this.notificationsService.notifyBookingCheckedIn(userId, booking.id);
+
+    return this.serializeBooking(booking);
+  }
+
+  async createHourly(
+    userId: string,
+    userRole: UserRole,
+    businessId: string,
+    dto: CreateHourlyBookingDto,
+  ) {
+    await assertGuesthouseAccess(this.prisma, businessId, userId, userRole);
+
+    const schedule = this.getTimedBookingSchedule(dto);
+
+    const [guest, room] = await Promise.all([
+      this.findGuestInBusiness(dto.guestId, businessId),
+      this.findActiveRoom(dto.roomId),
+    ]);
+
+    await this.ensureRoomCanBeBooked(
+      room,
+      schedule.checkInDate,
+      schedule.checkOutDate,
+    );
+
+    const acPricePerNight = await this.fetchAcPricePerNight();
+    const {
+      basePrice,
+      durationPrice,
+      sessionPrice,
+      roomPriceTotal,
+      coolingPrice,
+      totalPrice,
+    } = this.calculatePricing(
+      schedule.checkInDate,
+      schedule.checkOutDate,
+      room.pricePerNight,
+      schedule,
+      dto.coolingOption,
+      acPricePerNight,
+    );
+
+    try {
+      const booking = await this.prisma.$transaction(
+        async (tx) => {
+          const currentRoom = await tx.room.findFirst({
+            where: { id: room.id, deletedAt: null },
+          });
+
+          if (!currentRoom) {
+            throw new NotFoundException(translateError('roomNotFound'));
+          }
+
+          if (
+            currentRoom.status === RoomStatus.MAINTENANCE ||
+            currentRoom.status === RoomStatus.NEEDS_CLEANING ||
+            currentRoom.status === RoomStatus.CLEANING_IN_PROGRESS ||
+            currentRoom.status === RoomStatus.OCCUPIED
+          ) {
+            throw new ConflictException(
+              translateError('cannotBookMaintenanceRoom'),
+            );
+          }
+
+          const overlappingBooking = await tx.booking.findFirst({
+            where: {
+              roomId: currentRoom.id,
+              status: {
+                not: BookingStatus.CANCELLED,
+              },
+              checkInDate: {
+                lt: schedule.checkOutDate,
+              },
+              checkOutDate: {
+                gt: schedule.checkInDate,
+              },
+            },
+            include: {
+              guest: {
+                select: {
+                  fullName: true,
+                },
+              },
+            },
+          });
+
+          if (overlappingBooking) {
+            throw new ConflictException({
+              message: translateError('bookingOverlapDetected'),
+              code: 'BOOKING_CONFLICT',
+              conflict: {
+                roomId: currentRoom.id,
+                roomNumber: currentRoom.roomNumber,
+                existingBookingId: overlappingBooking.id,
+                guestName: overlappingBooking.guest.fullName,
+                checkInDate: overlappingBooking.checkInDate.toISOString(),
+                checkOutDate: overlappingBooking.checkOutDate.toISOString(),
+                status: overlappingBooking.status,
+              },
+            });
+          }
+
+          await tx.room.update({
+            where: { id: currentRoom.id },
+            data: { status: RoomStatus.OCCUPIED },
+          });
+
+          return tx.booking.create({
+            data: {
+              guestId: guest.id,
+              roomId: currentRoom.id,
+              ...schedule,
+              checkInAt: schedule.checkInTime,
+              coolingOption: dto.coolingOption,
+              basePrice,
+              durationPrice,
+              sessionPrice,
+              roomPriceTotal,
+              coolingPrice,
+              totalPrice,
+              status: BookingStatus.CHECKED_IN,
+              source: BookingSource.WALK_IN,
+            },
+            include: this.bookingInclude,
+          });
+        },
+        { isolationLevel: Prisma.TransactionIsolationLevel.Serializable },
+      );
+
+      await this.notificationsService.notifyBookingCheckedIn(
+        userId,
+        booking.id,
+      );
+
+      return this.serializeBooking(booking);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2034'
+      ) {
+        throw new ConflictException({
+          message: translateError('bookingOverlapDetected'),
+          code: 'BOOKING_CONFLICT',
+        });
+      }
+
+      throw error;
+    }
+  }
+
+  async previewHourlyPrice(dto: PreviewHourlyBookingPriceDto) {
+    const room = await this.findActiveRoom(dto.roomId);
+    const schedule = this.getTimedBookingSchedule(dto);
+    const acPricePerNight = await this.fetchAcPricePerNight();
+    const price = this.calculatePricing(
+      schedule.checkInDate,
+      schedule.checkOutDate,
+      room.pricePerNight,
+      schedule,
+      dto.coolingOption,
+      acPricePerNight,
+    );
+
+    return {
+      bookingType: schedule.bookingType,
+      stayDuration: schedule.stayDuration,
+      sessionType: schedule.sessionType,
+      checkInTime: schedule.checkInTime.toISOString(),
+      autoCheckoutAt: schedule.autoCheckoutAt.toISOString(),
+      basePrice: Number(price.basePrice),
+      durationPrice: Number(price.durationPrice),
+      sessionPrice: Number(price.sessionPrice),
+      roomPriceTotal: Number(price.roomPriceTotal),
+      coolingPrice: Number(price.coolingPrice),
+      totalPrice: Number(price.totalPrice),
+    };
   }
 
   async cancel(id: string) {
@@ -445,28 +780,37 @@ export class BookingsService {
     const guestId = updateBookingDto.guestId ?? existingBooking.guestId;
     const coolingOption =
       updateBookingDto.coolingOption ?? existingBooking.coolingOption;
-    const checkInDate = updateBookingDto.checkInDate
-      ? this.parseDate(updateBookingDto.checkInDate)
-      : existingBooking.checkInDate;
-    const checkOutDate = updateBookingDto.checkOutDate
-      ? this.parseDate(updateBookingDto.checkOutDate)
-      : existingBooking.checkOutDate;
     const status = updateBookingDto.status ?? existingBooking.status;
-
-    this.validateDateRange(checkInDate, checkOutDate);
+    const schedule = this.normalizeBookingSchedule(
+      updateBookingDto,
+      existingBooking,
+    );
 
     const [guest, room] = await Promise.all([
       this.findGuest(guestId),
       this.findActiveRoom(roomId),
     ]);
 
-    await this.ensureRoomCanBeBooked(room, checkInDate, checkOutDate, id);
+    await this.ensureRoomCanBeBooked(
+      room,
+      schedule.checkInDate,
+      schedule.checkOutDate,
+      id,
+    );
 
     const acPricePerNight = await this.fetchAcPricePerNight();
-    const { roomPriceTotal, coolingPrice, totalPrice } = this.calculatePricing(
-      checkInDate,
-      checkOutDate,
+    const {
+      basePrice,
+      durationPrice,
+      sessionPrice,
+      roomPriceTotal,
+      coolingPrice,
+      totalPrice,
+    } = this.calculatePricing(
+      schedule.checkInDate,
+      schedule.checkOutDate,
       room.pricePerNight,
+      schedule,
       coolingOption,
       acPricePerNight,
     );
@@ -484,9 +828,11 @@ export class BookingsService {
         data: {
           guestId: guest.id,
           roomId: room.id,
-          checkInDate,
-          checkOutDate,
+          ...schedule,
           coolingOption,
+          basePrice,
+          durationPrice,
+          sessionPrice,
           roomPriceTotal,
           coolingPrice,
           totalPrice,
@@ -530,6 +876,18 @@ export class BookingsService {
   private async findGuest(id: string) {
     const guest = await this.prisma.guest.findUnique({
       where: { id },
+    });
+
+    if (!guest) {
+      throw new NotFoundException(translateError('guestNotFound'));
+    }
+
+    return guest;
+  }
+
+  private async findGuestInBusiness(id: string, businessId: string) {
+    const guest = await this.prisma.guest.findFirst({
+      where: { id, businessId },
     });
 
     if (!guest) {
@@ -606,6 +964,123 @@ export class BookingsService {
         },
       });
     }
+  }
+
+  private getTimedBookingSchedule(
+    input: Pick<
+      BookingScheduleInput,
+      'bookingType' | 'stayDuration' | 'sessionType'
+    >,
+  ) {
+    const bookingType = input.bookingType ?? BookingType.HOURLY;
+    const checkInTime = new Date();
+    const stayDuration =
+      bookingType === BookingType.DAILY
+        ? StayDuration.TWENTY_FOUR_HOURS
+        : bookingType === BookingType.HALF_DAY
+          ? (input.stayDuration ?? StayDuration.SIX_HOURS)
+          : input.stayDuration;
+
+    if (!stayDuration) {
+      throw new BadRequestException(
+        'stayDuration is required for hourly bookings.',
+      );
+    }
+
+    const autoCheckoutAt = new Date(
+      checkInTime.getTime() + stayDurationHours[stayDuration] * 60 * 60 * 1000,
+    );
+
+    return {
+      bookingType,
+      stayDuration,
+      sessionType: input.sessionType ?? null,
+      checkInDate: checkInTime,
+      checkOutDate: autoCheckoutAt,
+      checkInTime,
+      checkOutTime: autoCheckoutAt,
+      autoCheckoutAt,
+    };
+  }
+
+  private normalizeBookingSchedule(
+    input: BookingScheduleInput,
+    existing?: ExistingBookingSchedule,
+    options: { defaultDailyCheckout?: boolean } = {},
+  ) {
+    const bookingType =
+      input.bookingType ?? existing?.bookingType ?? BookingType.DAILY;
+
+    if (bookingType === BookingType.DAILY) {
+      const checkInDate = input.checkInDate
+        ? this.parseDate(input.checkInDate)
+        : existing?.checkInDate;
+      const checkOutDate = input.checkOutDate
+        ? this.parseDate(input.checkOutDate)
+        : (existing?.checkOutDate ??
+          (options.defaultDailyCheckout && checkInDate
+            ? new Date(checkInDate.getTime() + 24 * 60 * 60 * 1000)
+            : undefined));
+
+      if (!checkInDate) {
+        throw new BadRequestException(
+          'checkInDate is required for daily bookings.',
+        );
+      }
+
+      if (!checkOutDate) {
+        throw new BadRequestException(
+          'checkOutDate is required for daily bookings.',
+        );
+      }
+
+      this.validateDateRange(checkInDate, checkOutDate);
+
+      return {
+        bookingType,
+        stayDuration: null,
+        sessionType: null,
+        checkInDate,
+        checkOutDate,
+        checkInTime: null,
+        checkOutTime: null,
+        autoCheckoutAt: null,
+      };
+    }
+
+    const checkInTime = input.checkInTime
+      ? this.parseDate(input.checkInTime)
+      : existing?.checkInTime;
+    const stayDuration = input.stayDuration ?? existing?.stayDuration;
+
+    if (!checkInTime) {
+      throw new BadRequestException(
+        'checkInTime is required for hourly bookings.',
+      );
+    }
+
+    if (!stayDuration) {
+      throw new BadRequestException(
+        'stayDuration is required for hourly bookings.',
+      );
+    }
+
+    const checkOutTime = new Date(
+      checkInTime.getTime() + stayDurationHours[stayDuration] * 60 * 60 * 1000,
+    );
+
+    this.validateDateRange(checkInTime, checkOutTime);
+
+    return {
+      bookingType,
+      stayDuration,
+      sessionType: input.sessionType ?? existing?.sessionType ?? null,
+      checkInDate: checkInTime,
+      checkOutDate: checkOutTime,
+      checkInTime,
+      checkOutTime,
+      autoCheckoutAt: checkOutTime,
+    };
   }
 
   private validateDateRange(checkInDate: Date, checkOutDate: Date) {
@@ -690,6 +1165,10 @@ export class BookingsService {
     checkInDate: Date,
     checkOutDate: Date,
     pricePerNight: Prisma.Decimal,
+    schedule: Pick<
+      ExistingBookingSchedule,
+      'bookingType' | 'stayDuration' | 'sessionType'
+    >,
     coolingOption: CoolingOption,
     acPricePerNight: Prisma.Decimal,
   ) {
@@ -697,16 +1176,39 @@ export class BookingsService {
     const nights = Math.ceil(
       (checkOutDate.getTime() - checkInDate.getTime()) / millisecondsPerNight,
     );
-    const roomPriceTotal = new Prisma.Decimal(Number(pricePerNight) * nights);
+
+    const roomPrice = this.pricingService.calculateBookingPrice({
+      roomPricePerDay: pricePerNight,
+      bookingType: schedule.bookingType,
+      stayDuration: schedule.stayDuration,
+      sessionType: schedule.sessionType,
+    });
+    const basePrice = roomPrice.basePrice.mul(nights);
+    const durationPrice = roomPrice.durationPrice.mul(nights);
+    const sessionPrice = roomPrice.sessionPrice.mul(nights);
+    const roomPriceTotal = roomPrice.totalPrice.mul(nights);
+
     const coolingPrice =
       coolingOption === CoolingOption.AIR_CONDITIONER
-        ? new Prisma.Decimal(Number(acPricePerNight) * nights)
+        ? this.pricingService
+            .calculateBookingPrice({
+              roomPricePerDay: acPricePerNight,
+              bookingType: schedule.bookingType,
+              stayDuration: schedule.stayDuration,
+              sessionType: schedule.sessionType,
+            })
+            .totalPrice.mul(nights)
         : new Prisma.Decimal(0);
-    const totalPrice = new Prisma.Decimal(
-      Number(roomPriceTotal) + Number(coolingPrice),
-    );
+    const totalPrice = roomPriceTotal.add(coolingPrice);
 
-    return { roomPriceTotal, coolingPrice, totalPrice };
+    return {
+      basePrice,
+      durationPrice,
+      sessionPrice,
+      roomPriceTotal,
+      coolingPrice,
+      totalPrice,
+    };
   }
 
   private formatDateOnly(date: Date) {
@@ -772,6 +1274,9 @@ export class BookingsService {
 
     return {
       ...booking,
+      basePrice: Number(booking.basePrice),
+      durationPrice: Number(booking.durationPrice),
+      sessionPrice: Number(booking.sessionPrice),
       roomPriceTotal: Number(booking.roomPriceTotal),
       coolingPrice: Number(booking.coolingPrice),
       miniBarTotal: Number(miniBarTotal),

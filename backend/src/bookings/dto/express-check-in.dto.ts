@@ -7,14 +7,13 @@ import {
 } from 'class-validator';
 
 import {
-  BookingStatus,
   BookingType,
   CoolingOption,
   SessionType,
   StayDuration,
 } from '../../../generated/prisma/client';
 
-export class CreateBookingDto {
+export class ExpressCheckInDto {
   @IsString()
   @IsNotEmpty()
   guestId: string;
@@ -46,10 +45,6 @@ export class CreateBookingDto {
   @IsDateString()
   @IsOptional()
   checkInTime?: string;
-
-  @IsEnum(BookingStatus)
-  @IsOptional()
-  status?: BookingStatus;
 
   @IsEnum(CoolingOption)
   @IsOptional()

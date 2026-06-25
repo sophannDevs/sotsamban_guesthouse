@@ -15,9 +15,11 @@ import {
   ArrowLeftIcon,
   BedDoubleIcon,
   CalendarCheckIcon,
+  CalendarDaysIcon,
   CalendarPlusIcon,
   CalendarXIcon,
   CheckIcon,
+  Clock3Icon,
   CreditCardIcon,
   DoorOpenIcon,
   EyeIcon,
@@ -25,14 +27,17 @@ import {
   LogInIcon,
   LogOutIcon,
   MartiniIcon,
+  MoonIcon,
   PlusIcon,
   ReceiptIcon,
   RefreshCwIcon,
   SearchIcon,
+  SunIcon,
   UserIcon,
   UserPlusIcon,
   WindIcon,
   XIcon,
+  ZapIcon,
 } from "lucide-react"
 import { useTranslations } from "next-intl"
 import { useForm, useWatch } from "react-hook-form"
@@ -94,7 +99,10 @@ import {
   type BookingPayload,
   type BookingSource,
   type BookingStatus,
+  type BookingType,
   type CoolingOption,
+  type SessionType,
+  type StayDuration,
 } from "@/lib/bookings"
 import { settingsService } from "@/lib/settings"
 import { guestService, type Guest } from "@/lib/guests"
@@ -134,6 +142,7 @@ import { cn } from "@/lib/utils"
 
 type StatusFilter = "ALL" | BookingStatus
 type SourceFilter = "ALL" | BookingSource
+type BookingTypeFilter = "ALL" | "HOURLY" | "DAILY"
 
 type Option<T extends string> = {
   value: T
@@ -166,6 +175,10 @@ export default function BookingsPage() {
   const [rooms, setRooms] = useState<Room[]>([])
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL")
   const [sourceFilter, setSourceFilter] = useState<SourceFilter>("ALL")
+  const [bookingTypeFilter, setBookingTypeFilter] =
+    useState<BookingTypeFilter>("ALL")
+  const [searchTerm, setSearchTerm] = useState("")
+  const [activeSearch, setActiveSearch] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [isOptionsLoading, setIsOptionsLoading] = useState(true)
   const [isAvailabilityLoading, setIsAvailabilityLoading] = useState(false)
@@ -242,6 +255,21 @@ export default function BookingsPage() {
     ],
     [t]
   )
+
+  const bookingTypeFilterOptions: Option<BookingTypeFilter>[] = useMemo(
+    () => [
+      { value: "ALL", label: t("allBookingTypes") },
+      { value: "HOURLY", label: t("hourlyBookings") },
+      { value: "DAILY", label: t("dailyBookings") },
+    ],
+    [t]
+  )
+
+  const hasActiveFilters =
+    statusFilter !== "ALL" ||
+    sourceFilter !== "ALL" ||
+    bookingTypeFilter !== "ALL" ||
+    Boolean(activeSearch)
 
   const {
     control,
@@ -321,7 +349,7 @@ export default function BookingsPage() {
         ? guests.filter(
             (g) =>
               g.fullName.toLowerCase().includes(guestSearch.toLowerCase()) ||
-              g.phone.includes(guestSearch)
+              (g.phone?.includes(guestSearch) ?? false)
           )
         : guests,
     [guests, guestSearch]
@@ -365,7 +393,13 @@ export default function BookingsPage() {
     liveConflict,
   ])
 
-  const loadBookings = useCallback(async (filter: StatusFilter, srcFilter: SourceFilter = sourceFilter, nextPage = page) => {
+  const loadBookings = useCallback(async (
+    filter: StatusFilter,
+    srcFilter: SourceFilter = sourceFilter,
+    nextPage = page,
+    typeFilter: BookingTypeFilter = bookingTypeFilter,
+    search: string = activeSearch
+  ) => {
     setIsLoading(true)
     setErrorMessage(null)
 
@@ -373,8 +407,10 @@ export default function BookingsPage() {
       const response = await bookingService.listPaginated({
         page: nextPage,
         limit,
+        ...(search ? { search } : {}),
         ...(filter === "ALL" ? {} : { status: filter }),
         ...(srcFilter === "ALL" ? {} : { source: srcFilter }),
+        ...(typeFilter === "ALL" ? {} : { bookingType: typeFilter }),
       })
       setBookings(response.data)
       setPaginationMeta(response.meta)
@@ -383,7 +419,7 @@ export default function BookingsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [limit, page, sourceFilter])
+  }, [activeSearch, bookingTypeFilter, limit, page, sourceFilter])
 
   const loadOptions = useCallback(async () => {
     setIsOptionsLoading(true)
@@ -404,6 +440,15 @@ export default function BookingsPage() {
   }, [])
 
   useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setActiveSearch(searchTerm.trim())
+      setPage(1)
+    }, 300)
+
+    return () => window.clearTimeout(timeout)
+  }, [searchTerm])
+
+  useEffect(() => {
     let ignore = false
 
     async function fetchBookings() {
@@ -414,8 +459,10 @@ export default function BookingsPage() {
         const response = await bookingService.listPaginated({
           page,
           limit,
+          ...(activeSearch ? { search: activeSearch } : {}),
           ...(statusFilter === "ALL" ? {} : { status: statusFilter }),
           ...(sourceFilter === "ALL" ? {} : { source: sourceFilter }),
+          ...(bookingTypeFilter === "ALL" ? {} : { bookingType: bookingTypeFilter }),
         })
 
         if (!ignore) {
@@ -438,7 +485,7 @@ export default function BookingsPage() {
     return () => {
       ignore = true
     }
-  }, [limit, page, statusFilter, sourceFilter])
+  }, [activeSearch, bookingTypeFilter, limit, page, statusFilter, sourceFilter])
 
   useEffect(() => {
     let ignore = false
@@ -784,15 +831,36 @@ export default function BookingsPage() {
           </div>
           <CardAction className="flex flex-wrap justify-end gap-2">
             <MobileFilterDrawer
-              activeCount={(statusFilter !== "ALL" ? 1 : 0) + (sourceFilter !== "ALL" ? 1 : 0)}
+              activeCount={
+                (statusFilter !== "ALL" ? 1 : 0) +
+                (sourceFilter !== "ALL" ? 1 : 0) +
+                (bookingTypeFilter !== "ALL" ? 1 : 0) +
+                (activeSearch ? 1 : 0)
+              }
+              onApply={() => {
+                setActiveSearch(searchTerm.trim())
+                setPage(1)
+              }}
               onClear={() => {
                 setStatusFilter("ALL")
                 setSourceFilter("ALL")
+                setBookingTypeFilter("ALL")
+                setSearchTerm("")
+                setActiveSearch("")
                 setPage(1)
               }}
               triggerClassName="md:hidden"
             >
               <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <p className="text-sm font-medium leading-none">{t("searchBookings")}</p>
+                  <Input
+                    autoComplete="off"
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                    placeholder={t("searchBookingsPlaceholder")}
+                    value={searchTerm}
+                  />
+                </div>
                 <div className="flex flex-col gap-1.5">
                   <p className="text-sm font-medium leading-none">{t("status")}</p>
                   <Select
@@ -841,9 +909,44 @@ export default function BookingsPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="flex flex-col gap-1.5">
+                  <p className="text-sm font-medium leading-none">{t("bookingType")}</p>
+                  <Select
+                    items={bookingTypeFilterOptions}
+                    value={bookingTypeFilter}
+                    onValueChange={(value) => {
+                      setBookingTypeFilter(value as BookingTypeFilter)
+                      setPage(1)
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {bookingTypeFilterOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </MobileFilterDrawer>
             <div className="hidden items-center gap-2 md:flex">
+              <div className="relative">
+                <SearchIcon className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  aria-label={t("searchBookings")}
+                  autoComplete="off"
+                  className="h-8 w-56 pl-8"
+                  onChange={(event) => setSearchTerm(event.target.value)}
+                  placeholder={t("searchBookingsPlaceholder")}
+                  value={searchTerm}
+                />
+              </div>
               <Select
                 items={filterOptions}
                 value={statusFilter}
@@ -886,6 +989,27 @@ export default function BookingsPage() {
                   </SelectGroup>
                 </SelectContent>
               </Select>
+              <Select
+                items={bookingTypeFilterOptions}
+                value={bookingTypeFilter}
+                onValueChange={(value) => {
+                  setBookingTypeFilter(value as BookingTypeFilter)
+                  setPage(1)
+                }}
+              >
+                <SelectTrigger aria-label={t("filterBookingsByType")} size="sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent align="end">
+                  <SelectGroup>
+                    {bookingTypeFilterOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
             </div>
             <Button className="hidden md:inline-flex" onClick={openCreateDialog}>
               <CalendarPlusIcon data-icon="inline-start" />
@@ -901,7 +1025,15 @@ export default function BookingsPage() {
               <AlertDescription>{errorMessage}</AlertDescription>
               <Button
                 className="mt-3 w-fit"
-                onClick={() => void loadBookings(statusFilter, sourceFilter, page)}
+                onClick={() =>
+                  void loadBookings(
+                    statusFilter,
+                    sourceFilter,
+                    page,
+                    bookingTypeFilter,
+                    activeSearch
+                  )
+                }
                 size="sm"
                 type="button"
                 variant="outline"
@@ -986,6 +1118,15 @@ export default function BookingsPage() {
                             {t("roomLabel", { roomNumber: booking.room.roomNumber })}
                             {" · "}{getRoomTypeLabel(booking.room.type, t)}
                           </span>
+                          <div className="flex flex-wrap items-center gap-1 py-0.5">
+                            <BookingTypeBadge type={booking.bookingType} t={t} />
+                            {booking.stayDuration ? (
+                              <DurationBadge duration={booking.stayDuration} />
+                            ) : null}
+                            {booking.sessionType ? (
+                              <SessionBadge sessionType={booking.sessionType} t={t} />
+                            ) : null}
+                          </div>
                           <span className="text-sm text-muted-foreground">
                             {formatDateRange(booking.checkInDate, booking.checkOutDate)}
                           </span>
@@ -1047,11 +1188,7 @@ export default function BookingsPage() {
               })
             ) : (
               <p className="py-8 text-center text-sm text-muted-foreground">
-                {statusFilter === "ALL"
-                  ? t("noBookingsFound")
-                  : t("noBookingsByStatusFound", {
-                      status: getBookingStatusLabel(statusFilter, t).toLowerCase(),
-                    })}
+                {hasActiveFilters ? t("noBookingsMatchFilters") : t("noBookingsFound")}
               </p>
             )}
           </div>
@@ -1064,6 +1201,7 @@ export default function BookingsPage() {
                   <TableHead>{t("booking")}</TableHead>
                   <TableHead>{t("guest")}</TableHead>
                   <TableHead>{t("room")}</TableHead>
+                  <TableHead>{t("type")}</TableHead>
                   <TableHead>{t("dates")}</TableHead>
                   <TableHead>{t("total")}</TableHead>
                   <TableHead>{t("miniBarTotal")}</TableHead>
@@ -1092,6 +1230,17 @@ export default function BookingsPage() {
                         <span className="block text-xs text-muted-foreground">
                           {getRoomTypeLabel(booking.room.type, t)}
                         </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          <BookingTypeBadge type={booking.bookingType} t={t} />
+                          {booking.stayDuration ? (
+                            <DurationBadge duration={booking.stayDuration} />
+                          ) : null}
+                          {booking.sessionType ? (
+                            <SessionBadge sessionType={booking.sessionType} t={t} />
+                          ) : null}
+                        </div>
                       </TableCell>
                       <TableCell>
                         {formatDateRange(
@@ -1134,11 +1283,9 @@ export default function BookingsPage() {
                 ) : (
                   <TableStateRow
                     message={
-                      statusFilter === "ALL"
-                        ? t("noBookingsFound")
-                        : t("noBookingsByStatusFound", {
-                            status: getBookingStatusLabel(statusFilter, t).toLowerCase(),
-                          })
+                      hasActiveFilters
+                        ? t("noBookingsMatchFilters")
+                        : t("noBookingsFound")
                     }
                   />
                 )}
@@ -1521,7 +1668,7 @@ export default function BookingsPage() {
                         {selectedGuest?.fullName ?? "—"}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {selectedGuest?.phone}
+                        {selectedGuest?.phone ?? "—"}
                       </p>
                     </div>
                   </div>
@@ -2004,7 +2151,7 @@ export default function BookingsPage() {
                 />
                 <DetailItem
                   label={t("phone")}
-                  value={detailBooking.guest.phone}
+                  value={detailBooking.guest.phone ?? "—"}
                 />
                 <DetailItem
                   label={t("room")}
@@ -2423,6 +2570,77 @@ function BookingSourceBadge({
   )
 }
 
+function BookingTypeBadge({
+  type,
+  t,
+}: {
+  type: BookingType
+  t: TranslationFn
+}) {
+  const variant: ComponentProps<typeof Badge>["variant"] =
+    type === "HOURLY" ? "info" : type === "HALF_DAY" ? "warning" : "secondary"
+  const Icon =
+    type === "HOURLY"
+      ? ZapIcon
+      : type === "HALF_DAY"
+        ? Clock3Icon
+        : CalendarDaysIcon
+
+  return (
+    <Badge className="h-6 px-2 text-xs" variant={variant}>
+      <Icon data-icon="inline-start" />
+      {getBookingTypeLabel(type, t)}
+    </Badge>
+  )
+}
+
+function DurationBadge({ duration }: { duration: StayDuration }) {
+  return (
+    <Badge className="h-6 px-2 text-xs" variant="outline">
+      {getStayDurationLabel(duration)}
+    </Badge>
+  )
+}
+
+function SessionBadge({
+  sessionType,
+  t,
+}: {
+  sessionType: SessionType
+  t: TranslationFn
+}) {
+  const Icon = sessionType === "DAY" ? SunIcon : MoonIcon
+
+  return (
+    <Badge className="h-6 px-2 text-xs" variant="outline">
+      <Icon data-icon="inline-start" />
+      {sessionType === "DAY" ? t("sessionDay") : t("sessionNight")}
+    </Badge>
+  )
+}
+
+function getBookingTypeLabel(type: BookingType, t: TranslationFn) {
+  const labels: Record<BookingType, string> = {
+    HOURLY: t("bookingTypeHourly"),
+    HALF_DAY: t("bookingTypeHalfDay"),
+    DAILY: t("bookingTypeDaily"),
+  }
+
+  return labels[type]
+}
+
+function getStayDurationLabel(duration: StayDuration) {
+  const labels: Record<StayDuration, string> = {
+    TWO_HOURS: "2H",
+    THREE_HOURS: "3H",
+    SIX_HOURS: "6H",
+    TWELVE_HOURS: "12H",
+    TWENTY_FOUR_HOURS: "1D",
+  }
+
+  return labels[duration]
+}
+
 function getBookingStatusLabel(status: BookingStatus, t: TranslationFn) {
   const labels: Record<BookingStatus, string> = {
     PENDING: t("pending"),
@@ -2498,7 +2716,7 @@ function TableStateRow({ message }: { message: string }) {
     <TableRow>
       <TableCell
         className="h-28 text-center text-sm text-muted-foreground"
-        colSpan={8}
+        colSpan={10}
       >
         {message}
       </TableCell>

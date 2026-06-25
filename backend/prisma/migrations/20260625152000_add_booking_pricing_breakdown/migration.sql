@@ -1,0 +1,5 @@
+-- AlterTable
+ALTER TABLE "bookings"
+  ADD COLUMN "basePrice" DECIMAL(10,2) NOT NULL DEFAULT 0,
+  ADD COLUMN "durationPrice" DECIMAL(10,2) NOT NULL DEFAULT 0,
+  ADD COLUMN "sessionPrice" DECIMAL(10,2) NOT NULL DEFAULT 0;

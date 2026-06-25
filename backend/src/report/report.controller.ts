@@ -67,6 +67,19 @@ export class ReportController {
     return this.reportService.getBookingReport(query);
   }
 
+  @Get('summary')
+  getSummaryReport(
+    @Query('rangePreset') rangePreset?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ) {
+    return this.reportService.getSummaryReport({
+      rangePreset,
+      startDate,
+      endDate,
+    });
+  }
+
   @Get('payments')
   getPaymentReport(
     @Query()

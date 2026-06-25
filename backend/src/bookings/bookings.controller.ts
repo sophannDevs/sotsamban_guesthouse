@@ -10,7 +10,12 @@ import {
   Query,
 } from '@nestjs/common';
 
-import { BookingSource, BookingStatus, UserRole } from '../../generated/prisma/client';
+import {
+  BookingSource,
+  BookingStatus,
+  BookingType,
+  UserRole,
+} from '../../generated/prisma/client';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { AuthUser } from '../auth/types';
@@ -18,6 +23,11 @@ import { apiResponse } from '../common/api-response';
 import type { PaginationQuery } from '../common/pagination';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
+import {
+  CreateHourlyBookingDto,
+  PreviewHourlyBookingPriceDto,
+} from './dto/create-hourly-booking.dto';
+import { ExpressCheckInDto } from './dto/express-check-in.dto';
 import { UpdateBookingDto } from './dto/update-booking.dto';
 import { WalkInCheckInDto } from './dto/walk-in-check-in.dto';
 
@@ -41,7 +51,12 @@ export class BookingsController {
 
   @Get()
   async findAll(
-    @Query() query: PaginationQuery & { status?: BookingStatus; source?: BookingSource },
+    @Query()
+    query: PaginationQuery & {
+      status?: BookingStatus;
+      source?: BookingSource;
+      bookingType?: BookingType;
+    },
   ) {
     const bookings = await this.bookingsService.findAll(query);
 
@@ -79,6 +94,45 @@ export class BookingsController {
     );
 
     return apiResponse('Walk-in check-in completed successfully.', booking);
+  }
+
+  @Post('express-check-in')
+  async expressCheckIn(
+    @Body() dto: ExpressCheckInDto,
+    @Headers('x-business-id') businessId: string,
+    @CurrentUser() currentUser: AuthUser,
+  ) {
+    const booking = await this.bookingsService.expressCheckIn(
+      currentUser.userId,
+      currentUser.role,
+      businessId,
+      dto,
+    );
+
+    return apiResponse('Express check-in completed successfully.', booking);
+  }
+
+  @Post('hourly/price-preview')
+  async previewHourlyPrice(@Body() dto: PreviewHourlyBookingPriceDto) {
+    const price = await this.bookingsService.previewHourlyPrice(dto);
+
+    return apiResponse('Booking price calculated successfully.', price);
+  }
+
+  @Post('hourly')
+  async createHourly(
+    @Body() dto: CreateHourlyBookingDto,
+    @Headers('x-business-id') businessId: string,
+    @CurrentUser() currentUser: AuthUser,
+  ) {
+    const booking = await this.bookingsService.createHourly(
+      currentUser.userId,
+      currentUser.role,
+      businessId,
+      dto,
+    );
+
+    return apiResponse('Hourly booking created successfully.', booking);
   }
 
   @Get(':id')

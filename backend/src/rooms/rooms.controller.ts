@@ -132,6 +132,25 @@ export class RoomsController {
   }
 
   @Roles(UserRole.ADMIN, UserRole.RECEPTIONIST)
+  @Get(':id/availability')
+  async checkRoomAvailability(
+    @Param('id') id: string,
+    @Query('startTime') startTime?: string,
+    @Query('endTime') endTime?: string,
+  ) {
+    const status = await this.roomsService.checkRoomAvailability(
+      id,
+      startTime,
+      endTime,
+    );
+
+    return apiResponse('Room availability checked successfully.', {
+      roomId: id,
+      status,
+    });
+  }
+
+  @Roles(UserRole.ADMIN, UserRole.RECEPTIONIST)
   @Get(':id')
   async findOne(@Param('id') id: string) {
     const room = await this.roomsService.findOne(id);

@@ -8,7 +8,12 @@ import {
   ValidateNested,
 } from 'class-validator';
 
-import { CoolingOption } from '../../../generated/prisma/client';
+import {
+  BookingType,
+  CoolingOption,
+  SessionType,
+  StayDuration,
+} from '../../../generated/prisma/client';
 
 export class WalkInGuestDto {
   @IsString()
@@ -29,12 +34,29 @@ export class WalkInCheckInDto {
   @IsNotEmpty()
   roomId: string;
 
+  @IsEnum(BookingType)
+  @IsOptional()
+  bookingType?: BookingType;
+
+  @IsEnum(StayDuration)
+  @IsOptional()
+  stayDuration?: StayDuration;
+
+  @IsEnum(SessionType)
+  @IsOptional()
+  sessionType?: SessionType;
+
   @IsDateString()
-  checkInDate: string;
+  @IsOptional()
+  checkInDate?: string;
 
   @IsDateString()
   @IsOptional()
   checkOutDate?: string;
+
+  @IsDateString()
+  @IsOptional()
+  checkInTime?: string;
 
   @IsEnum(CoolingOption)
   @IsOptional()

@@ -11,7 +11,7 @@ import {
 export type Guest = {
   id: string
   fullName: string
-  phone: string
+  phone: string | null
   email: string | null
   idCardNumber: string | null
   address: string | null
@@ -25,6 +25,14 @@ export type GuestPayload = {
   email?: string
   idCardNumber?: string
   address?: string
+}
+
+export type GuestSearchResult = {
+  id: string
+  name: string
+  phone: string | null
+  lastBookingDate: string | null
+  totalVisits: number
 }
 
 type ApiResponse<T> = {
@@ -72,6 +80,34 @@ export const guestService = {
       )
 
     return unwrapList("success" in response.data ? response.data.data : response.data)
+  },
+
+  /**
+   * Fast, debounced-friendly search by name or phone, scoped to the active
+   * business. Results come back with visit stats inline (no follow-up
+   * history fetch needed) — used by the Express Check-in guest picker.
+   */
+  async search(query: string, limit = 10) {
+    const trimmed = query.trim()
+
+    if (!trimmed) return []
+
+    const response = await apiClient.get<GuestSearchResult[]>(
+      "/guests/search",
+      { params: { query: trimmed, limit } }
+    )
+
+    return response.data
+  },
+
+  /** Top repeat guests for the dashboard's "Frequent Guests" widget. */
+  async getFrequent(limit = 5) {
+    const response = await apiClient.get<GuestSearchResult[]>(
+      "/guests/frequent",
+      { params: { limit } }
+    )
+
+    return response.data
   },
 
   async create(payload: GuestPayload) {

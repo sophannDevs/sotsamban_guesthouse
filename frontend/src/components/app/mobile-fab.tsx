@@ -1,7 +1,14 @@
 "use client"
 
-import { useRouter } from "next/navigation"
-import { CalendarPlusIcon, PlusIcon, ReceiptIcon, WalletIcon } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
+import {
+  CalendarPlusIcon,
+  PlusIcon,
+  ReceiptIcon,
+  UserPlusIcon,
+  WalletIcon,
+  ZapIcon,
+} from "lucide-react"
 import { useTranslations } from "next-intl"
 
 import { useActiveBusiness } from "@/components/app/business-provider"
@@ -15,6 +22,18 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 const guesthouseFabActions = [
+  {
+    href: "/dashboard",
+    labelKey: "dashboardPage.quickWalkIn",
+    icon: UserPlusIcon,
+    action: "walkIn",
+  },
+  {
+    href: "/dashboard",
+    labelKey: "dashboardPage.quickExpressCheckIn",
+    icon: ZapIcon,
+    action: "expressCheckIn",
+  },
   { href: "/bookings", labelKey: "fab.newBooking", icon: CalendarPlusIcon },
   { href: "/expenses", labelKey: "fab.addExpense", icon: WalletIcon },
 ] as const
@@ -26,6 +45,7 @@ const storeFabActions = [
 
 export function MobileFab() {
   const router = useRouter()
+  const pathname = usePathname()
   const t = useTranslations()
   const { activeBusiness } = useActiveBusiness()
 
@@ -35,6 +55,19 @@ export function MobileFab() {
 
   const actions =
     activeBusiness.businessType === "STORE" ? storeFabActions : guesthouseFabActions
+
+  function handleAction(action: (typeof actions)[number]) {
+    const searchAction = "action" in action ? action.action : "new"
+
+    if (action.href === "/dashboard" && pathname === "/dashboard") {
+      window.dispatchEvent(
+        new CustomEvent("dashboard:quick-action", { detail: searchAction })
+      )
+      return
+    }
+
+    router.push(`${action.href}?action=${searchAction}`)
+  }
 
   return (
     <div className="fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] z-50 md:hidden">
@@ -54,8 +87,8 @@ export function MobileFab() {
           <DropdownMenuGroup>
             {actions.map((action) => (
               <DropdownMenuItem
-                key={action.href}
-                onClick={() => router.push(`${action.href}?action=new`)}
+                key={`${action.href}-${action.labelKey}`}
+                onClick={() => handleAction(action)}
               >
                 <action.icon data-icon="inline-start" />
                 {t(action.labelKey)}

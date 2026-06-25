@@ -66,6 +66,7 @@ import {
   type ReportTableRow,
   type ReportType,
   type RevenueReport,
+  type SummaryReport,
 } from "@/lib/reports"
 import { defaultPaginationMeta, type PaginatedResponse } from "@/lib/api"
 import { MobileFilterDrawer } from "@/components/app/mobile-filter-drawer"
@@ -217,6 +218,9 @@ export default function ReportsPage() {
   )
 
   const isCustomPreset = rangePreset === "custom"
+  // The summary report has no backend export route (it's a lightweight
+  // analytics breakdown, not a row-based dataset).
+  const canExport = reportType !== "summary"
 
   // Calculated dates for non-custom presets
   const presetRange = useMemo(
@@ -745,7 +749,7 @@ export default function ReportsPage() {
           </div>
           <CardAction className="hidden flex-col gap-2 sm:flex sm:flex-row">
             <Button
-              disabled={Boolean(exportingFormat)}
+              disabled={Boolean(exportingFormat) || !canExport}
               onClick={() => void exportReport("excel")}
               type="button"
               variant="outline"
@@ -758,7 +762,7 @@ export default function ReportsPage() {
               {exportingFormat === "excel" ? t("exporting") : t("exportExcel")}
             </Button>
             <Button
-              disabled={Boolean(exportingFormat)}
+              disabled={Boolean(exportingFormat) || !canExport}
               onClick={() => void exportReport("pdf")}
               type="button"
               variant="outline"
@@ -902,7 +906,7 @@ export default function ReportsPage() {
       <div className="fixed bottom-0 left-0 right-0 z-40 flex gap-3 border-t bg-background px-4 pb-[max(16px,env(safe-area-inset-bottom))] pt-3 sm:hidden">
         <Button
           className="flex-1"
-          disabled={Boolean(exportingFormat)}
+          disabled={Boolean(exportingFormat) || !canExport}
           onClick={() => void exportReport("excel")}
           type="button"
           variant="outline"
@@ -916,7 +920,7 @@ export default function ReportsPage() {
         </Button>
         <Button
           className="flex-1"
-          disabled={Boolean(exportingFormat)}
+          disabled={Boolean(exportingFormat) || !canExport}
           onClick={() => void exportReport("pdf")}
           type="button"
           variant="outline"
@@ -983,6 +987,17 @@ function getReportDefinitions(t: TranslationFn): Record<ReportType, ReportDefini
         { key: "coolingPrice", header: t("coolingPrice") },
         { key: "totalPrice", header: t("total") },
         { key: "bookingStatus", header: t("status") },
+        { key: "bookingSource", header: t("source") },
+      ],
+    },
+    summary: {
+      label: t("summaryReport"),
+      description: t("summaryReportDescription"),
+      statusLabel: t("status"),
+      statuses: [{ value: "ALL", label: t("allStatuses") }],
+      columns: [
+        { key: "metric", header: t("metric") },
+        { key: "value", header: t("value") },
       ],
     },
     payments: {
@@ -1201,7 +1216,34 @@ function normalizeReportRows(
       bookingStatus: isBookingStatusValue(row.bookingStatus)
         ? getBookingStatusLabel(row.bookingStatus, t)
         : row.bookingStatus,
+      bookingSource: row.bookingSource === "WALK_IN"
+        ? t("sourceWalkIn")
+        : t("sourceOnline"),
     }))
+  }
+
+  if (reportType === "summary") {
+    const report = reportData as SummaryReport
+    const analytics = report.bookingSourceAnalytics
+
+    return [
+      {
+        metric: t("totalOnlineBookings"),
+        value: formatNumber(analytics.totalOnlineBookings, preferences),
+      },
+      {
+        metric: t("totalWalkInBookings"),
+        value: formatNumber(analytics.totalWalkInBookings, preferences),
+      },
+      {
+        metric: t("revenueFromOnline"),
+        value: formatCurrency(analytics.revenueFromOnline, preferences),
+      },
+      {
+        metric: t("revenueFromWalkIn"),
+        value: formatCurrency(analytics.revenueFromWalkIn, preferences),
+      },
+    ]
   }
 
   if (reportType === "payments") {

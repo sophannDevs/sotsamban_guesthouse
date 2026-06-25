@@ -24,15 +24,35 @@ export type CoolingOption = "FAN" | "AIR_CONDITIONER"
 
 export type BookingSource = "ONLINE" | "WALK_IN"
 
+export type BookingType = "HOURLY" | "HALF_DAY" | "DAILY"
+
+export type StayDuration =
+  | "TWO_HOURS"
+  | "THREE_HOURS"
+  | "SIX_HOURS"
+  | "TWELVE_HOURS"
+  | "TWENTY_FOUR_HOURS"
+
+export type SessionType = "DAY" | "NIGHT"
+
 export type Booking = {
   id: string
   guestId: string
   roomId: string
+  bookingType: BookingType
+  stayDuration: StayDuration | null
+  sessionType: SessionType | null
   checkInDate: string
   checkOutDate: string
+  checkInTime: string | null
+  checkOutTime: string | null
+  autoCheckoutAt: string | null
   checkInAt: string | null
   checkOutAt: string | null
   coolingOption: CoolingOption
+  basePrice: number
+  durationPrice: number
+  sessionPrice: number
   roomPriceTotal: number
   coolingPrice: number
   miniBarTotal: number
@@ -50,8 +70,12 @@ export type Booking = {
 export type BookingPayload = {
   guestId: string
   roomId: string
+  bookingType?: BookingType
+  stayDuration?: StayDuration
+  sessionType?: SessionType
   checkInDate: string
   checkOutDate: string
+  checkInTime?: string
   coolingOption?: CoolingOption
   status?: BookingStatus
 }
@@ -62,9 +86,50 @@ export type WalkInCheckInPayload = {
     phone?: string
   }
   roomId: string
+  bookingType?: BookingType
+  stayDuration?: StayDuration
+  sessionType?: SessionType
   checkInDate: string
   checkOutDate?: string
+  checkInTime?: string
   coolingOption?: CoolingOption
+}
+
+export type ExpressCheckInPayload = {
+  guestId: string
+  roomId: string
+  bookingType?: BookingType
+  stayDuration?: StayDuration
+  sessionType?: SessionType
+  checkInDate: string
+  checkOutDate?: string
+  checkInTime?: string
+  coolingOption?: CoolingOption
+}
+
+export type HourlyBookingPayload = {
+  guestId: string
+  roomId: string
+  bookingType: BookingType
+  stayDuration?: StayDuration
+  sessionType: SessionType
+  coolingOption: CoolingOption
+}
+
+export type HourlyPricePreviewPayload = Omit<HourlyBookingPayload, "guestId">
+
+export type HourlyPricePreview = {
+  bookingType: BookingType
+  stayDuration: StayDuration
+  sessionType: SessionType
+  checkInTime: string
+  autoCheckoutAt: string
+  basePrice: number
+  durationPrice: number
+  sessionPrice: number
+  roomPriceTotal: number
+  coolingPrice: number
+  totalPrice: number
 }
 
 export type BookingConflict = {
@@ -85,51 +150,54 @@ type ApiResponse<T> = {
 
 export const bookingService = {
   async listPaginated(
-    params: Pick<PaginationParams, "page" | "limit"> & {
+    params: Pick<PaginationParams, "page" | "limit" | "search"> & {
       status?: BookingStatus
       source?: BookingSource
-    }
+      bookingType?: BookingType
+    },
   ) {
-    const response =
-      await apiClient.get<ApiResponse<Booking[]> | PaginatedResponse<Booking>>(
-        "/bookings",
-        {
-          params: {
-            page: params.page,
-            limit: params.limit,
-            ...(params.status ? { status: params.status } : {}),
-            ...(params.source ? { source: params.source } : {}),
-            sortBy: "checkInDate",
-            sortOrder: "desc",
-          },
-        }
-      )
+    const response = await apiClient.get<
+      ApiResponse<Booking[]> | PaginatedResponse<Booking>
+    >("/bookings", {
+      params: {
+        page: params.page,
+        limit: params.limit,
+        ...(params.search ? { search: params.search } : {}),
+        ...(params.status ? { status: params.status } : {}),
+        ...(params.source ? { source: params.source } : {}),
+        ...(params.bookingType ? { bookingType: params.bookingType } : {}),
+        sortBy: "checkInDate",
+        sortOrder: "desc",
+      },
+    })
 
     return unwrapPaginated(
       "success" in response.data ? response.data.data : response.data,
-      params
+      params,
     )
   },
 
   async list(status?: BookingStatus) {
-    const response =
-      await apiClient.get<ApiResponse<Booking[]> | PaginatedResponse<Booking>>(
-        "/bookings",
-        {
-          params: {
-            limit: 100,
-            sortBy: "checkInDate",
-            sortOrder: "desc",
-            ...(status ? { status } : {}),
-          },
-        }
-      )
+    const response = await apiClient.get<
+      ApiResponse<Booking[]> | PaginatedResponse<Booking>
+    >("/bookings", {
+      params: {
+        limit: 100,
+        sortBy: "checkInDate",
+        sortOrder: "desc",
+        ...(status ? { status } : {}),
+      },
+    })
 
-    return unwrapList("success" in response.data ? response.data.data : response.data)
+    return unwrapList(
+      "success" in response.data ? response.data.data : response.data,
+    )
   },
 
   async get(id: string) {
-    const response = await apiClient.get<ApiResponse<Booking>>(`/bookings/${id}`)
+    const response = await apiClient.get<ApiResponse<Booking>>(
+      `/bookings/${id}`,
+    )
 
     return response.data.data
   },
@@ -137,7 +205,7 @@ export const bookingService = {
   async create(payload: BookingPayload) {
     const response = await apiClient.post<ApiResponse<Booking>>(
       "/bookings",
-      payload
+      payload,
     )
 
     return response.data.data
@@ -145,7 +213,7 @@ export const bookingService = {
 
   async checkIn(id: string) {
     const response = await apiClient.post<ApiResponse<Booking>>(
-      `/bookings/${id}/check-in`
+      `/bookings/${id}/check-in`,
     )
 
     return response.data.data
@@ -153,7 +221,7 @@ export const bookingService = {
 
   async checkOut(id: string) {
     const response = await apiClient.post<ApiResponse<Booking>>(
-      `/bookings/${id}/check-out`
+      `/bookings/${id}/check-out`,
     )
 
     return response.data.data
@@ -161,7 +229,7 @@ export const bookingService = {
 
   async cancel(id: string) {
     const response = await apiClient.patch<ApiResponse<Booking>>(
-      `/bookings/${id}/cancel`
+      `/bookings/${id}/cancel`,
     )
 
     return response.data.data
@@ -173,10 +241,9 @@ export const bookingService = {
     checkOutDate: string
     excludeBookingId?: string
   }) {
-    const response = await apiClient.get<ApiResponse<{ conflict: BookingConflict | null }>>(
-      "/bookings/check-conflict",
-      { params }
-    )
+    const response = await apiClient.get<
+      ApiResponse<{ conflict: BookingConflict | null }>
+    >("/bookings/check-conflict", { params })
 
     return response.data.data.conflict
   },
@@ -184,7 +251,34 @@ export const bookingService = {
   async walkInCheckIn(payload: WalkInCheckInPayload) {
     const response = await apiClient.post<ApiResponse<Booking>>(
       "/bookings/walk-in-check-in",
-      payload
+      payload,
+    )
+
+    return response.data.data
+  },
+
+  async expressCheckIn(payload: ExpressCheckInPayload) {
+    const response = await apiClient.post<ApiResponse<Booking>>(
+      "/bookings/express-check-in",
+      payload,
+    )
+
+    return response.data.data
+  },
+
+  async createHourly(payload: HourlyBookingPayload) {
+    const response = await apiClient.post<ApiResponse<Booking>>(
+      "/bookings/hourly",
+      payload,
+    )
+
+    return response.data.data
+  },
+
+  async previewHourlyPrice(payload: HourlyPricePreviewPayload) {
+    const response = await apiClient.post<ApiResponse<HourlyPricePreview>>(
+      "/bookings/hourly/price-preview",
+      payload,
     )
 
     return response.data.data

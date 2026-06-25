@@ -7,12 +7,13 @@ import {
   unwrapList,
   unwrapPaginated,
 } from "@/lib/api"
-import type { BookingStatus } from "@/lib/bookings"
+import type { BookingSource, BookingStatus } from "@/lib/bookings"
 import type { PaymentMethod, PaymentStatus } from "@/lib/payments"
 
 export const reportTypes = [
   "revenue",
   "bookings",
+  "summary",
   "payments",
   "guests",
   "occupancy",
@@ -72,6 +73,19 @@ export type BookingReportRow = {
   checkOutDate: string
   totalPrice: number
   bookingStatus: BookingStatus
+  bookingSource: BookingSource
+}
+
+export type BookingSourceAnalytics = {
+  totalOnlineBookings: number
+  totalWalkInBookings: number
+  revenueFromOnline: number
+  revenueFromWalkIn: number
+}
+
+export type SummaryReport = {
+  period: string
+  bookingSourceAnalytics: BookingSourceAnalytics
 }
 
 export type PaymentReportRow = {
@@ -135,6 +149,7 @@ export type CombinedProfitLossReport = {
 export type ReportResultMap = {
   revenue: RevenueReport
   bookings: BookingReportRow[]
+  summary: SummaryReport
   payments: PaymentReportRow[]
   guests: GuestReportRow[]
   occupancy: OccupancyReport

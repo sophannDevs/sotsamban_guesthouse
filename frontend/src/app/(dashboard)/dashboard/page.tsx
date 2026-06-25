@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import {
   AlertCircleIcon,
@@ -14,6 +15,7 @@ import {
   CheckCheckIcon,
   ChevronRightIcon,
   CircleDollarSignIcon,
+  HistoryIcon,
   LogInIcon,
   LogOutIcon,
   PlusIcon,
@@ -26,6 +28,7 @@ import {
   TrendingDownIcon,
   TrendingUpIcon,
   WalletIcon,
+  ZapIcon,
 } from "lucide-react"
 import { useTranslations } from "next-intl"
 
@@ -85,6 +88,11 @@ import {
   type BusinessFinanceSummary,
   type FinanceSummary,
 } from "@/lib/finance"
+import {
+  getGuestErrorMessage,
+  guestService,
+  type GuestSearchResult,
+} from "@/lib/guests"
 import type { Payment, PaymentStatus } from "@/lib/payments"
 import { cn } from "@/lib/utils"
 
@@ -133,12 +141,40 @@ const WalkInCheckInSheet = dynamic(
     })),
   { ssr: false }
 )
+const ExpressCheckInSheet = dynamic(
+  () =>
+    import("@/components/app/express-check-in-sheet").then((m) => ({
+      default: m.ExpressCheckInSheet,
+    })),
+  { ssr: false }
+)
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 type DashboardTranslation = ReturnType<typeof useTranslations<"dashboardPage">>
-type QuickAction = "newBooking" | "walkIn" | "checkIn" | "checkOut" | "addPayment" | "addExpense"
+type QuickAction =
+  | "newBooking"
+  | "walkIn"
+  | "expressCheckIn"
+  | "checkIn"
+  | "checkOut"
+  | "addPayment"
+  | "addExpense"
+
+const quickActions: QuickAction[] = [
+  "newBooking",
+  "walkIn",
+  "expressCheckIn",
+  "checkIn",
+  "checkOut",
+  "addPayment",
+  "addExpense",
+]
+
+function isQuickAction(value: string | null): value is QuickAction {
+  return quickActions.includes(value as QuickAction)
+}
 
 const emptySummary: DashboardSummary = {
   todayCheckIns: [],
@@ -154,6 +190,7 @@ const emptySummary: DashboardSummary = {
 // Page
 // ---------------------------------------------------------------------------
 export default function DashboardPage() {
+  const router = useRouter()
   const t = useTranslations("dashboardPage")
   const { preferences } = useSystemPreferences()
   const { activeBusiness } = useActiveBusiness()
@@ -164,6 +201,8 @@ export default function DashboardPage() {
   const [recentPayments, setRecentPayments] = useState<Payment[]>([])
   const [housekeeping, setHousekeeping] = useState<HousekeepingDashboardSummary | null>(null)
   const [activeQuickAction, setActiveQuickAction] = useState<QuickAction | null>(null)
+  const [expressCheckInGuest, setExpressCheckInGuest] =
+    useState<GuestSearchResult | null>(null)
   const [bookingSheet, setBookingSheet] = useState<{
     id: string
     mode: "checkIn" | "checkOut"
@@ -211,13 +250,21 @@ export default function DashboardPage() {
       })
   }
 
-  const handleWalkInComplete = () => {
+  const handleWalkInComplete = (booking: Booking) => {
     setSummary((prev) => ({
       ...prev,
       availableRooms: Math.max(0, prev.availableRooms - 1),
       occupiedRooms: prev.occupiedRooms + 1,
     }))
     loadDashboard(isGuesthouse, true)
+    setBookingSheet({ id: booking.id, mode: "checkOut" })
+  }
+
+  // "Check-in Again" from the Frequent Guests widget — skips the guest
+  // search step in Express Check-in since the guest is already known.
+  const handleCheckInAgain = (guest: GuestSearchResult) => {
+    setExpressCheckInGuest(guest)
+    setActiveQuickAction("expressCheckIn")
   }
 
   // Applies an instant optimistic update to the summary counters and kicks off
@@ -252,6 +299,32 @@ export default function DashboardPage() {
     loadDashboard(isGuesthouse)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeBusiness?.businessId, isGuesthouse])
+
+  useEffect(() => {
+    if (!activeBusiness) return
+
+    function openQuickAction(action: QuickAction) {
+      setActiveQuickAction(action)
+      router.replace("/dashboard", { scroll: false })
+    }
+
+    const initialAction = new URLSearchParams(window.location.search).get("action")
+    if (isQuickAction(initialAction)) {
+      openQuickAction(initialAction)
+    }
+
+    function handleQuickAction(event: Event) {
+      const action = (event as CustomEvent<string>).detail
+      if (isQuickAction(action)) {
+        openQuickAction(action)
+      }
+    }
+
+    window.addEventListener("dashboard:quick-action", handleQuickAction)
+    return () => {
+      window.removeEventListener("dashboard:quick-action", handleQuickAction)
+    }
+  }, [activeBusiness, router])
 
   return (
     <div className="flex flex-col gap-6">
@@ -307,6 +380,11 @@ export default function DashboardPage() {
         />
       )}
 
+      {/* ── 1c. Frequent Guests (guesthouse only, hidden when empty) ── */}
+      {isGuesthouse && (
+        <FrequentGuestsSection onCheckInAgain={handleCheckInAgain} />
+      )}
+
       {/* ── 2. Quick Actions (mobile only) ── */}
       <QuickActionsSection isGuesthouse={isGuesthouse} onAction={setActiveQuickAction} />
 
@@ -322,6 +400,17 @@ export default function DashboardPage() {
         <WalkInCheckInSheet
           onComplete={handleWalkInComplete}
           onOpenChange={(open) => setActiveQuickAction(open ? "walkIn" : null)}
+          open
+        />
+      )}
+      {activeQuickAction === "expressCheckIn" && (
+        <ExpressCheckInSheet
+          initialGuest={expressCheckInGuest ?? undefined}
+          onComplete={handleWalkInComplete}
+          onOpenChange={(open) => {
+            setActiveQuickAction(open ? "expressCheckIn" : null)
+            if (!open) setExpressCheckInGuest(null)
+          }}
           open
         />
       )}
@@ -737,6 +826,116 @@ function WalkInGuestsSection({
 }
 
 // ---------------------------------------------------------------------------
+// 1c. Frequent Guests — repeat guests, ranked by completed-stay count, for
+// one-click "Check-in Again" via Express Check-in.
+// ---------------------------------------------------------------------------
+
+function FrequentGuestsSection({
+  onCheckInAgain,
+}: {
+  onCheckInAgain: (guest: GuestSearchResult) => void
+}) {
+  const t = useTranslations("dashboardPage")
+  const { preferences } = useSystemPreferences()
+  const [guests, setGuests] = useState<GuestSearchResult[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let ignore = false
+
+    async function load() {
+      setIsLoading(true)
+      setError(null)
+
+      try {
+        const data = await guestService.getFrequent(5)
+        if (!ignore) setGuests(data)
+      } catch (err) {
+        if (!ignore) setError(getGuestErrorMessage(err))
+      } finally {
+        if (!ignore) setIsLoading(false)
+      }
+    }
+
+    void load()
+
+    return () => {
+      ignore = true
+    }
+  }, [])
+
+  if (!isLoading && !error && guests.length === 0) return null
+
+  return (
+    <section aria-label={t("frequentGuestsTitle")}>
+      <Card className="border-violet-500/20 bg-violet-500/5">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <HistoryIcon className="size-4 shrink-0 text-violet-600 dark:text-violet-400" />
+            <CardTitle className="text-sm font-medium text-violet-700 dark:text-violet-300">
+              {t("frequentGuestsTitle")}
+            </CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="pb-4">
+          {isLoading ? (
+            <div className="flex flex-col gap-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div className="flex items-center justify-between gap-3" key={i}>
+                  <div className="flex flex-col gap-1.5">
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-3 w-20" />
+                  </div>
+                  <Skeleton className="h-8 w-24 shrink-0 rounded-md" />
+                </div>
+              ))}
+            </div>
+          ) : error ? (
+            <p className="text-sm text-destructive">{error}</p>
+          ) : (
+            <div className="flex flex-col divide-y">
+              {guests.map((guest) => (
+                <div
+                  className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
+                  key={guest.id}
+                >
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate text-sm font-medium leading-tight">
+                      {guest.name}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {guest.lastBookingDate
+                        ? t("lastVisitOn", {
+                            date: formatPreferenceDate(
+                              guest.lastBookingDate,
+                              preferences
+                            ),
+                          })
+                        : t("noVisitsYet")}
+                    </span>
+                  </div>
+                  <Button
+                    className="h-8 shrink-0 px-2.5 text-xs"
+                    onClick={() => onCheckInAgain(guest)}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    <ZapIcon data-icon="inline-start" />
+                    {t("checkInAgain")}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </section>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // 2. Quick Actions
 // ---------------------------------------------------------------------------
 
@@ -760,6 +959,12 @@ function QuickActionsSection({
       action: "walkIn" as const,
       icon: UserPlusIcon,
       label: t("quickWalkIn"),
+      variant: "outline" as const,
+    },
+    {
+      action: "expressCheckIn" as const,
+      icon: ZapIcon,
+      label: t("quickExpressCheckIn"),
       variant: "outline" as const,
     },
     {

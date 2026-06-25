@@ -210,7 +210,7 @@ export default function GuestsPage() {
     setFormError(null)
     reset({
       fullName: guest.fullName,
-      phone: guest.phone,
+      phone: guest.phone ?? "",
       email: guest.email ?? "",
       idCardNumber: guest.idCardNumber ?? "",
       address: guest.address ?? "",
@@ -368,10 +368,12 @@ export default function GuestsPage() {
                   </span>
                   <div className="flex min-w-0 flex-1 flex-col gap-1">
                     <span className="font-medium leading-tight">{guest.fullName}</span>
-                    <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
-                      <PhoneIcon className="size-3 shrink-0" />
-                      {guest.phone}
-                    </span>
+                    {guest.phone ? (
+                      <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+                        <PhoneIcon className="size-3 shrink-0" />
+                        {guest.phone}
+                      </span>
+                    ) : null}
                     {guest.email ? (
                       <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
                         <MailIcon className="size-3 shrink-0" />
@@ -437,7 +439,11 @@ export default function GuestsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <ContactValue icon="phone" value={guest.phone} />
+                        {guest.phone ? (
+                          <ContactValue icon="phone" value={guest.phone} />
+                        ) : (
+                          t("notProvided")
+                        )}
                       </TableCell>
                       <TableCell>
                         {guest.email ? (

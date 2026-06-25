@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  BookingType,
   BookingStatus,
   Prisma,
   RoomType,
@@ -31,10 +32,19 @@ type AvailabilityFilters = {
 };
 
 type AvailabilityBooking = {
+  bookingType: BookingType;
   checkInDate: Date;
   checkOutDate: Date;
+  checkInTime: Date | null;
+  autoCheckoutAt: Date | null;
   status: BookingStatus;
 };
+
+export type TimeBasedRoomAvailabilityStatus =
+  | 'AVAILABLE'
+  | 'BOOKED'
+  | 'OCCUPIED'
+  | 'BLOCKED';
 
 const roomSortFields = [
   'createdAt',
@@ -186,6 +196,107 @@ export class RoomsService {
     }));
   }
 
+  async checkRoomAvailability(
+    roomId: string,
+    startTimeValue: string | undefined,
+    endTimeValue: string | undefined,
+  ): Promise<TimeBasedRoomAvailabilityStatus> {
+    const startTime = this.parseDateTime(startTimeValue, 'startTime');
+    const endTime = this.parseDateTime(endTimeValue, 'endTime');
+
+    if (endTime <= startTime) {
+      throw new BadRequestException('endTime must be after startTime.');
+    }
+
+    const room = await this.prisma.room.findFirst({
+      where: {
+        id: roomId,
+        deletedAt: null,
+      },
+      include: {
+        bookings: {
+          where: {
+            status: {
+              not: BookingStatus.CANCELLED,
+            },
+            OR: [
+              {
+                bookingType: BookingType.HOURLY,
+                checkInTime: {
+                  lt: endTime,
+                },
+                autoCheckoutAt: {
+                  gt: startTime,
+                },
+              },
+              {
+                bookingType: {
+                  not: BookingType.HOURLY,
+                },
+                checkInDate: {
+                  lt: endTime,
+                },
+                checkOutDate: {
+                  gt: startTime,
+                },
+              },
+            ],
+          },
+          orderBy: {
+            checkInDate: 'asc',
+          },
+        },
+      },
+    });
+
+    if (!room) {
+      throw new NotFoundException(translateError('roomNotFound'));
+    }
+
+    if (this.isMaintenanceStatus(room.status)) {
+      return 'BOOKED';
+    }
+
+    const hourlyConflict = room.bookings.find(
+      (booking) =>
+        booking.bookingType === BookingType.HOURLY &&
+        booking.checkInTime !== null &&
+        booking.autoCheckoutAt !== null &&
+        booking.checkInTime < endTime &&
+        booking.autoCheckoutAt > startTime,
+    );
+
+    if (hourlyConflict) {
+      return 'BLOCKED';
+    }
+
+    if (room.status === RoomStatus.OCCUPIED) {
+      return 'OCCUPIED';
+    }
+
+    const activeConflict = room.bookings.find(
+      (booking) =>
+        booking.status === BookingStatus.CHECKED_IN &&
+        booking.checkInDate < endTime &&
+        booking.checkOutDate > startTime,
+    );
+
+    if (activeConflict) {
+      return 'OCCUPIED';
+    }
+
+    const bookedConflict = room.bookings.find(
+      (booking) =>
+        booking.checkInDate < endTime && booking.checkOutDate > startTime,
+    );
+
+    if (bookedConflict) {
+      return 'BOOKED';
+    }
+
+    return 'AVAILABLE';
+  }
+
   async update(id: string, updateRoomDto: UpdateRoomDto) {
     await this.findActiveRoomById(id);
 
@@ -279,6 +390,20 @@ export class RoomsService {
     return date;
   }
 
+  private parseDateTime(value: string | undefined, fieldName: string) {
+    if (!value) {
+      throw new BadRequestException(`${fieldName} is required.`);
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      throw new BadRequestException(`${fieldName} must be a valid date-time.`);
+    }
+
+    return date;
+  }
+
   private getCalendarDates(start: Date, end: Date) {
     const dates: Date[] = [];
     const current = new Date(start);
@@ -296,8 +421,8 @@ export class RoomsService {
     bookings: AvailabilityBooking[],
     date: Date,
   ) {
-    if (roomStatus === RoomStatus.MAINTENANCE) {
-      return RoomStatus.MAINTENANCE;
+    if (this.isMaintenanceStatus(roomStatus)) {
+      return roomStatus;
     }
 
     const booking = bookings.find(
@@ -313,6 +438,14 @@ export class RoomsService {
     return booking.status === BookingStatus.CHECKED_IN
       ? RoomStatus.OCCUPIED
       : RoomStatus.BOOKED;
+  }
+
+  private isMaintenanceStatus(status: RoomStatus) {
+    return (
+      status === RoomStatus.MAINTENANCE ||
+      status === RoomStatus.NEEDS_CLEANING ||
+      status === RoomStatus.CLEANING_IN_PROGRESS
+    );
   }
 
   private toUtcDateOnly(date: Date) {
