@@ -22,6 +22,8 @@ export type BookingStatus = (typeof bookingStatuses)[number]
 
 export type CoolingOption = "FAN" | "AIR_CONDITIONER"
 
+export type BookingSource = "ONLINE" | "WALK_IN"
+
 export type Booking = {
   id: string
   guestId: string
@@ -38,6 +40,7 @@ export type Booking = {
   paidAmount: number
   balanceDue: number
   status: BookingStatus
+  source: BookingSource
   guest: Guest
   room: Room
   createdAt: string
@@ -51,6 +54,17 @@ export type BookingPayload = {
   checkOutDate: string
   coolingOption?: CoolingOption
   status?: BookingStatus
+}
+
+export type WalkInCheckInPayload = {
+  guest: {
+    name: string
+    phone?: string
+  }
+  roomId: string
+  checkInDate: string
+  checkOutDate?: string
+  coolingOption?: CoolingOption
 }
 
 export type BookingConflict = {
@@ -73,6 +87,7 @@ export const bookingService = {
   async listPaginated(
     params: Pick<PaginationParams, "page" | "limit"> & {
       status?: BookingStatus
+      source?: BookingSource
     }
   ) {
     const response =
@@ -83,6 +98,7 @@ export const bookingService = {
             page: params.page,
             limit: params.limit,
             ...(params.status ? { status: params.status } : {}),
+            ...(params.source ? { source: params.source } : {}),
             sortBy: "checkInDate",
             sortOrder: "desc",
           },
@@ -163,6 +179,15 @@ export const bookingService = {
     )
 
     return response.data.data.conflict
+  },
+
+  async walkInCheckIn(payload: WalkInCheckInPayload) {
+    const response = await apiClient.post<ApiResponse<Booking>>(
+      "/bookings/walk-in-check-in",
+      payload
+    )
+
+    return response.data.data
   },
 }
 

@@ -55,6 +55,11 @@ enum BookingStatus {
   CANCELLED
 }
 
+enum BookingSource {
+  ONLINE
+  WALK_IN
+}
+
 enum CoolingOption {
   FAN
   AIR_CONDITIONER
@@ -159,6 +164,7 @@ model Booking {
   coolingPrice        Decimal              @db.Decimal(10, 2)
   totalPrice          Decimal              @db.Decimal(10, 2)
   status              BookingStatus        @default(PENDING)
+  source              BookingSource        @default(ONLINE)
   payments            Payment[]
   housekeepingTasks   HousekeepingTask[]
   miniBarConsumptions MiniBarConsumption[]

@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  BookingSource,
   BookingStatus,
   CoolingOption,
   HousekeepingPriority,
@@ -34,6 +35,7 @@ import { NotificationsService } from '../notifications/notifications.service';
 import { SettingsService } from '../settings/settings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingDto } from './dto/update-booking.dto';
+import { WalkInCheckInDto } from './dto/walk-in-check-in.dto';
 
 type BookingWithRelations = Prisma.BookingGetPayload<{
   include: {
@@ -126,7 +128,9 @@ export class BookingsService {
     return this.serializeBooking(booking);
   }
 
-  async findAll(query: PaginationQuery & { status?: BookingStatus }) {
+  async findAll(
+    query: PaginationQuery & { status?: BookingStatus; source?: BookingSource },
+  ) {
     const pagination = getPaginationOptions(query, {
       allowedSortBy: bookingSortFields,
       defaultSortBy: 'createdAt',
@@ -140,8 +144,17 @@ export class BookingsService {
       );
     }
 
+    if (query.source && !Object.values(BookingSource).includes(query.source)) {
+      throw new BadRequestException(
+        `source must be one of the following values: ${Object.values(
+          BookingSource,
+        ).join(', ')}`,
+      );
+    }
+
     const where: Prisma.BookingWhereInput = {
       ...(query.status ? { status: query.status } : {}),
+      ...(query.source ? { source: query.source } : {}),
       ...(pagination.search
         ? {
             OR: [
@@ -300,6 +313,89 @@ export class BookingsService {
     });
 
     await this.notificationsService.notifyBookingCheckedOut(userId, booking.id);
+
+    return this.serializeBooking(booking);
+  }
+
+  async walkInCheckIn(
+    userId: string,
+    userRole: UserRole,
+    businessId: string,
+    dto: WalkInCheckInDto,
+  ) {
+    await assertGuesthouseAccess(this.prisma, businessId, userId, userRole);
+
+    const checkInDate = this.parseDate(dto.checkInDate);
+    // Default check-out to the next day when omitted (minimum one-night stay)
+    const checkOutDate = dto.checkOutDate
+      ? this.parseDate(dto.checkOutDate)
+      : new Date(checkInDate.getTime() + 24 * 60 * 60 * 1000);
+
+    this.validateDateRange(checkInDate, checkOutDate);
+
+    const room = await this.findActiveRoom(dto.roomId);
+
+    // Respect the same conflict rules as regular bookings
+    await this.ensureRoomCanBeBooked(room, checkInDate, checkOutDate);
+
+    const coolingOption = dto.coolingOption ?? CoolingOption.FAN;
+    const acPricePerNight = await this.fetchAcPricePerNight();
+    const { roomPriceTotal, coolingPrice, totalPrice } = this.calculatePricing(
+      checkInDate,
+      checkOutDate,
+      room.pricePerNight,
+      coolingOption,
+      acPricePerNight,
+    );
+
+    // Attempt guest lookup before the transaction (read-only, keeps tx short)
+    let existingGuestId: string | null = null;
+    if (dto.guest.phone) {
+      const found = await this.prisma.guest.findFirst({
+        where: { phone: dto.guest.phone },
+        select: { id: true },
+      });
+      existingGuestId = found?.id ?? null;
+    }
+
+    const booking = await this.prisma.$transaction(async (tx) => {
+      // Reuse existing guest or create inline — atomic with the booking
+      const guestId =
+        existingGuestId ??
+        (
+          await tx.guest.create({
+            data: {
+              fullName: dto.guest.name,
+              phone: dto.guest.phone ?? '',
+            },
+            select: { id: true },
+          })
+        ).id;
+
+      await tx.room.update({
+        where: { id: room.id },
+        data: { status: RoomStatus.OCCUPIED },
+      });
+
+      return tx.booking.create({
+        data: {
+          guestId,
+          roomId: room.id,
+          checkInDate,
+          checkOutDate,
+          checkInAt: new Date(),
+          coolingOption,
+          roomPriceTotal,
+          coolingPrice,
+          totalPrice,
+          status: BookingStatus.CHECKED_IN,
+          source: BookingSource.WALK_IN,
+        },
+        include: this.bookingInclude,
+      });
+    });
+
+    await this.notificationsService.notifyBookingCheckedIn(userId, booking.id);
 
     return this.serializeBooking(booking);
   }

@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic"
 import Link from "next/link"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   AlertCircleIcon,
   BedDoubleIcon,
@@ -14,10 +14,10 @@ import {
   CheckCheckIcon,
   ChevronRightIcon,
   CircleDollarSignIcon,
-  HotelIcon,
   LogInIcon,
   LogOutIcon,
   PlusIcon,
+  UserPlusIcon,
   ReceiptIcon,
   RefreshCwIcon,
   ShieldCheckIcon,
@@ -25,8 +25,6 @@ import {
   StoreIcon,
   TrendingDownIcon,
   TrendingUpIcon,
-  UsersIcon,
-  WalletCardsIcon,
   WalletIcon,
 } from "lucide-react"
 import { useTranslations } from "next-intl"
@@ -36,7 +34,6 @@ import {
   formatPreferenceCurrency,
   formatPreferenceDate,
   formatPreferenceDateRange,
-  formatPreferenceNumber,
   type SystemPreferences,
   useSystemPreferences,
 } from "@/components/app/system-preferences-provider"
@@ -76,6 +73,9 @@ import {
   dashboardService,
   getDashboardErrorMessage,
   type DashboardSummary,
+  type DashboardTodayCheckIn,
+  type DashboardTodayCheckOut,
+  type DashboardWalkInGuest,
   type HousekeepingDashboardSummary,
 } from "@/lib/dashboard"
 import {
@@ -119,24 +119,35 @@ const QuickBookingDialog = dynamic(
     })),
   { ssr: false }
 )
+const BookingDetailSheet = dynamic(
+  () =>
+    import("@/components/app/booking-detail-sheet").then((m) => ({
+      default: m.BookingDetailSheet,
+    })),
+  { ssr: false }
+)
+const WalkInCheckInSheet = dynamic(
+  () =>
+    import("@/components/app/walk-in-check-in-sheet").then((m) => ({
+      default: m.WalkInCheckInSheet,
+    })),
+  { ssr: false }
+)
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 type DashboardTranslation = ReturnType<typeof useTranslations<"dashboardPage">>
-type QuickAction = "newBooking" | "checkIn" | "checkOut" | "addPayment" | "addExpense"
+type QuickAction = "newBooking" | "walkIn" | "checkIn" | "checkOut" | "addPayment" | "addExpense"
 
 const emptySummary: DashboardSummary = {
-  totalRooms: 0,
+  todayCheckIns: [],
+  todayCheckOuts: [],
   availableRooms: 0,
-  bookedRooms: 0,
   occupiedRooms: 0,
-  maintenanceRooms: 0,
-  totalGuests: 0,
-  todayCheckIns: 0,
-  todayCheckOuts: 0,
-  totalRevenue: 0,
-  monthlyRevenue: 0,
+  needsCleaningRooms: 0,
+  totalRevenueToday: 0,
+  walkInGuests: [],
 }
 
 // ---------------------------------------------------------------------------
@@ -149,44 +160,16 @@ export default function DashboardPage() {
   const isGuesthouse = activeBusiness?.businessType === "GUESTHOUSE"
 
   const [summary, setSummary] = useState<DashboardSummary>(emptySummary)
-  const [todayFinance, setTodayFinance] = useState<FinanceSummary | null>(null)
   const [recentBookings, setRecentBookings] = useState<Booking[]>([])
   const [recentPayments, setRecentPayments] = useState<Payment[]>([])
   const [housekeeping, setHousekeeping] = useState<HousekeepingDashboardSummary | null>(null)
   const [activeQuickAction, setActiveQuickAction] = useState<QuickAction | null>(null)
+  const [bookingSheet, setBookingSheet] = useState<{
+    id: string
+    mode: "checkIn" | "checkOut"
+  } | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-
-  // Desktop-only stat cards
-  const statCards = useMemo(
-    () => [
-      {
-        label: t("totalRooms"),
-        value: formatPreferenceNumber(summary.totalRooms, preferences),
-        detail: t("inMaintenance", { count: summary.maintenanceRooms }),
-        icon: HotelIcon,
-      },
-      {
-        label: t("availableRooms"),
-        value: formatPreferenceNumber(summary.availableRooms, preferences),
-        detail: t("bookedCount", { count: summary.bookedRooms }),
-        icon: SparklesIcon,
-      },
-      {
-        label: t("occupiedRooms"),
-        value: formatPreferenceNumber(summary.occupiedRooms, preferences),
-        detail: t("currentlyCheckedIn"),
-        icon: BedDoubleIcon,
-      },
-      {
-        label: t("totalGuests"),
-        value: formatPreferenceNumber(summary.totalGuests, preferences),
-        detail: t("guestDirectory"),
-        icon: UsersIcon,
-      },
-    ],
-    [preferences, summary, t]
-  )
 
   // ------------------------------------------------------------------
   // Single fetch function — used both on mount and by the refresh button.
@@ -194,14 +177,14 @@ export default function DashboardPage() {
   // ------------------------------------------------------------------
   const fetchCountRef = useRef(0)
 
-  const loadDashboard = (guesthouse: boolean) => {
+  // silent=true skips the loading spinner — used for background refreshes after
+  // optimistic updates so the UI doesn't flicker.
+  const loadDashboard = (guesthouse: boolean, silent = false) => {
     const myCount = ++fetchCountRef.current
-    setIsLoading(true)
-    setErrorMessage(null)
-
-    const todayFinancePromise = financeService
-      .getSummary({ rangePreset: "today" })
-      .catch(() => null)
+    if (!silent) {
+      setIsLoading(true)
+      setErrorMessage(null)
+    }
 
     Promise.all([
       dashboardService.getSummary(),
@@ -210,24 +193,59 @@ export default function DashboardPage() {
       guesthouse
         ? dashboardService.getHousekeepingSummary()
         : Promise.resolve(null),
-      todayFinancePromise,
     ])
-      .then(([summaryData, bookingData, paymentData, hkData, todayFinanceData]) => {
+      .then(([summaryData, bookingData, paymentData, hkData]) => {
         if (fetchCountRef.current !== myCount) return
         setSummary(summaryData)
         setRecentBookings(bookingData)
         setRecentPayments(paymentData)
         setHousekeeping(hkData)
-        setTodayFinance(todayFinanceData)
       })
       .catch((error) => {
-        if (fetchCountRef.current === myCount) {
+        if (fetchCountRef.current === myCount && !silent) {
           setErrorMessage(getDashboardErrorMessage(error))
         }
       })
       .finally(() => {
-        if (fetchCountRef.current === myCount) setIsLoading(false)
+        if (fetchCountRef.current === myCount && !silent) setIsLoading(false)
       })
+  }
+
+  const handleWalkInComplete = () => {
+    setSummary((prev) => ({
+      ...prev,
+      availableRooms: Math.max(0, prev.availableRooms - 1),
+      occupiedRooms: prev.occupiedRooms + 1,
+    }))
+    loadDashboard(isGuesthouse, true)
+  }
+
+  // Applies an instant optimistic update to the summary counters and kicks off
+  // a silent background refresh so real data eventually converges.
+  const handleActionComplete = (
+    completedBookingId: string,
+    completedMode: "checkIn" | "checkOut",
+  ) => {
+    setSummary((prev) => {
+      if (completedMode === "checkIn") {
+        return {
+          ...prev,
+          todayCheckIns: prev.todayCheckIns.filter(
+            (b) => b.bookingId !== completedBookingId,
+          ),
+          occupiedRooms: prev.occupiedRooms + 1,
+        }
+      }
+      return {
+        ...prev,
+        todayCheckOuts: prev.todayCheckOuts.filter(
+          (b) => b.bookingId !== completedBookingId,
+        ),
+        occupiedRooms: Math.max(0, prev.occupiedRooms - 1),
+        needsCleaningRooms: prev.needsCleaningRooms + 1,
+      }
+    })
+    loadDashboard(isGuesthouse, true)
   }
 
   useEffect(() => {
@@ -271,13 +289,23 @@ export default function DashboardPage() {
       ) : null}
 
       {/* ── 1. Today Summary Cards ── */}
-      <TodaySummarySection
+      <GuestHouseSummaryCards
         isLoading={isLoading}
+        onCheckIn={(id) => setBookingSheet({ id, mode: "checkIn" })}
+        onCheckOut={(id) => setBookingSheet({ id, mode: "checkOut" })}
         preferences={preferences}
         summary={summary}
         t={t}
-        todayFinance={todayFinance}
       />
+
+      {/* ── 1b. Today Walk-in Guests (guesthouse only, hidden when empty) ── */}
+      {isGuesthouse && (
+        <WalkInGuestsSection
+          isLoading={isLoading}
+          walkInGuests={summary.walkInGuests}
+          t={t}
+        />
+      )}
 
       {/* ── 2. Quick Actions (mobile only) ── */}
       <QuickActionsSection isGuesthouse={isGuesthouse} onAction={setActiveQuickAction} />
@@ -287,6 +315,13 @@ export default function DashboardPage() {
         <QuickBookingDialog
           onCreated={() => loadDashboard(isGuesthouse)}
           onOpenChange={(open) => setActiveQuickAction(open ? "newBooking" : null)}
+          open
+        />
+      )}
+      {activeQuickAction === "walkIn" && (
+        <WalkInCheckInSheet
+          onComplete={handleWalkInComplete}
+          onOpenChange={(open) => setActiveQuickAction(open ? "walkIn" : null)}
           open
         />
       )}
@@ -321,6 +356,19 @@ export default function DashboardPage() {
         />
       )}
 
+      {/* Booking detail bottom sheet */}
+      {bookingSheet && (
+        <BookingDetailSheet
+          bookingId={bookingSheet.id}
+          mode={bookingSheet.mode}
+          onActionComplete={handleActionComplete}
+          onOpenChange={(open) => {
+            if (!open) setBookingSheet(null)
+          }}
+          open
+        />
+      )}
+
       {/* ── 3. Recent Bookings ── */}
       <RecentBookingsSection
         bookings={recentBookings}
@@ -340,20 +388,6 @@ export default function DashboardPage() {
 
       {/* ── 5. Finance Toggle ── */}
       <FinanceSummarySection />
-
-      {/* ── Desktop-only: operational stat grid ── */}
-      <section className="hidden grid-cols-2 gap-4 sm:grid xl:grid-cols-4">
-        {statCards.map((stat) => (
-          <MetricCard
-            detail={stat.detail}
-            icon={stat.icon}
-            isLoading={isLoading}
-            key={stat.label}
-            label={stat.label}
-            value={stat.value}
-          />
-        ))}
-      </section>
 
       {/* ── Desktop-only: HK task tables ── */}
       {isGuesthouse && (
@@ -400,110 +434,305 @@ export default function DashboardPage() {
 // 1. Today Summary Cards
 // ---------------------------------------------------------------------------
 
-function TodaySummarySection({
+function GuestHouseSummaryCards({
   isLoading,
+  onCheckIn,
+  onCheckOut,
   preferences,
   summary,
   t,
-  todayFinance,
 }: {
   isLoading: boolean
+  onCheckIn: (bookingId: string) => void
+  onCheckOut: (bookingId: string) => void
   preferences: SystemPreferences
   summary: DashboardSummary
   t: DashboardTranslation
-  todayFinance: FinanceSummary | null
 }) {
-  const isLoss = (todayFinance?.netProfit ?? 0) < 0
-
-  const cards = [
-    {
-      label: t("todayCheckIns"),
-      value: formatPreferenceNumber(summary.todayCheckIns, preferences),
-      icon: CalendarArrowDownIcon,
-    },
-    {
-      label: t("todayCheckOuts"),
-      value: formatPreferenceNumber(summary.todayCheckOuts, preferences),
-      icon: CalendarArrowUpIcon,
-    },
-    {
-      label: t("financeTotalRevenue"),
-      value: formatPreferenceCurrency(todayFinance?.totalRevenue ?? 0, preferences),
-      icon: TrendingUpIcon,
-    },
-    {
-      label: t("financeTotalExpense"),
-      value: formatPreferenceCurrency(todayFinance?.totalExpense ?? 0, preferences),
-      icon: WalletIcon,
-    },
-    {
-      label: isLoss ? t("financeNetLoss") : t("financeNetProfit"),
-      value: formatPreferenceCurrency(
-        Math.abs(todayFinance?.netProfit ?? 0),
-        preferences
-      ),
-      icon: isLoss ? TrendingDownIcon : TrendingUpIcon,
-      isDestructive: isLoss,
-    },
-  ]
-
   return (
     <section aria-label={t("overview")}>
-      {/* Mobile: horizontal scroll — ~2.5 cards visible, hints to scroll */}
-      <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-2 sm:hidden">
-        {cards.map((card) => (
-          <div className="w-36 shrink-0" key={card.label}>
-            <SummaryCard {...card} isLoading={isLoading} />
-          </div>
-        ))}
-      </div>
-      {/* sm+: 3-col then 5-col grid */}
-      <div className="hidden gap-3 sm:grid sm:grid-cols-3 lg:grid-cols-5">
-        {cards.map((card) => (
-          <SummaryCard {...card} isLoading={isLoading} key={card.label} />
-        ))}
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <BookingListCard
+          bookings={summary.todayCheckIns}
+          emptyMessage={t("noCheckInsToday")}
+          icon={CalendarArrowDownIcon}
+          isLoading={isLoading}
+          label={t("todayCheckIns")}
+          mode="checkIn"
+          onAction={onCheckIn}
+          t={t}
+        />
+        <BookingListCard
+          bookings={summary.todayCheckOuts}
+          emptyMessage={t("noCheckOutsToday")}
+          icon={CalendarArrowUpIcon}
+          isLoading={isLoading}
+          label={t("todayCheckOuts")}
+          mode="checkOut"
+          onAction={onCheckOut}
+          t={t}
+        />
+        <StatSummaryCard
+          className="border-emerald-500/20 bg-emerald-500/5"
+          icon={SparklesIcon}
+          isLoading={isLoading}
+          label={t("availableRooms")}
+          value={String(summary.availableRooms)}
+        />
+        <StatSummaryCard
+          className="border-blue-500/20 bg-blue-500/5"
+          icon={BedDoubleIcon}
+          isLoading={isLoading}
+          label={t("occupiedRooms")}
+          value={String(summary.occupiedRooms)}
+        />
+        <StatSummaryCard
+          className={summary.needsCleaningRooms > 0 ? "border-amber-500/20 bg-amber-500/5" : ""}
+          icon={BrushIcon}
+          isLoading={isLoading}
+          label={t("needsCleaningRooms")}
+          urgent={summary.needsCleaningRooms > 0}
+          value={String(summary.needsCleaningRooms)}
+        />
+        <StatSummaryCard
+          icon={CircleDollarSignIcon}
+          isLoading={isLoading}
+          label={t("totalRevenueToday")}
+          value={formatPreferenceCurrency(summary.totalRevenueToday, preferences)}
+        />
       </div>
     </section>
   )
 }
 
-function SummaryCard({
+function BookingListCard({
+  bookings,
+  emptyMessage,
   icon: Icon,
-  isDestructive = false,
   isLoading,
   label,
-  value,
+  mode,
+  onAction,
+  t,
 }: {
+  bookings: DashboardTodayCheckIn[] | DashboardTodayCheckOut[]
+  emptyMessage: string
   icon: React.ComponentType<React.SVGProps<SVGSVGElement>>
-  isDestructive?: boolean
   isLoading: boolean
   label: string
+  mode: "checkIn" | "checkOut"
+  onAction: (bookingId: string) => void
+  t: DashboardTranslation
+}) {
+  const ActionIcon = mode === "checkIn" ? LogInIcon : LogOutIcon
+  const actionLabel = mode === "checkIn" ? t("checkIn") : t("checkOut")
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Icon className="size-4 shrink-0 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">{label}</CardTitle>
+          </div>
+          {isLoading ? (
+            <Skeleton className="h-5 w-8 rounded-full" />
+          ) : (
+            <Badge variant="secondary">{bookings.length}</Badge>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent className="pb-4">
+        {isLoading ? (
+          <div className="flex flex-col gap-3">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <div className="flex items-center justify-between gap-3" key={i}>
+                <div className="flex flex-col gap-1.5">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+                <Skeleton className="h-8 w-20 shrink-0" />
+              </div>
+            ))}
+          </div>
+        ) : bookings.length === 0 ? (
+          <p className="py-1 text-sm text-muted-foreground">{emptyMessage}</p>
+        ) : (
+          <div className="flex flex-col divide-y">
+            {bookings.map((item) => {
+              const alreadyDone = mode === "checkIn"
+                ? (item as DashboardTodayCheckIn).checkInTime !== null
+                : false
+              return (
+                <div
+                  className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
+                  key={item.bookingId}
+                >
+                  <div className="min-w-0 flex-1 flex flex-col">
+                    <span className="truncate text-sm font-medium leading-tight">
+                      {item.guestName}
+                    </span>
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <span>{t("roomNumberShort")} {item.roomNumber}</span>
+                      {(item as DashboardTodayCheckIn).source === "WALK_IN" && (
+                        <Badge variant="info" className="h-4 px-1 text-[10px]">
+                          Walk-in
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  {alreadyDone ? (
+                    <Badge variant="success" className="shrink-0 h-7 px-2.5 text-xs">
+                      {t("checkedIn")}
+                    </Badge>
+                  ) : (
+                    <Button
+                      className="shrink-0 gap-1.5"
+                      onClick={() => onAction(item.bookingId)}
+                      size="sm"
+                      variant="outline"
+                    >
+                      <ActionIcon className="size-3.5" />
+                      {actionLabel}
+                    </Button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+function StatSummaryCard({
+  className,
+  icon: Icon,
+  isLoading,
+  label,
+  urgent = false,
+  value,
+}: {
+  className?: string
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>
+  isLoading: boolean
+  label: string
+  urgent?: boolean
   value: string
 }) {
   return (
-    <div className="flex h-full flex-col gap-2 rounded-xl border bg-card p-4">
-      <div className="flex items-start justify-between gap-1">
-        <p className="text-xs font-medium leading-tight text-muted-foreground">{label}</p>
-        <Icon
-          className={cn(
-            "size-4 shrink-0 text-muted-foreground",
-            isDestructive && "text-destructive"
+    <Card className={cn(className)}>
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle
+            className={cn(
+              "text-sm font-medium text-muted-foreground",
+              urgent && "text-amber-700 dark:text-amber-400",
+            )}
+          >
+            {label}
+          </CardTitle>
+          <Icon
+            className={cn(
+              "size-4 shrink-0 text-muted-foreground",
+              urgent && "text-amber-600 dark:text-amber-400",
+            )}
+          />
+        </div>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <Skeleton className="h-9 w-16" />
+        ) : (
+          <p
+            className={cn(
+              "font-mono text-3xl font-bold leading-none",
+              urgent && "text-amber-700 dark:text-amber-400",
+            )}
+          >
+            {value}
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// 1b. Today Walk-in Guests
+// ---------------------------------------------------------------------------
+
+function WalkInGuestsSection({
+  isLoading,
+  walkInGuests,
+  t,
+}: {
+  isLoading: boolean
+  walkInGuests: DashboardWalkInGuest[]
+  t: DashboardTranslation
+}) {
+  if (!isLoading && walkInGuests.length === 0) return null
+
+  return (
+    <section aria-label={t("walkInGuestsTitle")}>
+      <Card className="border-sky-500/20 bg-sky-500/5">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <UserPlusIcon className="size-4 shrink-0 text-sky-600 dark:text-sky-400" />
+              <CardTitle className="text-sm font-medium text-sky-700 dark:text-sky-300">
+                {t("walkInGuestsTitle")}
+              </CardTitle>
+            </div>
+            {isLoading ? (
+              <Skeleton className="h-5 w-8 rounded-full" />
+            ) : (
+              <Badge variant="info">{walkInGuests.length}</Badge>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent className="pb-4">
+          {isLoading ? (
+            <div className="flex flex-col gap-3">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <div className="flex items-center justify-between gap-3" key={i}>
+                  <div className="flex flex-col gap-1.5">
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-3 w-20" />
+                  </div>
+                  <Skeleton className="h-6 w-16 shrink-0 rounded-full" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col divide-y">
+              {walkInGuests.map((guest) => (
+                <div
+                  className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
+                  key={guest.bookingId}
+                >
+                  <div className="min-w-0 flex-1 flex flex-col">
+                    <span className="truncate text-sm font-medium leading-tight">
+                      {guest.guestName}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {t("roomNumberShort")} {guest.roomNumber}
+                      {guest.checkInAt && (
+                        <> · {new Date(guest.checkInAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</>
+                      )}
+                    </span>
+                  </div>
+                  <Badge variant="success" className="h-6 shrink-0 px-2 text-xs">
+                    {t("checkedIn")}
+                  </Badge>
+                </div>
+              ))}
+            </div>
           )}
-        />
-      </div>
-      {isLoading ? (
-        <Skeleton className="h-7 w-16" />
-      ) : (
-        <p
-          className={cn(
-            "font-mono text-2xl font-bold leading-none",
-            isDestructive && "text-destructive"
-          )}
-        >
-          {value}
-        </p>
-      )}
-    </div>
+        </CardContent>
+      </Card>
+    </section>
   )
 }
 
@@ -526,6 +755,12 @@ function QuickActionsSection({
       icon: CalendarPlusIcon,
       label: t("quickNewBooking"),
       variant: "default" as const,
+    },
+    {
+      action: "walkIn" as const,
+      icon: UserPlusIcon,
+      label: t("quickWalkIn"),
+      variant: "outline" as const,
     },
     {
       action: "checkIn" as const,
@@ -1239,8 +1474,9 @@ function HousekeepingTasksCard({
 
 function BookingStatusBadge({ status, t }: { status: BookingStatus; t: DashboardTranslation }) {
   const variant =
-    status === "CONFIRMED" ? "default"
-    : status === "CHECKED_IN" ? "secondary"
+    status === "CONFIRMED" ? "success"
+    : status === "CHECKED_IN" ? "warning"
+    : status === "CHECKED_OUT" ? "info"
     : status === "CANCELLED" ? "destructive"
     : "outline"
   return <Badge className="h-7 shrink-0 px-2.5 text-sm" variant={variant}>{getBookingStatusLabel(status, t)}</Badge>

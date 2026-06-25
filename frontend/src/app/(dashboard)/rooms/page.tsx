@@ -75,6 +75,7 @@ import {
   type RoomType,
 } from "@/lib/rooms"
 import { MobileFilterDrawer } from "@/components/app/mobile-filter-drawer"
+import { Skeleton } from "@/components/ui/skeleton"
 import { defaultPaginationMeta, type PaginatedResponse } from "@/lib/api"
 
 type StatusFilter = "ALL" | RoomStatus
@@ -455,9 +456,19 @@ export default function RoomsPage() {
           {/* Mobile card list */}
           <div className="flex flex-col gap-3 md:hidden">
             {isLoading ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                {t("loadingRooms")}
-              </p>
+              Array.from({ length: 5 }).map((_, i) => (
+                <div className="flex items-center gap-3 rounded-lg border bg-card p-4" key={i}>
+                  <Skeleton className="size-16 shrink-0 rounded-lg" />
+                  <div className="flex flex-1 flex-col gap-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-7 w-20 rounded-full" />
+                    </div>
+                    <Skeleton className="h-3.5 w-32" />
+                  </div>
+                  <Skeleton className="size-8 shrink-0 rounded-md" />
+                </div>
+              ))
             ) : rooms.length ? (
               rooms.map((room) => (
                 <div
@@ -890,14 +901,16 @@ function RoomStatusBadge({ status }: { status: RoomStatus }) {
   const t = useTranslations()
   const variant =
     status === "AVAILABLE"
-      ? "default"
-      : status === "MAINTENANCE"
-        ? "destructive"
-        : status === "BOOKED"
-          ? "secondary"
-          : status === "NEEDS_CLEANING" || status === "CLEANING_IN_PROGRESS"
-            ? "secondary"
-            : "outline"
+      ? "success"
+      : status === "BOOKED"
+        ? "info"
+        : status === "NEEDS_CLEANING"
+          ? "destructive"
+          : status === "CLEANING_IN_PROGRESS"
+            ? "warning"
+            : status === "MAINTENANCE"
+              ? "destructive"
+              : "outline"
 
   return <Badge className="h-7 shrink-0 px-2.5 text-sm" variant={variant}>{getRoomStatusLabel(status, t)}</Badge>
 }

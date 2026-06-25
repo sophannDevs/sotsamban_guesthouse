@@ -10,7 +10,7 @@ import {
   Query,
 } from '@nestjs/common';
 
-import { BookingStatus, UserRole } from '../../generated/prisma/client';
+import { BookingSource, BookingStatus, UserRole } from '../../generated/prisma/client';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import type { AuthUser } from '../auth/types';
@@ -19,6 +19,7 @@ import type { PaginationQuery } from '../common/pagination';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingDto } from './dto/update-booking.dto';
+import { WalkInCheckInDto } from './dto/walk-in-check-in.dto';
 
 @Roles(UserRole.ADMIN, UserRole.RECEPTIONIST)
 @Controller('bookings')
@@ -39,7 +40,9 @@ export class BookingsController {
   }
 
   @Get()
-  async findAll(@Query() query: PaginationQuery & { status?: BookingStatus }) {
+  async findAll(
+    @Query() query: PaginationQuery & { status?: BookingStatus; source?: BookingSource },
+  ) {
     const bookings = await this.bookingsService.findAll(query);
 
     return bookings;
@@ -60,6 +63,22 @@ export class BookingsController {
     );
 
     return apiResponse('Conflict check completed.', result);
+  }
+
+  @Post('walk-in-check-in')
+  async walkInCheckIn(
+    @Body() dto: WalkInCheckInDto,
+    @Headers('x-business-id') businessId: string,
+    @CurrentUser() currentUser: AuthUser,
+  ) {
+    const booking = await this.bookingsService.walkInCheckIn(
+      currentUser.userId,
+      currentUser.role,
+      businessId,
+      dto,
+    );
+
+    return apiResponse('Walk-in check-in completed successfully.', booking);
   }
 
   @Get(':id')

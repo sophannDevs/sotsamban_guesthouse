@@ -92,6 +92,7 @@ import {
   type Booking,
   type BookingConflict,
   type BookingPayload,
+  type BookingSource,
   type BookingStatus,
   type CoolingOption,
 } from "@/lib/bookings"
@@ -118,6 +119,11 @@ import { MiniBarConsumptionDetailDialog } from "@/components/app/mini-bar-consum
 import { MiniBarCreateSheet } from "@/components/app/mini-bar-create-sheet"
 import { MiniBarStatusBadge } from "@/components/app/mini-bar-status-badge"
 import { MobileFilterDrawer } from "@/components/app/mobile-filter-drawer"
+import {
+  SwipeableActionCard,
+  type SwipeAction,
+} from "@/components/app/swipeable-action-card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { defaultPaginationMeta, type PaginatedResponse } from "@/lib/api"
 import {
   getMiniBarErrorMessage,
@@ -127,6 +133,7 @@ import {
 import { cn } from "@/lib/utils"
 
 type StatusFilter = "ALL" | BookingStatus
+type SourceFilter = "ALL" | BookingSource
 
 type Option<T extends string> = {
   value: T
@@ -158,6 +165,7 @@ export default function BookingsPage() {
   const [guests, setGuests] = useState<Guest[]>([])
   const [rooms, setRooms] = useState<Room[]>([])
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL")
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("ALL")
   const [isLoading, setIsLoading] = useState(true)
   const [isOptionsLoading, setIsOptionsLoading] = useState(true)
   const [isAvailabilityLoading, setIsAvailabilityLoading] = useState(false)
@@ -222,6 +230,15 @@ export default function BookingsPage() {
         value: status,
         label: getBookingStatusLabel(status, t),
       })),
+    ],
+    [t]
+  )
+
+  const sourceFilterOptions: Option<SourceFilter>[] = useMemo(
+    () => [
+      { value: "ALL", label: t("allSources") },
+      { value: "ONLINE", label: t("sourceOnline") },
+      { value: "WALK_IN", label: t("sourceWalkIn") },
     ],
     [t]
   )
@@ -348,7 +365,7 @@ export default function BookingsPage() {
     liveConflict,
   ])
 
-  const loadBookings = useCallback(async (filter: StatusFilter, nextPage = page) => {
+  const loadBookings = useCallback(async (filter: StatusFilter, srcFilter: SourceFilter = sourceFilter, nextPage = page) => {
     setIsLoading(true)
     setErrorMessage(null)
 
@@ -357,6 +374,7 @@ export default function BookingsPage() {
         page: nextPage,
         limit,
         ...(filter === "ALL" ? {} : { status: filter }),
+        ...(srcFilter === "ALL" ? {} : { source: srcFilter }),
       })
       setBookings(response.data)
       setPaginationMeta(response.meta)
@@ -365,7 +383,7 @@ export default function BookingsPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [limit, page])
+  }, [limit, page, sourceFilter])
 
   const loadOptions = useCallback(async () => {
     setIsOptionsLoading(true)
@@ -397,6 +415,7 @@ export default function BookingsPage() {
           page,
           limit,
           ...(statusFilter === "ALL" ? {} : { status: statusFilter }),
+          ...(sourceFilter === "ALL" ? {} : { source: sourceFilter }),
         })
 
         if (!ignore) {
@@ -419,7 +438,7 @@ export default function BookingsPage() {
     return () => {
       ignore = true
     }
-  }, [limit, page, statusFilter])
+  }, [limit, page, statusFilter, sourceFilter])
 
   useEffect(() => {
     let ignore = false
@@ -765,45 +784,71 @@ export default function BookingsPage() {
           </div>
           <CardAction className="flex flex-wrap justify-end gap-2">
             <MobileFilterDrawer
-              activeCount={statusFilter !== "ALL" ? 1 : 0}
+              activeCount={(statusFilter !== "ALL" ? 1 : 0) + (sourceFilter !== "ALL" ? 1 : 0)}
               onClear={() => {
                 setStatusFilter("ALL")
+                setSourceFilter("ALL")
                 setPage(1)
               }}
               triggerClassName="md:hidden"
             >
-              <div className="flex flex-col gap-1.5">
-                <p className="text-sm font-medium leading-none">{t("status")}</p>
-                <Select
-                  items={filterOptions}
-                  value={statusFilter}
-                  onValueChange={(value) => {
-                    setStatusFilter(value as StatusFilter)
-                    setPage(1)
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {filterOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <p className="text-sm font-medium leading-none">{t("status")}</p>
+                  <Select
+                    items={filterOptions}
+                    value={statusFilter}
+                    onValueChange={(value) => {
+                      setStatusFilter(value as StatusFilter)
+                      setPage(1)
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {filterOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <p className="text-sm font-medium leading-none">{t("source")}</p>
+                  <Select
+                    items={sourceFilterOptions}
+                    value={sourceFilter}
+                    onValueChange={(value) => {
+                      setSourceFilter(value as SourceFilter)
+                      setPage(1)
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {sourceFilterOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </MobileFilterDrawer>
-            <div className="hidden md:flex">
+            <div className="hidden items-center gap-2 md:flex">
               <Select
                 items={filterOptions}
                 value={statusFilter}
                 onValueChange={(value) => {
-                  const nextStatus = value as StatusFilter
-                  setStatusFilter(nextStatus)
+                  setStatusFilter(value as StatusFilter)
                   setPage(1)
                 }}
               >
@@ -813,6 +858,27 @@ export default function BookingsPage() {
                 <SelectContent align="end">
                   <SelectGroup>
                     {filterOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <Select
+                items={sourceFilterOptions}
+                value={sourceFilter}
+                onValueChange={(value) => {
+                  setSourceFilter(value as SourceFilter)
+                  setPage(1)
+                }}
+              >
+                <SelectTrigger aria-label={t("filterBookingsBySource")} size="sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent align="end">
+                  <SelectGroup>
+                    {sourceFilterOptions.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         {option.label}
                       </SelectItem>
@@ -835,7 +901,7 @@ export default function BookingsPage() {
               <AlertDescription>{errorMessage}</AlertDescription>
               <Button
                 className="mt-3 w-fit"
-                onClick={() => void loadBookings(statusFilter, page)}
+                onClick={() => void loadBookings(statusFilter, sourceFilter, page)}
                 size="sm"
                 type="button"
                 variant="outline"
@@ -857,85 +923,128 @@ export default function BookingsPage() {
           {/* Mobile card list */}
           <div className="flex flex-col gap-3 md:hidden">
             {isLoading ? (
-              <p className="py-8 text-center text-sm text-muted-foreground">
-                {t("loadingBookings")}
-              </p>
-            ) : bookings.length ? (
-              bookings.map((booking) => (
-                <div className="flex flex-col gap-3 rounded-lg border p-4" key={booking.id}>
+              Array.from({ length: 4 }).map((_, i) => (
+                <div className="flex flex-col gap-3 rounded-lg border bg-card p-4" key={i}>
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex min-w-0 flex-col gap-0.5">
-                      <span className="font-medium leading-tight">{booking.guest.fullName}</span>
-                      <span className="text-sm text-muted-foreground">
-                        {t("roomLabel", { roomNumber: booking.room.roomNumber })}
-                        {" · "}{getRoomTypeLabel(booking.room.type, t)}
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        {formatDateRange(booking.checkInDate, booking.checkOutDate)}
-                      </span>
-                      <span className="font-medium">{formatCurrency(booking.totalPrice)}</span>
-                      {booking.miniBarTotal > 0 ? (
-                        <span className="text-xs text-muted-foreground">
-                          {t("miniBarTotal")}: {formatCurrency(booking.miniBarTotal)}
-                        </span>
-                      ) : null}
-                      <span className="text-xs text-muted-foreground">
-                        {booking.coolingOption === "AIR_CONDITIONER" ? t("coolingAC") : t("coolingFan")}
-                      </span>
+                    <div className="flex flex-1 flex-col gap-2">
+                      <Skeleton className="h-4 w-36" />
+                      <Skeleton className="h-3.5 w-28" />
+                      <Skeleton className="h-3.5 w-40" />
+                      <Skeleton className="h-4 w-24" />
                     </div>
-                    <BookingStatusBadge status={booking.status} />
+                    <Skeleton className="h-7 w-24 shrink-0 rounded-full" />
                   </div>
-                  <div className="flex flex-wrap items-center gap-3">
-                    {booking.status === "CONFIRMED" ? (
-                      <Button
-                        className="min-h-11 flex-1"
-                        disabled={actingBookingId === booking.id}
-                        onClick={() => void runBookingAction(booking, "checkIn")}
-                        type="button"
-                        variant="secondary"
-                      >
-                        <LogInIcon data-icon="inline-start" />
-                        {actingBookingId === booking.id ? t("working") : t("checkIn")}
-                      </Button>
-                    ) : null}
-                    {booking.status === "CHECKED_IN" ? (
-                      <Button
-                        className="min-h-11 flex-1"
-                        disabled={actingBookingId === booking.id}
-                        onClick={() => void runBookingAction(booking, "checkOut")}
-                        type="button"
-                        variant="secondary"
-                      >
-                        <LogOutIcon data-icon="inline-start" />
-                        {actingBookingId === booking.id ? t("working") : t("checkOut")}
-                      </Button>
-                    ) : null}
-                    <ActionMenu
-                      items={[
-                        { label: t("viewBookingAria", { bookingId: booking.id }), icon: <EyeIcon />, onClick: () => void openDetailDialog(booking) },
-                        {
-                          label: downloadingInvoiceId === booking.id ? t("downloading") : t("downloadInvoice"),
-                          icon: <FileDownIcon />,
-                          onClick: () => void downloadInvoice(booking.id),
-                          disabled: downloadingInvoiceId === booking.id,
-                        },
-                        (booking.status === "CHECKED_IN" || booking.status === "CHECKED_OUT") ? {
-                          label: t("miniBar.addMiniBarItem"),
-                          icon: <MartiniIcon />,
-                          onClick: () => setQuickMiniBarBooking(booking),
-                        } : null,
-                        (booking.status === "PENDING" || booking.status === "CONFIRMED") ? {
-                          label: t("cancelBooking"),
-                          icon: <CalendarXIcon />,
-                          onClick: () => void runBookingAction(booking, "cancel"),
-                          variant: "destructive" as const,
-                          disabled: actingBookingId === booking.id,
-                        } : null,
-                      ]}
-                    />
-                  </div>
+                  <Skeleton className="h-11 w-full rounded-md" />
                 </div>
               ))
+            ) : bookings.length ? (
+              bookings.map((booking) => {
+                const swipeActions: SwipeAction[] =
+                  booking.status === "PENDING" || booking.status === "CONFIRMED"
+                    ? [
+                        {
+                          label: t("view"),
+                          icon: <EyeIcon className="size-5" />,
+                          onClick: () => void openDetailDialog(booking),
+                          className: "bg-sky-600",
+                        },
+                        {
+                          label: t("cancelBooking"),
+                          icon: <CalendarXIcon className="size-5" />,
+                          onClick: () => void runBookingAction(booking, "cancel"),
+                          className: "bg-destructive",
+                          disabled: actingBookingId === booking.id,
+                        },
+                      ]
+                    : [
+                        {
+                          label: t("view"),
+                          icon: <EyeIcon className="size-5" />,
+                          onClick: () => void openDetailDialog(booking),
+                          className: "bg-sky-600",
+                        },
+                        {
+                          label: t("downloadInvoice"),
+                          icon: <FileDownIcon className="size-5" />,
+                          onClick: () => void downloadInvoice(booking.id),
+                          className: "bg-slate-600",
+                          disabled: downloadingInvoiceId === booking.id,
+                        },
+                      ]
+
+                return (
+                  <SwipeableActionCard
+                    actions={swipeActions}
+                    className="border"
+                    key={booking.id}
+                  >
+                    <div className="flex flex-col gap-3 bg-card p-4">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex min-w-0 flex-col gap-0.5">
+                          <span className="font-medium leading-tight">{booking.guest.fullName}</span>
+                          <span className="text-sm text-muted-foreground">
+                            {t("roomLabel", { roomNumber: booking.room.roomNumber })}
+                            {" · "}{getRoomTypeLabel(booking.room.type, t)}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            {formatDateRange(booking.checkInDate, booking.checkOutDate)}
+                          </span>
+                          <span className="font-medium">{formatCurrency(booking.totalPrice)}</span>
+                          {booking.miniBarTotal > 0 ? (
+                            <span className="text-xs text-muted-foreground">
+                              {t("miniBarTotal")}: {formatCurrency(booking.miniBarTotal)}
+                            </span>
+                          ) : null}
+                          <span className="text-xs text-muted-foreground">
+                            {booking.coolingOption === "AIR_CONDITIONER" ? t("coolingAC") : t("coolingFan")}
+                          </span>
+                        </div>
+                        <div className="flex shrink-0 flex-col items-end gap-1.5">
+                          <BookingStatusBadge status={booking.status} />
+                          <BookingSourceBadge source={booking.source} t={t} />
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3">
+                        {booking.status === "CONFIRMED" ? (
+                          <Button
+                            className="min-h-11 flex-1"
+                            disabled={actingBookingId === booking.id}
+                            onClick={() => void runBookingAction(booking, "checkIn")}
+                            type="button"
+                            variant="secondary"
+                          >
+                            <LogInIcon data-icon="inline-start" />
+                            {actingBookingId === booking.id ? t("working") : t("checkIn")}
+                          </Button>
+                        ) : null}
+                        {booking.status === "CHECKED_IN" ? (
+                          <Button
+                            className="min-h-11 flex-1"
+                            disabled={actingBookingId === booking.id}
+                            onClick={() => void runBookingAction(booking, "checkOut")}
+                            type="button"
+                            variant="secondary"
+                          >
+                            <LogOutIcon data-icon="inline-start" />
+                            {actingBookingId === booking.id ? t("working") : t("checkOut")}
+                          </Button>
+                        ) : null}
+                        {booking.status === "CHECKED_IN" || booking.status === "CHECKED_OUT" ? (
+                          <Button
+                            className="min-h-11 flex-1"
+                            onClick={() => setQuickMiniBarBooking(booking)}
+                            type="button"
+                            variant="outline"
+                          >
+                            <MartiniIcon data-icon="inline-start" />
+                            {t("miniBar.addMiniBarItem")}
+                          </Button>
+                        ) : null}
+                      </div>
+                    </div>
+                  </SwipeableActionCard>
+                )
+              })
             ) : (
               <p className="py-8 text-center text-sm text-muted-foreground">
                 {statusFilter === "ALL"
@@ -959,6 +1068,7 @@ export default function BookingsPage() {
                   <TableHead>{t("total")}</TableHead>
                   <TableHead>{t("miniBarTotal")}</TableHead>
                   <TableHead>{t("status")}</TableHead>
+                  <TableHead>{t("source")}</TableHead>
                   <TableHead className="text-right">{t("actions")}</TableHead>
                 </TableRow>
               </TableHeader>
@@ -995,6 +1105,9 @@ export default function BookingsPage() {
                       </TableCell>
                       <TableCell>
                         <BookingStatusBadge status={booking.status} />
+                      </TableCell>
+                      <TableCell>
+                        <BookingSourceBadge source={booking.source} t={t} />
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap justify-end gap-2">
@@ -2265,12 +2378,14 @@ function BookingStatusBadge({ status }: { status: BookingStatus }) {
   const t = useTranslations()
   const variant =
     status === "CONFIRMED"
-      ? "default"
+      ? "success"
       : status === "CHECKED_IN"
-        ? "secondary"
-        : status === "CANCELLED"
-          ? "destructive"
-          : "outline"
+        ? "warning"
+        : status === "CHECKED_OUT"
+          ? "info"
+          : status === "CANCELLED"
+            ? "destructive"
+            : "outline"
 
   const Icon =
     status === "CHECKED_IN"
@@ -2285,6 +2400,25 @@ function BookingStatusBadge({ status }: { status: BookingStatus }) {
     <Badge className="h-7 shrink-0 px-2.5 text-sm" variant={variant}>
       <Icon data-icon="inline-start" />
       {getBookingStatusLabel(status, t)}
+    </Badge>
+  )
+}
+
+function BookingSourceBadge({
+  source,
+  t,
+}: {
+  source: BookingSource
+  t: TranslationFn
+}) {
+  return source === "WALK_IN" ? (
+    <Badge className="h-6 px-2 text-xs" variant="success">
+      <UserPlusIcon data-icon="inline-start" />
+      {t("sourceWalkIn")}
+    </Badge>
+  ) : (
+    <Badge className="h-6 px-2 text-xs" variant="info">
+      {t("sourceOnline")}
     </Badge>
   )
 }

@@ -27,8 +27,8 @@ import { cn } from "@/lib/utils"
 const guesthouseBottomNavItems = [
   { href: "/dashboard", icon: GaugeIcon, labelKey: "dashboard", exact: true },
   { href: "/bookings", icon: CalendarCheckIcon, labelKey: "bookings", exact: false },
-  { href: "/rooms", icon: BedDoubleIcon, labelKey: "rooms", exact: false },
   { href: "/finance", icon: TrendingUpIcon, labelKey: "finance", exact: false },
+  { href: "/rooms", icon: BedDoubleIcon, labelKey: "rooms", exact: false },
 ] as const
 
 const storeBottomNavItems = [
@@ -72,7 +72,7 @@ export function MobileBottomNav() {
             <Link
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "flex flex-1 flex-col items-center justify-center gap-1 text-xs font-medium transition-colors",
+                "relative flex flex-1 flex-col items-center justify-center gap-1 text-xs font-medium transition-colors",
                 isActive
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground",
@@ -80,6 +80,9 @@ export function MobileBottomNav() {
               href={href}
               key={href}
             >
+              {isActive && (
+                <span aria-hidden="true" className="absolute top-0 h-0.5 w-8 rounded-b-full bg-primary" />
+              )}
               <Icon className="size-5" />
               <span>{t(labelKey)}</span>
             </Link>
@@ -89,7 +92,7 @@ export function MobileBottomNav() {
           aria-expanded={moreOpen}
           aria-label={t("more")}
           className={cn(
-            "flex flex-1 flex-col items-center justify-center gap-1 text-xs font-medium transition-colors",
+            "relative flex flex-1 flex-col items-center justify-center gap-1 text-xs font-medium transition-colors",
             !isInBottomNav
               ? "text-primary"
               : "text-muted-foreground hover:text-foreground",
@@ -97,6 +100,9 @@ export function MobileBottomNav() {
           onClick={() => setMoreOpen(true)}
           type="button"
         >
+          {!isInBottomNav && (
+            <span aria-hidden="true" className="absolute top-0 h-0.5 w-8 rounded-b-full bg-primary" />
+          )}
           <MoreHorizontalIcon className="size-5" />
           <span>{t("more")}</span>
         </button>

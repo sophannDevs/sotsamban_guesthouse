@@ -24,24 +24,12 @@ export type HousekeepingDashboardSummary = {
   urgentTasks: HousekeepingDashboardTask[]
 }
 
-export type DashboardSummary = {
-  totalRooms: number
-  availableRooms: number
-  bookedRooms: number
-  occupiedRooms: number
-  maintenanceRooms: number
-  totalGuests: number
-  todayCheckIns: number
-  todayCheckOuts: number
-  totalRevenue: number
-  monthlyRevenue: number
-}
-
 export type DashboardTodayCheckIn = {
   bookingId: string
   guestName: string
   roomNumber: string
   checkInTime: string | null
+  source: "ONLINE" | "WALK_IN"
 }
 
 export type DashboardTodayCheckOut = {
@@ -51,13 +39,21 @@ export type DashboardTodayCheckOut = {
   checkOutTime: string | null
 }
 
-export type DashboardTodaySummary = {
+export type DashboardWalkInGuest = {
+  bookingId: string
+  guestName: string
+  roomNumber: string
+  checkInAt: string | null
+}
+
+export type DashboardSummary = {
   todayCheckIns: DashboardTodayCheckIn[]
   todayCheckOuts: DashboardTodayCheckOut[]
   availableRooms: number
   occupiedRooms: number
   needsCleaningRooms: number
   totalRevenueToday: number
+  walkInGuests: DashboardWalkInGuest[]
 }
 
 type ApiResponse<T> = {
@@ -76,7 +72,7 @@ export const dashboardService = {
 
   async getTodaySummary() {
     const response =
-      await apiClient.get<ApiResponse<DashboardTodaySummary>>("/dashboard/today")
+      await apiClient.get<ApiResponse<DashboardSummary>>("/dashboard/today")
 
     return response.data.data
   },

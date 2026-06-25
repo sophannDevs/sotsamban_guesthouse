@@ -1,10 +1,12 @@
 import { Injectable } from '@nestjs/common';
 
 import {
+  BookingSource,
   BookingStatus,
   BusinessType,
   HousekeepingPriority,
   HousekeepingStatus,
+  MiniBarConsumptionStatus,
   PaymentStatus,
   Prisma,
   RoomStatus,
@@ -54,98 +56,105 @@ export class DashboardService {
     assignedTo: { select: { name: true } },
   } satisfies Prisma.HousekeepingTaskInclude;
 
-  private readonly todayBookingInclude = {
+  private readonly todayBookingSelect = {
+    id: true,
+    checkInAt: true,
+    checkOutAt: true,
+    source: true,
     guest: { select: { fullName: true } },
     room: { select: { roomNumber: true } },
-  } satisfies Prisma.BookingInclude;
+  } satisfies Prisma.BookingSelect;
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async getSummary() {
+  async getSummary(businessId: string, userId: string, userRole: UserRole) {
+    await assertGuesthouseAccess(this.prisma, businessId, userId, userRole);
+
     const todayRange = this.getDayRange(new Date());
-    const monthRange = this.getMonthRange(new Date());
+    const activeStatus = { not: BookingStatus.CANCELLED };
 
     const [
+      checkInBookings,
+      checkOutBookings,
       roomsByStatus,
-      totalGuests,
-      todayCheckIns,
-      todayCheckOuts,
-      totalRevenue,
-      monthlyRevenue,
+      paidToday,
+      miniBarToday,
     ] = await Promise.all([
+      // Bookings scheduled to check in today
+      this.prisma.booking.findMany({
+        where: {
+          status: activeStatus,
+          checkInDate: { gte: todayRange.start, lt: todayRange.end },
+        },
+        select: this.todayBookingSelect,
+        orderBy: { checkInDate: 'asc' },
+      }),
+      // Bookings scheduled to check out today
+      this.prisma.booking.findMany({
+        where: {
+          status: activeStatus,
+          checkOutDate: { gte: todayRange.start, lt: todayRange.end },
+        },
+        select: this.todayBookingSelect,
+        orderBy: { checkOutDate: 'asc' },
+      }),
+      // Current room counts by status
       this.prisma.room.groupBy({
         by: ['status'],
-        where: {
-          deletedAt: null,
-        },
-        _count: {
-          _all: true,
-        },
+        where: { deletedAt: null },
+        _count: { _all: true },
       }),
-      this.prisma.guest.count(),
-      this.prisma.booking.count({
-        where: {
-          status: {
-            not: BookingStatus.CANCELLED,
-          },
-          checkInDate: {
-            gte: todayRange.start,
-            lt: todayRange.end,
-          },
-        },
-      }),
-      this.prisma.booking.count({
-        where: {
-          status: {
-            not: BookingStatus.CANCELLED,
-          },
-          checkOutDate: {
-            gte: todayRange.start,
-            lt: todayRange.end,
-          },
-        },
-      }),
+      // Revenue from payments received today
       this.prisma.payment.aggregate({
         where: {
           status: PaymentStatus.PAID,
+          paidAt: { gte: todayRange.start, lt: todayRange.end },
         },
-        _sum: {
-          amount: true,
-        },
+        _sum: { amount: true },
       }),
-      this.prisma.payment.aggregate({
+      // Mini bar charges settled today (business-scoped)
+      this.prisma.miniBarConsumption.aggregate({
         where: {
-          status: PaymentStatus.PAID,
-          paidAt: {
-            gte: monthRange.start,
-            lt: monthRange.end,
-          },
+          businessId,
+          status: MiniBarConsumptionStatus.CHARGED,
+          updatedAt: { gte: todayRange.start, lt: todayRange.end },
         },
-        _sum: {
-          amount: true,
-        },
+        _sum: { totalAmount: true },
       }),
     ]);
 
     const roomCounts = this.getRoomCountsByStatus(roomsByStatus);
+    const paymentRevenue = this.decimalToNumber(paidToday._sum.amount);
+    const miniBarRevenue = this.decimalToNumber(miniBarToday._sum.totalAmount);
 
     return {
-      totalRooms: Object.values(roomCounts).reduce(
-        (total, count) => total + count,
-        0,
-      ),
+      todayCheckIns: checkInBookings.map((booking) => ({
+        bookingId: booking.id,
+        guestName: booking.guest.fullName,
+        roomNumber: booking.room.roomNumber,
+        checkInTime: booking.checkInAt,
+        source: booking.source,
+      })),
+      todayCheckOuts: checkOutBookings.map((booking) => ({
+        bookingId: booking.id,
+        guestName: booking.guest.fullName,
+        roomNumber: booking.room.roomNumber,
+        checkOutTime: booking.checkOutAt,
+      })),
       availableRooms: roomCounts[RoomStatus.AVAILABLE],
-      bookedRooms: roomCounts[RoomStatus.BOOKED],
       occupiedRooms: roomCounts[RoomStatus.OCCUPIED],
-      maintenanceRooms: roomCounts[RoomStatus.MAINTENANCE],
-      cleaningRooms:
-        roomCounts[RoomStatus.NEEDS_CLEANING] +
-        roomCounts[RoomStatus.CLEANING_IN_PROGRESS],
-      totalGuests,
-      todayCheckIns,
-      todayCheckOuts,
-      totalRevenue: this.decimalToNumber(totalRevenue._sum.amount),
-      monthlyRevenue: this.decimalToNumber(monthlyRevenue._sum.amount),
+      needsCleaningRooms: roomCounts[RoomStatus.NEEDS_CLEANING],
+      totalRevenueToday: paymentRevenue + miniBarRevenue,
+      walkInGuests: checkInBookings
+        .filter(
+          (b) => b.source === BookingSource.WALK_IN && b.checkInAt !== null,
+        )
+        .map((b) => ({
+          bookingId: b.id,
+          guestName: b.guest.fullName,
+          roomNumber: b.room.roomNumber,
+          checkInAt: b.checkInAt,
+        })),
     };
   }
 
@@ -166,7 +175,7 @@ export class DashboardService {
             status: activeStatus,
             checkInDate: { gte: todayRange.start, lt: todayRange.end },
           },
-          include: this.todayBookingInclude,
+          select: this.todayBookingSelect,
           orderBy: { checkInDate: 'asc' },
         }),
         this.prisma.booking.findMany({
@@ -174,7 +183,7 @@ export class DashboardService {
             status: activeStatus,
             checkOutDate: { gte: todayRange.start, lt: todayRange.end },
           },
-          include: this.todayBookingInclude,
+          select: this.todayBookingSelect,
           orderBy: { checkOutDate: 'asc' },
         }),
         this.prisma.room.groupBy({
@@ -199,6 +208,7 @@ export class DashboardService {
         guestName: booking.guest.fullName,
         roomNumber: booking.room.roomNumber,
         checkInTime: booking.checkInAt,
+        source: booking.source,
       })),
       todayCheckOuts: checkOutBookings.map((booking) => ({
         bookingId: booking.id,
@@ -210,6 +220,16 @@ export class DashboardService {
       occupiedRooms: roomCounts[RoomStatus.OCCUPIED],
       needsCleaningRooms: roomCounts[RoomStatus.NEEDS_CLEANING],
       totalRevenueToday: this.decimalToNumber(paidToday._sum.amount),
+      walkInGuests: checkInBookings
+        .filter(
+          (b) => b.source === BookingSource.WALK_IN && b.checkInAt !== null,
+        )
+        .map((b) => ({
+          bookingId: b.id,
+          guestName: b.guest.fullName,
+          roomNumber: b.room.roomNumber,
+          checkInAt: b.checkInAt,
+        })),
     };
   }
 

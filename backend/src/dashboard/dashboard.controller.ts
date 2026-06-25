@@ -13,8 +13,15 @@ export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get('summary')
-  async getSummary() {
-    const summary = await this.dashboardService.getSummary();
+  async getSummary(
+    @Headers('x-business-id') businessId: string,
+    @CurrentUser() currentUser: AuthUser,
+  ) {
+    const summary = await this.dashboardService.getSummary(
+      businessId,
+      currentUser.userId,
+      currentUser.role,
+    );
 
     return apiResponse('Dashboard summary retrieved successfully.', summary);
   }
