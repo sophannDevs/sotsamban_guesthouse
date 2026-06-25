@@ -1,20 +1,18 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 
 import {
-  Business,
   BookingStatus,
-  BusinessType,
   MiniBarConsumptionStatus,
   Prisma,
   ProductStatus,
   UserRole,
 } from '../../generated/prisma/client';
 import { apiResponse } from '../common/api-response';
+import { assertGuesthouseAccess } from '../common/business-access';
 import {
   createPaginatedResult,
   getPaginationOptions,
@@ -69,7 +67,7 @@ export class MiniBarConsumptionService {
     userId: string,
     userRole: UserRole,
   ) {
-    await this.assertGuesthouseAccess(businessId, userId, userRole);
+    await assertGuesthouseAccess(this.prisma, businessId, userId, userRole);
 
     const storeBusinessId = await this.getLinkedStoreBusinessId(businessId);
 
@@ -104,7 +102,7 @@ export class MiniBarConsumptionService {
     userId: string,
     userRole: UserRole,
   ) {
-    await this.assertGuesthouseAccess(businessId, userId, userRole);
+    await assertGuesthouseAccess(this.prisma, businessId, userId, userRole);
 
     const booking = await this.prisma.booking.findUnique({
       where: { id: dto.bookingId },
@@ -158,7 +156,7 @@ export class MiniBarConsumptionService {
     userId: string,
     userRole: UserRole,
   ) {
-    await this.assertGuesthouseAccess(businessId, userId, userRole);
+    await assertGuesthouseAccess(this.prisma, businessId, userId, userRole);
 
     const pagination = getPaginationOptions(query, {
       allowedSortBy: consumptionSortFields,
@@ -209,7 +207,7 @@ export class MiniBarConsumptionService {
     userId: string,
     userRole: UserRole,
   ) {
-    await this.assertGuesthouseAccess(businessId, userId, userRole);
+    await assertGuesthouseAccess(this.prisma, businessId, userId, userRole);
 
     const consumption = await this.findConsumptionOrThrow(id, businessId);
 
@@ -226,7 +224,7 @@ export class MiniBarConsumptionService {
     userId: string,
     userRole: UserRole,
   ) {
-    await this.assertGuesthouseAccess(businessId, userId, userRole);
+    await assertGuesthouseAccess(this.prisma, businessId, userId, userRole);
 
     const consumption = await this.findConsumptionOrThrow(id, businessId);
     this.assertStatus(
@@ -285,7 +283,7 @@ export class MiniBarConsumptionService {
     userId: string,
     userRole: UserRole,
   ) {
-    await this.assertGuesthouseAccess(businessId, userId, userRole);
+    await assertGuesthouseAccess(this.prisma, businessId, userId, userRole);
 
     const consumption = await this.findConsumptionOrThrow(id, businessId);
     this.assertStatus(
@@ -350,7 +348,7 @@ export class MiniBarConsumptionService {
     userId: string,
     userRole: UserRole,
   ) {
-    await this.assertGuesthouseAccess(businessId, userId, userRole);
+    await assertGuesthouseAccess(this.prisma, businessId, userId, userRole);
 
     const consumption = await this.findConsumptionOrThrow(id, businessId);
     this.assertStatus(
@@ -378,7 +376,7 @@ export class MiniBarConsumptionService {
     userId: string,
     userRole: UserRole,
   ) {
-    await this.assertGuesthouseAccess(businessId, userId, userRole);
+    await assertGuesthouseAccess(this.prisma, businessId, userId, userRole);
 
     const consumption = await this.findConsumptionOrThrow(id, businessId);
     this.assertStatus(
@@ -511,42 +509,6 @@ export class MiniBarConsumptionService {
     }
 
     return consumption;
-  }
-
-  private async assertGuesthouseAccess(
-    businessId: string,
-    userId: string,
-    userRole: UserRole,
-  ): Promise<Business> {
-    if (!businessId) {
-      throw new BadRequestException('x-business-id header is required.');
-    }
-
-    const business = await this.prisma.business.findUnique({
-      where: { id: businessId },
-    });
-
-    if (!business) {
-      throw new NotFoundException('Business not found.');
-    }
-
-    if (business.type !== BusinessType.GUESTHOUSE) {
-      throw new ForbiddenException(
-        'This endpoint is only available for GUESTHOUSE businesses.',
-      );
-    }
-
-    if (userRole !== UserRole.ADMIN) {
-      const member = await this.prisma.businessMember.findUnique({
-        where: { businessId_userId: { businessId, userId } },
-      });
-
-      if (!member) {
-        throw new ForbiddenException('You are not a member of this business.');
-      }
-    }
-
-    return business;
   }
 
   private serialize(consumption: ConsumptionWithRelations) {

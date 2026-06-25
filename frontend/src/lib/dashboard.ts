@@ -37,6 +37,29 @@ export type DashboardSummary = {
   monthlyRevenue: number
 }
 
+export type DashboardTodayCheckIn = {
+  bookingId: string
+  guestName: string
+  roomNumber: string
+  checkInTime: string | null
+}
+
+export type DashboardTodayCheckOut = {
+  bookingId: string
+  guestName: string
+  roomNumber: string
+  checkOutTime: string | null
+}
+
+export type DashboardTodaySummary = {
+  todayCheckIns: DashboardTodayCheckIn[]
+  todayCheckOuts: DashboardTodayCheckOut[]
+  availableRooms: number
+  occupiedRooms: number
+  needsCleaningRooms: number
+  totalRevenueToday: number
+}
+
 type ApiResponse<T> = {
   success: boolean
   message: string
@@ -47,6 +70,13 @@ export const dashboardService = {
   async getSummary() {
     const response =
       await apiClient.get<ApiResponse<DashboardSummary>>("/dashboard/summary")
+
+    return response.data.data
+  },
+
+  async getTodaySummary() {
+    const response =
+      await apiClient.get<ApiResponse<DashboardTodaySummary>>("/dashboard/today")
 
     return response.data.data
   },

@@ -28,6 +28,8 @@ export type Booking = {
   roomId: string
   checkInDate: string
   checkOutDate: string
+  checkInAt: string | null
+  checkOutAt: string | null
   coolingOption: CoolingOption
   roomPriceTotal: number
   coolingPrice: number
@@ -126,7 +128,7 @@ export const bookingService = {
   },
 
   async checkIn(id: string) {
-    const response = await apiClient.patch<ApiResponse<Booking>>(
+    const response = await apiClient.post<ApiResponse<Booking>>(
       `/bookings/${id}/check-in`
     )
 
@@ -134,7 +136,7 @@ export const bookingService = {
   },
 
   async checkOut(id: string) {
-    const response = await apiClient.patch<ApiResponse<Booking>>(
+    const response = await apiClient.post<ApiResponse<Booking>>(
       `/bookings/${id}/check-out`
     )
 

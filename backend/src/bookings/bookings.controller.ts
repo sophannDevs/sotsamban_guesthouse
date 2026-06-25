@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
@@ -68,19 +69,34 @@ export class BookingsController {
     return apiResponse('Booking retrieved successfully.', booking);
   }
 
-  @Patch(':id/check-in')
-  async checkIn(@Param('id') id: string, @CurrentUser() currentUser: AuthUser) {
-    const booking = await this.bookingsService.checkIn(id, currentUser.userId);
+  @Post(':id/check-in')
+  async checkIn(
+    @Param('id') id: string,
+    @Headers('x-business-id') businessId: string,
+    @CurrentUser() currentUser: AuthUser,
+  ) {
+    const booking = await this.bookingsService.checkIn(
+      id,
+      businessId,
+      currentUser.userId,
+      currentUser.role,
+    );
 
     return apiResponse('Booking checked in successfully.', booking);
   }
 
-  @Patch(':id/check-out')
+  @Post(':id/check-out')
   async checkOut(
     @Param('id') id: string,
+    @Headers('x-business-id') businessId: string,
     @CurrentUser() currentUser: AuthUser,
   ) {
-    const booking = await this.bookingsService.checkOut(id, currentUser.userId);
+    const booking = await this.bookingsService.checkOut(
+      id,
+      businessId,
+      currentUser.userId,
+      currentUser.role,
+    );
 
     return apiResponse('Booking checked out successfully.', booking);
   }

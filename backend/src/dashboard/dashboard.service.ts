@@ -8,7 +8,9 @@ import {
   PaymentStatus,
   Prisma,
   RoomStatus,
+  UserRole,
 } from '../../generated/prisma/client';
+import { assertGuesthouseAccess } from '../common/business-access';
 import { PrismaService } from '../prisma/prisma.service';
 
 type RecentBooking = Prisma.BookingGetPayload<{
@@ -51,6 +53,11 @@ export class DashboardService {
     room: { select: { roomNumber: true, type: true } },
     assignedTo: { select: { name: true } },
   } satisfies Prisma.HousekeepingTaskInclude;
+
+  private readonly todayBookingInclude = {
+    guest: { select: { fullName: true } },
+    room: { select: { roomNumber: true } },
+  } satisfies Prisma.BookingInclude;
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -142,6 +149,70 @@ export class DashboardService {
     };
   }
 
+  async getTodaySummary(
+    businessId: string,
+    userId: string,
+    userRole: UserRole,
+  ) {
+    await assertGuesthouseAccess(this.prisma, businessId, userId, userRole);
+
+    const todayRange = this.getDayRange(new Date());
+    const activeStatus = { not: BookingStatus.CANCELLED };
+
+    const [checkInBookings, checkOutBookings, roomsByStatus, paidToday] =
+      await Promise.all([
+        this.prisma.booking.findMany({
+          where: {
+            status: activeStatus,
+            checkInDate: { gte: todayRange.start, lt: todayRange.end },
+          },
+          include: this.todayBookingInclude,
+          orderBy: { checkInDate: 'asc' },
+        }),
+        this.prisma.booking.findMany({
+          where: {
+            status: activeStatus,
+            checkOutDate: { gte: todayRange.start, lt: todayRange.end },
+          },
+          include: this.todayBookingInclude,
+          orderBy: { checkOutDate: 'asc' },
+        }),
+        this.prisma.room.groupBy({
+          by: ['status'],
+          where: { deletedAt: null },
+          _count: { _all: true },
+        }),
+        this.prisma.payment.aggregate({
+          where: {
+            status: PaymentStatus.PAID,
+            paidAt: { gte: todayRange.start, lt: todayRange.end },
+          },
+          _sum: { amount: true },
+        }),
+      ]);
+
+    const roomCounts = this.getRoomCountsByStatus(roomsByStatus);
+
+    return {
+      todayCheckIns: checkInBookings.map((booking) => ({
+        bookingId: booking.id,
+        guestName: booking.guest.fullName,
+        roomNumber: booking.room.roomNumber,
+        checkInTime: booking.checkInAt,
+      })),
+      todayCheckOuts: checkOutBookings.map((booking) => ({
+        bookingId: booking.id,
+        guestName: booking.guest.fullName,
+        roomNumber: booking.room.roomNumber,
+        checkOutTime: booking.checkOutAt,
+      })),
+      availableRooms: roomCounts[RoomStatus.AVAILABLE],
+      occupiedRooms: roomCounts[RoomStatus.OCCUPIED],
+      needsCleaningRooms: roomCounts[RoomStatus.NEEDS_CLEANING],
+      totalRevenueToday: this.decimalToNumber(paidToday._sum.amount),
+    };
+  }
+
   async getRecentBookings() {
     const bookings = await this.prisma.booking.findMany({
       take: this.recentLimit,
@@ -186,7 +257,10 @@ export class DashboardService {
     }
 
     const businessId = guesthouse.id;
-    const TERMINAL = [HousekeepingStatus.INSPECTED, HousekeepingStatus.CANCELLED];
+    const TERMINAL = [
+      HousekeepingStatus.INSPECTED,
+      HousekeepingStatus.CANCELLED,
+    ];
 
     const [
       needsCleaning,

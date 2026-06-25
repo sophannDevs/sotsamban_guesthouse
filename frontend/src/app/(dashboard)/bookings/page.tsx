@@ -30,6 +30,7 @@ import {
   RefreshCwIcon,
   SearchIcon,
   UserIcon,
+  UserPlusIcon,
   WindIcon,
   XIcon,
 } from "lucide-react"
@@ -108,6 +109,7 @@ import {
   type RoomType,
 } from "@/lib/rooms"
 import { ActionMenu } from "@/components/app/action-menu"
+import { GuestCreateDialog } from "@/components/app/guest-create-dialog"
 import {
   MiniBarActionConfirmDialog,
   type MiniBarConfirmAction,
@@ -195,6 +197,7 @@ export default function BookingsPage() {
   const [coolingOption, setCoolingOption] = useState<CoolingOption>("FAN")
   const [acPricePerNight, setAcPricePerNight] = useState(5)
   const [guestSearch, setGuestSearch] = useState("")
+  const [isGuestCreateOpen, setIsGuestCreateOpen] = useState(false)
   const bookingSchema = z
     .object({
       guestId: z.string().min(1, t("selectGuest")),
@@ -1105,6 +1108,15 @@ export default function BookingsPage() {
                     value={guestSearch}
                   />
                 </div>
+                <Button
+                  className="w-full"
+                  onClick={() => setIsGuestCreateOpen(true)}
+                  type="button"
+                  variant="outline"
+                >
+                  <UserPlusIcon data-icon="inline-start" />
+                  {t("addGuest")}
+                </Button>
                 {isOptionsLoading ? (
                   <p className="py-4 text-center text-sm text-muted-foreground">
                     {t("loadingGuests")}
@@ -1554,6 +1566,18 @@ export default function BookingsPage() {
           </div>
         </div>
       ) : null}
+
+      <GuestCreateDialog
+        onCreated={(guest) => {
+          setGuests((prev) => [guest, ...prev])
+          setValue("guestId", guest.id, {
+            shouldDirty: true,
+            shouldValidate: true,
+          })
+        }}
+        onOpenChange={setIsGuestCreateOpen}
+        open={isGuestCreateOpen}
+      />
 
       <Dialog open={!isMobileWizard && isCreateOpen} onOpenChange={setIsCreateOpen}>
         <DialogContent className="sm:max-w-lg">

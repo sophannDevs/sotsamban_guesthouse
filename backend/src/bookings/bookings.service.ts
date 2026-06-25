@@ -6,12 +6,12 @@ import {
 } from '@nestjs/common';
 import {
   BookingStatus,
-  BusinessType,
   CoolingOption,
   HousekeepingPriority,
   HousekeepingStatus,
   Prisma,
   RoomStatus,
+  UserRole,
 } from '../../generated/prisma/client';
 
 import {
@@ -22,6 +22,7 @@ import {
   getPaidAmountForBooking,
   getPaidAmountsByBookingIds,
 } from '../common/booking-totals';
+import { assertGuesthouseAccess } from '../common/business-access';
 import { translateError } from '../common/i18n';
 import {
   createPaginatedResult,
@@ -197,7 +198,14 @@ export class BookingsService {
     return this.serializeBooking(booking);
   }
 
-  async checkIn(id: string, actorUserId?: string) {
+  async checkIn(
+    id: string,
+    businessId: string,
+    userId: string,
+    userRole: UserRole,
+  ) {
+    await assertGuesthouseAccess(this.prisma, businessId, userId, userRole);
+
     const existingBooking = await this.findBookingById(id);
 
     if (existingBooking.status !== BookingStatus.CONFIRMED) {
@@ -205,6 +213,16 @@ export class BookingsService {
         translateError('onlyConfirmedBookingsCanCheckIn'),
       );
     }
+
+    // Defensive re-check: the room may have gone into maintenance, or another
+    // booking may have been created for the same dates, since this booking
+    // was originally confirmed.
+    await this.ensureRoomCanBeBooked(
+      existingBooking.room,
+      existingBooking.checkInDate,
+      existingBooking.checkOutDate,
+      id,
+    );
 
     const booking = await this.prisma.$transaction(async (tx) => {
       await tx.room.update({
@@ -214,22 +232,29 @@ export class BookingsService {
 
       return tx.booking.update({
         where: { id },
-        data: { status: BookingStatus.CHECKED_IN },
+        data: { status: BookingStatus.CHECKED_IN, checkInAt: new Date() },
         include: this.bookingInclude,
       });
     });
 
-    if (actorUserId) {
-      await this.notificationsService.notifyBookingCheckedIn(
-        actorUserId,
-        booking.id,
-      );
-    }
+    await this.notificationsService.notifyBookingCheckedIn(userId, booking.id);
 
     return this.serializeBooking(booking);
   }
 
-  async checkOut(id: string, actorUserId?: string) {
+  async checkOut(
+    id: string,
+    businessId: string,
+    userId: string,
+    userRole: UserRole,
+  ) {
+    const business = await assertGuesthouseAccess(
+      this.prisma,
+      businessId,
+      userId,
+      userRole,
+    );
+
     const existingBooking = await this.findBookingById(id);
 
     if (existingBooking.status !== BookingStatus.CHECKED_IN) {
@@ -237,11 +262,6 @@ export class BookingsService {
         translateError('onlyCheckedInBookingsCanCheckOut'),
       );
     }
-
-    const guesthouse = await this.prisma.business.findFirst({
-      where: { type: BusinessType.GUESTHOUSE },
-      select: { id: true },
-    });
 
     const booking = await this.prisma.$transaction(async (tx) => {
       await tx.room.update({
@@ -251,42 +271,35 @@ export class BookingsService {
 
       const updatedBooking = await tx.booking.update({
         where: { id },
-        data: { status: BookingStatus.CHECKED_OUT },
+        data: { status: BookingStatus.CHECKED_OUT, checkOutAt: new Date() },
         include: this.bookingInclude,
       });
 
-      if (guesthouse) {
-        const existingTask = await tx.housekeepingTask.findFirst({
-          where: {
+      const existingTask = await tx.housekeepingTask.findFirst({
+        where: {
+          roomId: existingBooking.roomId,
+          bookingId: id,
+          status: { not: HousekeepingStatus.CANCELLED },
+        },
+      });
+
+      if (!existingTask) {
+        await tx.housekeepingTask.create({
+          data: {
+            businessId: business.id,
             roomId: existingBooking.roomId,
             bookingId: id,
-            status: { not: HousekeepingStatus.CANCELLED },
+            status: HousekeepingStatus.NEEDS_CLEANING,
+            priority: HousekeepingPriority.MEDIUM,
+            note: 'Room needs cleaning after check-out',
           },
         });
-
-        if (!existingTask) {
-          await tx.housekeepingTask.create({
-            data: {
-              businessId: guesthouse.id,
-              roomId: existingBooking.roomId,
-              bookingId: id,
-              status: HousekeepingStatus.NEEDS_CLEANING,
-              priority: HousekeepingPriority.MEDIUM,
-              note: 'Room needs cleaning after check-out',
-            },
-          });
-        }
       }
 
       return updatedBooking;
     });
 
-    if (actorUserId) {
-      await this.notificationsService.notifyBookingCheckedOut(
-        actorUserId,
-        booking.id,
-      );
-    }
+    await this.notificationsService.notifyBookingCheckedOut(userId, booking.id);
 
     return this.serializeBooking(booking);
   }

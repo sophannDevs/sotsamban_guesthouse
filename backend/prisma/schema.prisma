@@ -152,6 +152,8 @@ model Booking {
   roomId              String
   checkInDate         DateTime
   checkOutDate        DateTime
+  checkInAt           DateTime?
+  checkOutAt          DateTime?
   coolingOption       CoolingOption        @default(FAN)
   roomPriceTotal      Decimal              @db.Decimal(10, 2)
   coolingPrice        Decimal              @db.Decimal(10, 2)

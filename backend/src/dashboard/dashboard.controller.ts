@@ -1,7 +1,9 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Headers } from '@nestjs/common';
 
 import { UserRole } from '../../generated/prisma/client';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
+import type { AuthUser } from '../auth/types';
 import { apiResponse } from '../common/api-response';
 import { DashboardService } from './dashboard.service';
 
@@ -15,6 +17,20 @@ export class DashboardController {
     const summary = await this.dashboardService.getSummary();
 
     return apiResponse('Dashboard summary retrieved successfully.', summary);
+  }
+
+  @Get('today')
+  async getTodaySummary(
+    @Headers('x-business-id') businessId: string,
+    @CurrentUser() currentUser: AuthUser,
+  ) {
+    const summary = await this.dashboardService.getTodaySummary(
+      businessId,
+      currentUser.userId,
+      currentUser.role,
+    );
+
+    return apiResponse('Today summary retrieved successfully.', summary);
   }
 
   @Get('recent-bookings')
