@@ -7,6 +7,7 @@ import {
 import {
   BookingSource,
   BookingStatus,
+  BookingType,
   BusinessRole,
   BusinessType,
   ExpenseCategory,
@@ -14,6 +15,8 @@ import {
   PaymentStatus,
   Prisma,
   RoomStatus,
+  SessionType,
+  StayDuration,
   UserRole,
 } from '../../generated/prisma/client';
 import { getMiniBarTotalsByBookingIds } from '../common/booking-totals';
@@ -158,34 +161,35 @@ export class ReportService {
 
   async getRevenueReport(filters: RevenueReportFilters) {
     const dateRange = await this.getDateRange(filters);
-    const payments = await this.prisma.payment.findMany({
-      where: this.buildPaymentWhere(dateRange),
-      include: {
-        booking: true,
-      },
-      orderBy: [
-        {
-          paidAt: 'asc',
-        },
-        {
-          createdAt: 'asc',
-        },
+
+    const [payments, stayDurationBreakdown, averageStayTime] = await Promise.all(
+      [
+        this.prisma.payment.findMany({
+          where: this.buildPaymentWhere(dateRange),
+          include: { booking: true },
+          orderBy: [{ paidAt: 'asc' }, { createdAt: 'asc' }],
+        }),
+        this.getStayDurationBreakdown(dateRange),
+        this.getAverageStayTime(dateRange),
       ],
-    });
+    );
 
     const miniBarRevenue = await this.getMiniBarRevenue(payments);
+    const paidPayments = this.getPaidPayments(payments);
 
     return {
       totalRevenue: this.sumPayments(payments),
-      paidRevenue: this.sumPayments(
-        payments.filter((payment) => payment.status === PaymentStatus.PAID),
-      ),
+      paidRevenue: this.sumPayments(paidPayments),
       pendingRevenue: this.sumPayments(
         payments.filter((payment) => payment.status === PaymentStatus.PENDING),
       ),
       miniBarRevenue,
       revenueByDate: this.getRevenueByDate(payments),
       revenueByPaymentMethod: this.getRevenueByPaymentMethod(payments),
+      revenueByBookingType: this.getRevenueByBookingType(paidPayments),
+      revenueBySessionType: this.getRevenueBySessionType(paidPayments),
+      stayDurationBreakdown,
+      averageStayTime,
     };
   }
 
@@ -724,6 +728,107 @@ export class ReportService {
     return payments.filter((payment) => payment.status === PaymentStatus.PAID);
   }
 
+  private getRevenueByBookingType(paidPayments: PaymentForRevenue[]) {
+    const map = new Map<string, number>();
+    for (const payment of paidPayments) {
+      const type = payment.booking.bookingType;
+      map.set(type, (map.get(type) ?? 0) + Number(payment.amount));
+    }
+    return {
+      hourlyRevenue: map.get(BookingType.HOURLY) ?? 0,
+      halfDayRevenue: map.get(BookingType.HALF_DAY) ?? 0,
+      dailyRevenue: map.get(BookingType.DAILY) ?? 0,
+    };
+  }
+
+  private getRevenueBySessionType(paidPayments: PaymentForRevenue[]) {
+    const map = new Map<SessionType | null, number>();
+    for (const payment of paidPayments) {
+      const session = payment.booking.sessionType;
+      map.set(session, (map.get(session) ?? 0) + Number(payment.amount));
+    }
+    return {
+      dayRevenue: map.get(SessionType.DAY) ?? 0,
+      nightRevenue: map.get(SessionType.NIGHT) ?? 0,
+    };
+  }
+
+  private async getStayDurationBreakdown(dateRange: {
+    start?: Date;
+    end?: Date;
+  }) {
+    const where: Prisma.BookingWhereInput = {
+      stayDuration: { not: null },
+    };
+    if (dateRange.start || dateRange.end) {
+      where.AND = [
+        ...(dateRange.end ? [{ checkInDate: { lte: dateRange.end } }] : []),
+        ...(dateRange.start ? [{ checkOutDate: { gte: dateRange.start } }] : []),
+      ];
+    }
+
+    const bookings = await this.prisma.booking.findMany({
+      where,
+      select: { stayDuration: true },
+    });
+
+    const counts = new Map<StayDuration, number>();
+    for (const b of bookings) {
+      if (b.stayDuration) {
+        counts.set(b.stayDuration, (counts.get(b.stayDuration) ?? 0) + 1);
+      }
+    }
+
+    const total = Array.from(counts.values()).reduce((sum, c) => sum + c, 0);
+
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([duration, count]) => ({
+        duration,
+        count,
+        percentage: total > 0 ? Math.round((count / total) * 100) : 0,
+      }));
+  }
+
+  private async getAverageStayTime(dateRange: { start?: Date; end?: Date }) {
+    const where: Prisma.BookingWhereInput = {
+      status: BookingStatus.CHECKED_OUT,
+      checkInAt: { not: null },
+      checkOutAt: { not: null },
+    };
+    if (dateRange.start || dateRange.end) {
+      where.AND = [
+        ...(dateRange.end ? [{ checkInDate: { lte: dateRange.end } }] : []),
+        ...(dateRange.start ? [{ checkOutDate: { gte: dateRange.start } }] : []),
+      ];
+    }
+
+    const bookings = await this.prisma.booking.findMany({
+      where,
+      select: { checkInAt: true, checkOutAt: true },
+    });
+
+    const valid = bookings.filter(
+      (b): b is typeof b & { checkInAt: Date; checkOutAt: Date } =>
+        b.checkInAt !== null && b.checkOutAt !== null,
+    );
+
+    if (valid.length === 0) {
+      return { averageStayHours: 0, count: 0 };
+    }
+
+    const totalMs = valid.reduce(
+      (sum, b) => sum + (b.checkOutAt.getTime() - b.checkInAt.getTime()),
+      0,
+    );
+
+    return {
+      averageStayHours:
+        Math.round((totalMs / valid.length / (1000 * 60 * 60)) * 10) / 10,
+      count: valid.length,
+    };
+  }
+
   private async getBookingSourceAnalytics(where: Prisma.BookingWhereInput) {
     const [bookingCounts, payments] = await Promise.all([
       this.prisma.booking.groupBy({
@@ -764,9 +869,19 @@ export class ReportService {
     };
   }
 
+  private readonly stayDurationLabel: Record<StayDuration, string> = {
+    [StayDuration.TWO_HOURS]: '2 Hours',
+    [StayDuration.THREE_HOURS]: '3 Hours',
+    [StayDuration.SIX_HOURS]: '6 Hours',
+    [StayDuration.TWELVE_HOURS]: '12 Hours',
+    [StayDuration.TWENTY_FOUR_HOURS]: '24 Hours',
+  };
+
   private async buildRevenueExcelPayload(filters: RevenueReportFilters) {
-    const report = await this.getRevenueReport(filters);
-    const dateRange = await this.getDateRange(filters);
+    const [report, dateRange] = await Promise.all([
+      this.getRevenueReport(filters),
+      this.getDateRange(filters),
+    ]);
 
     return {
       title: 'Revenue Report',
@@ -784,6 +899,73 @@ export class ReportService {
             { metric: 'Paid Revenue', value: report.paidRevenue },
             { metric: 'Pending Revenue', value: report.pendingRevenue },
             { metric: 'Mini Bar Revenue', value: report.miniBarRevenue },
+          ],
+        },
+        {
+          title: 'Revenue By Booking Type',
+          columns: [
+            { header: 'Booking Type', key: 'bookingType' },
+            { header: 'Revenue', key: 'revenue' },
+          ],
+          rows: [
+            {
+              bookingType: 'Hourly',
+              revenue: report.revenueByBookingType.hourlyRevenue,
+            },
+            {
+              bookingType: 'Half Day',
+              revenue: report.revenueByBookingType.halfDayRevenue,
+            },
+            {
+              bookingType: 'Daily',
+              revenue: report.revenueByBookingType.dailyRevenue,
+            },
+          ],
+        },
+        {
+          title: 'Day vs Night Revenue',
+          columns: [
+            { header: 'Session', key: 'session' },
+            { header: 'Revenue', key: 'revenue' },
+          ],
+          rows: [
+            { session: 'Day', revenue: report.revenueBySessionType.dayRevenue },
+            {
+              session: 'Night',
+              revenue: report.revenueBySessionType.nightRevenue,
+            },
+          ],
+        },
+        {
+          title: 'Stay Duration Breakdown',
+          columns: [
+            { header: 'Duration', key: 'duration' },
+            { header: 'Count', key: 'count' },
+            { header: 'Percentage', key: 'percentage' },
+          ],
+          rows: report.stayDurationBreakdown.map((row) => ({
+            duration:
+              this.stayDurationLabel[row.duration as StayDuration] ??
+              row.duration,
+            count: row.count,
+            percentage: `${row.percentage}%`,
+          })),
+        },
+        {
+          title: 'Average Stay Time',
+          columns: [
+            { header: 'Metric', key: 'metric' },
+            { header: 'Value', key: 'value' },
+          ],
+          rows: [
+            {
+              metric: 'Average Stay Duration',
+              value: `${report.averageStayTime.averageStayHours} hrs`,
+            },
+            {
+              metric: 'Total Stays Analyzed',
+              value: report.averageStayTime.count,
+            },
           ],
         },
         {

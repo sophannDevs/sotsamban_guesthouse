@@ -7,6 +7,7 @@ import {
   useState,
   type ComponentProps,
 } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { zodResolver } from "@hookform/resolvers/zod"
 import {
@@ -1011,6 +1012,15 @@ export default function BookingsPage() {
                 </SelectContent>
               </Select>
             </div>
+            <Button
+              className="hidden md:inline-flex"
+              nativeButton={false}
+              render={<Link href="/bookings/hourly" />}
+              variant="outline"
+            >
+              <Clock3Icon data-icon="inline-start" />
+              {t("hourlyBooking")}
+            </Button>
             <Button className="hidden md:inline-flex" onClick={openCreateDialog}>
               <CalendarPlusIcon data-icon="inline-start" />
               {t("newBooking")}

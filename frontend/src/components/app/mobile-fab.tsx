@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation"
 import {
   CalendarPlusIcon,
+  Clock3Icon,
   PlusIcon,
   ReceiptIcon,
   UserPlusIcon,
@@ -34,6 +35,7 @@ const guesthouseFabActions = [
     icon: ZapIcon,
     action: "expressCheckIn",
   },
+  { href: "/bookings/hourly", labelKey: "fab.hourlyBooking", icon: Clock3Icon, direct: true },
   { href: "/bookings", labelKey: "fab.newBooking", icon: CalendarPlusIcon },
   { href: "/expenses", labelKey: "fab.addExpense", icon: WalletIcon },
 ] as const
@@ -53,10 +55,20 @@ export function MobileFab() {
     return null
   }
 
+  // Hide FAB on full-page wizard flows that have their own navigation buttons
+  if (pathname === "/bookings/hourly") {
+    return null
+  }
+
   const actions =
     activeBusiness.businessType === "STORE" ? storeFabActions : guesthouseFabActions
 
   function handleAction(action: (typeof actions)[number]) {
+    if ("direct" in action && action.direct) {
+      router.push(action.href)
+      return
+    }
+
     const searchAction = "action" in action ? action.action : "new"
 
     if (action.href === "/dashboard" && pathname === "/dashboard") {

@@ -354,7 +354,7 @@ export default function HourlyBookingPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 pb-24">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 pb-40 md:pb-24">
       <section className="flex flex-col gap-3">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Clock3Icon />
@@ -523,7 +523,7 @@ export default function HourlyBookingPage() {
         </aside>
       </section>
 
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t bg-background/95 p-4 backdrop-blur md:left-[var(--sidebar-width,0px)]">
+      <div className="fixed inset-x-0 bottom-16 z-30 border-t bg-background/95 p-4 backdrop-blur md:bottom-0 md:left-[var(--sidebar-width,0px)]">
         <div className="mx-auto flex max-w-5xl gap-2">
           <Button
             className="min-h-11 flex-1"

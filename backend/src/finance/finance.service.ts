@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 
 import {
+  BookingType,
   BusinessRole,
   BusinessType,
   PaymentStatus,
@@ -95,13 +96,17 @@ export class FinanceService {
 
     const source = this.parseRevenueSource(filters.source);
 
-    const [totalRevenue, totalExpense, breakdown] = await Promise.all([
-      this.getTotalRevenue(business.type, businessId!, dateRange, source),
-      this.getTotalExpense(businessId!, dateRange),
-      business.type === BusinessType.STORE
-        ? getStoreRevenueBreakdown(this.prisma, businessId!, dateRange)
-        : Promise.resolve(undefined),
-    ]);
+    const [totalRevenue, totalExpense, breakdown, bookingTypeRevenue] =
+      await Promise.all([
+        this.getTotalRevenue(business.type, businessId!, dateRange, source),
+        this.getTotalExpense(businessId!, dateRange),
+        business.type === BusinessType.STORE
+          ? getStoreRevenueBreakdown(this.prisma, businessId!, dateRange)
+          : Promise.resolve(undefined),
+        business.type === BusinessType.GUESTHOUSE
+          ? this.getBookingTypeRevenue(dateRange)
+          : Promise.resolve(undefined),
+      ]);
 
     const netProfit = totalRevenue - totalExpense;
 
@@ -113,6 +118,7 @@ export class FinanceService {
       totalExpense,
       netProfit,
       ...(breakdown ?? {}),
+      ...(bookingTypeRevenue ? { bookingTypeRevenue } : {}),
     };
   }
 
@@ -259,5 +265,32 @@ export class FinanceService {
       },
     });
     return Number(result._sum.amount ?? 0);
+  }
+
+  private async getBookingTypeRevenue(
+    dateRange: Prisma.DateTimeFilter | undefined,
+  ) {
+    const payments = await this.prisma.payment.findMany({
+      where: {
+        status: PaymentStatus.PAID,
+        ...(dateRange ? { paidAt: dateRange } : {}),
+      },
+      select: {
+        amount: true,
+        booking: { select: { bookingType: true } },
+      },
+    });
+
+    const map = new Map<string, number>();
+    for (const p of payments) {
+      const type = p.booking.bookingType;
+      map.set(type, (map.get(type) ?? 0) + Number(p.amount));
+    }
+
+    return {
+      hourlyRevenue: map.get(BookingType.HOURLY) ?? 0,
+      halfDayRevenue: map.get(BookingType.HALF_DAY) ?? 0,
+      dailyRevenue: map.get(BookingType.DAILY) ?? 0,
+    };
   }
 }

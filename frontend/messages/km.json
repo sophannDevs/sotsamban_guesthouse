@@ -21,6 +21,7 @@
   "review": "ពិនិត្យឡើងវិញ",
   "confirm": "បញ្ជាក់",
   "fab": {
+    "hourlyBooking": "ការកក់តាមម៉ោង",
     "newBooking": "កក់ថ្មី",
     "addExpense": "បន្ថែមការចំណាយ",
     "addSale": "បន្ថែមការលក់"
@@ -371,6 +372,14 @@
   "dailyBookings": "ការកក់តាមថ្ងៃ",
   "sessionDay": "ថ្ងៃ",
   "sessionNight": "យប់",
+  "hourlyBooking": "ការកក់តាមម៉ោង",
+  "halfDay": "កន្លះថ្ងៃ",
+  "dailyBooking": "ការកក់ពេញថ្ងៃ",
+  "sessionType": "ប្រភេទវេលា",
+  "dayStay": "ពេលថ្ងៃ",
+  "nightStay": "ពេលយប់",
+  "autoCheckout": "ចាកចេញស្វ័យប្រវត្តិ",
+  "hours": "ម៉ោង",
   "searchBookings": "ស្វែងរកការកក់",
   "searchBookingsPlaceholder": "ស្វែងរកតាមលេខការកក់ ភ្ញៀវ ឬបន្ទប់",
   "noBookingsMatchFilters": "មិនមានការកក់ត្រូវនឹងតម្រងរបស់អ្នកទេ។",

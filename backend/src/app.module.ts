@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import {
   AcceptLanguageResolver,
   I18nJsonLoader,
@@ -31,6 +32,7 @@ import { HousekeepingModule } from './housekeeping/housekeeping.module';
 import { MiniBarModule } from './mini-bar/mini-bar.module';
 import { StoreModule } from './store/store.module';
 import { UsersModule } from './users/users.module';
+import { AutoCheckoutModule } from './auto-checkout/auto-checkout.module';
 
 const i18nPath =
   process.env.NODE_ENV === 'production'
@@ -40,6 +42,7 @@ const i18nPath =
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     I18nModule.forRoot({
       fallbackLanguage: 'en',
       loader: I18nJsonLoader,
@@ -68,6 +71,7 @@ const i18nPath =
     HousekeepingModule,
     GuesthouseStoreLinkModule,
     MiniBarModule,
+    AutoCheckoutModule,
   ],
   controllers: [AppController],
   providers: [

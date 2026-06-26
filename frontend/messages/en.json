@@ -21,6 +21,7 @@
   "review": "Review",
   "confirm": "Confirm",
   "fab": {
+    "hourlyBooking": "Hourly Booking",
     "newBooking": "New Booking",
     "addExpense": "Add Expense",
     "addSale": "Add Sale"
@@ -371,6 +372,14 @@
   "dailyBookings": "Daily bookings",
   "sessionDay": "Day",
   "sessionNight": "Night",
+  "hourlyBooking": "Hourly Booking",
+  "halfDay": "Half Day",
+  "dailyBooking": "Daily Booking",
+  "sessionType": "Session Type",
+  "dayStay": "Day Stay",
+  "nightStay": "Night Stay",
+  "autoCheckout": "Auto Check-out",
+  "hours": "Hours",
   "searchBookings": "Search bookings",
   "searchBookingsPlaceholder": "Search by booking ID, guest, or room",
   "noBookingsMatchFilters": "No bookings match your filters.",

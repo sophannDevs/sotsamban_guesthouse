@@ -382,13 +382,40 @@ export class HousekeepingService {
       );
     }
 
-    const updated = await this.prisma.housekeepingTask.update({
-      where: { id },
-      data: {
-        status: HousekeepingStatus.CLEANED,
-        completedAt: new Date(),
-      },
-      include: this.taskInclude,
+    const [blockingBooking, room] = await Promise.all([
+      this.prisma.booking.findFirst({
+        where: {
+          roomId: task.roomId,
+          status: { in: [...ACTIVE_BOOKING_STATUSES] },
+        },
+      }),
+      this.prisma.room.findUnique({
+        where: { id: task.roomId },
+        select: { status: true },
+      }),
+    ]);
+
+    const roomBlocked =
+      room?.status === RoomStatus.MAINTENANCE || !!blockingBooking;
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const completedTask = await tx.housekeepingTask.update({
+        where: { id },
+        data: {
+          status: HousekeepingStatus.CLEANED,
+          completedAt: new Date(),
+        },
+        include: this.taskInclude,
+      });
+
+      if (!roomBlocked) {
+        await tx.room.update({
+          where: { id: task.roomId },
+          data: { status: RoomStatus.AVAILABLE },
+        });
+      }
+
+      return completedTask;
     });
 
     return this.serialize(updated);
